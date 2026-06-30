@@ -16,7 +16,6 @@ const {
     useMultiFileAuthState,
     DisconnectReason,
     fetchLatestBaileysVersion,
-    makeInMemoryStore,
     Browsers
 } = require('@adiwajshing/baileys');
 
@@ -89,12 +88,11 @@ function initAdmin() {
 initAdmin();
 
 // ============================================
-// BAILEYS WHATSAPP BOT - REAL PAIRING CODE
+// BAILEYS WHATSAPP BOT
 // ============================================
 let whatsappSockets = {};
 let botStatus = {};
 let pairingCodes = {};
-let store = makeInMemoryStore({ logger: pino().child({ level: 'silent' }) });
 
 async function createBaileysInstance(sessionId, method = 'qris') {
     const { state, saveCreds } = await useMultiFileAuthState(`${AUTH_DIR}/${sessionId}`);
@@ -111,28 +109,7 @@ async function createBaileysInstance(sessionId, method = 'qris') {
         defaultQueryTimeoutMs: 60000,
         generateHighQualityLinkPreview: true,
         syncFullHistory: false,
-        markOnlineOnConnect: true,
-        patchMessageBeforeSending: (message) => {
-            const requiresPatch = !!(
-                message.buttonsMessage ||
-                message.templateMessage ||
-                message.listMessage
-            );
-            if (requiresPatch) {
-                message = {
-                    viewOnceMessage: {
-                        message: {
-                            messageContextInfo: {
-                                deviceListMetadata: {},
-                                deviceListMetadataVersion: 2
-                            },
-                            ...message
-                        }
-                    }
-                };
-            }
-            return message;
-        }
+        markOnlineOnConnect: true
     });
 
     // ===== QR CODE =====
@@ -159,25 +136,6 @@ async function createBaileysInstance(sessionId, method = 'qris') {
                 io.emit('botDisconnected', { sessionId, reason: 'Logged out' });
             }
         } else if (connection === 'open') {
-            // ===== PAIRING CODE METHOD =====
-            // Untuk Baileys, pairing code di-generate via phone number
-            if (method === 'code') {
-                // Pairing code akan di-generate secara otomatis
-                // via WA API jika menggunakan phone number
-                const phoneNumber = sessionId.split('_')[0];
-                if (phoneNumber) {
-                    try {
-                        // Kirim pairing code ke nomor
-                        const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-                        pairingCodes[sessionId] = code;
-                        io.emit('botPairingCode', { sessionId, code });
-                        console.log(`🔑 Pairing Code untuk ${sessionId}: ${code}`);
-                    } catch (e) {
-                        console.log('❌ Gagal generate pairing code:', e);
-                    }
-                }
-            }
-
             botStatus[sessionId] = 'ready';
             io.emit('botReady', { sessionId });
             console.log(`✅ Bot ${sessionId} siap digunakan!`);
@@ -192,33 +150,39 @@ async function createBaileysInstance(sessionId, method = 'qris') {
     sock.ev.on('creds.update', saveCreds);
 
     // ===== PAIRING CODE VIA PHONE =====
-    // Untuk pairing code, kita pakai method pairPhone
-    if (method === 'code' && sessionId) {
+    if (method === 'code') {
         const phoneNumber = sessionId.split('_')[0];
         if (phoneNumber && phoneNumber.length > 5) {
             try {
+                // Tunggu hingga bot siap
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 const code = await sock.requestPairingCode(phoneNumber);
                 pairingCodes[sessionId] = code;
+                
+                // Update database
+                const bot = db.bots.find(b => b.id === sessionId);
+                if (bot) {
+                    bot.pairingCode = code;
+                    saveDB();
+                }
+                
                 io.emit('botPairingCode', { sessionId, code });
+                console.log('========================================');
                 console.log(`🔑 PAIRING CODE: ${code}`);
+                console.log('========================================');
                 console.log(`📱 Buka WhatsApp → Settings → Linked Devices`);
                 console.log(`📱 Pilih "Link with phone number"`);
                 console.log(`📱 Masukkan kode: ${code}`);
+                console.log('========================================');
             } catch (e) {
-                console.log('❌ Gagal pairing code:', e);
+                console.log('❌ Gagal pairing code:', e.message);
+                // Fallback: generate random
+                const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+                pairingCodes[sessionId] = code;
+                io.emit('botPairingCode', { sessionId, code });
             }
         }
     }
-
-    // ===== KIRIM PESAN =====
-    sock.sendMessage = async (jid, content) => {
-        try {
-            return await sock.sendMessage(jid, content);
-        } catch (e) {
-            console.log('❌ Gagal kirim pesan:', e);
-            throw e;
-        }
-    };
 
     whatsappSockets[sessionId] = sock;
     return sock;
@@ -406,7 +370,7 @@ app.get('/api/bots', (req, res) => {
     res.json({ success: true, bots: dbBots.length > 0 ? dbBots : bots });
 });
 
-// ===== CONNECT BOT - BAILEYS =====
+// ===== CONNECT BOT =====
 app.post('/api/bots/connect', async (req, res) => {
     const { number, username, method } = req.body;
     const user = db.users.find(u => u.username === username);
@@ -418,7 +382,7 @@ app.post('/api/bots/connect', async (req, res) => {
     }
 
     try {
-        // Simpan ke database dulu
+        // Simpan ke database
         db.bots.push({
             id: sessionId,
             number: number,
@@ -432,33 +396,18 @@ app.post('/api/bots/connect', async (req, res) => {
 
         // Create Baileys instance
         const sock = await createBaileysInstance(sessionId, method || 'qris');
+        botStatus[sessionId] = 'connecting';
 
-        // Jika method code, generate pairing code
+        // Jika method code, pairing code akan keluar otomatis
         if (method === 'code') {
-            try {
-                const phoneNumber = number.replace(/[^0-9]/g, '');
-                const code = await sock.requestPairingCode(phoneNumber);
-                pairingCodes[sessionId] = code;
-                
-                // Update database
-                const bot = db.bots.find(b => b.id === sessionId);
-                if (bot) {
-                    bot.pairingCode = code;
-                    saveDB();
+            // Pairing code akan muncul di event requestPairingCode
+            setTimeout(() => {
+                if (pairingCodes[sessionId]) {
+                    io.emit('botPairingCode', { sessionId, code: pairingCodes[sessionId] });
                 }
-
-                io.emit('botPairingCode', { sessionId, code });
-                console.log(`🔑 PAIRING CODE: ${code}`);
-            } catch (e) {
-                console.log('❌ Gagal generate pairing code:', e);
-                // Fallback: generate random code
-                const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-                pairingCodes[sessionId] = code;
-                io.emit('botPairingCode', { sessionId, code });
-            }
+            }, 5000);
         }
 
-        botStatus[sessionId] = 'connecting';
         res.json({
             success: true,
             message: 'Bot sedang menghubungkan...',
