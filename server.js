@@ -13,11 +13,15 @@ const pino = require('pino');
 // ===== BAILEYS WHATSAPP =====
 const makeWASocket = require('@adiwajshing/baileys').default;
 const {
-    useMultiFileAuthState,
     DisconnectReason,
     fetchLatestBaileysVersion,
-    Browsers
+    Browsers,
+    makeCacheableSignalKeyStore,
+    makeInMemoryStore
 } = require('@adiwajshing/baileys');
+
+// ===== SESSION STORE DI DATABASE =====
+const { useSingleFileAuthState } = require('@adiwajshing/baileys');
 
 const app = express();
 const server = http.createServer(app);
@@ -39,10 +43,8 @@ app.get('/', (req, res) => {
 // ===== STORAGE =====
 const DATA_DIR = './data';
 const UPLOAD_DIR = './uploads/payments';
-const AUTH_DIR = './auth_info';
 fs.ensureDirSync(DATA_DIR);
 fs.ensureDirSync(UPLOAD_DIR);
-fs.ensureDirSync(AUTH_DIR);
 
 // ===== DATABASE =====
 let db = {
@@ -50,6 +52,7 @@ let db = {
     bots: [],
     payments: [],
     messages: [],
+    sessions: {}, // ✅ SESSION DISIMPAN DI SINI
     settings: { globalLimit: 50, maxBots: 5, maintenance: false }
 };
 
@@ -74,7 +77,7 @@ function initAdmin() {
             username: 'Lynzka',
             password: bcrypt.hashSync('Asiafone11', 10),
             status: 'Developer',
-            limit: Infinity, // ✅ INFINITY
+            limit: Infinity,
             used: 0,
             isAdmin: true,
             isDeveloper: true,
@@ -83,42 +86,80 @@ function initAdmin() {
         });
         saveDB();
         console.log('✅ Admin Lynzka dibuat');
-    } else {
-        // ✅ PASTIKAN ADMIN LIMIT INFINITY
-        if (admin.limit !== Infinity) {
-            admin.limit = Infinity;
-            saveDB();
-            console.log('✅ Admin limit di-set ke Infinity');
-        }
     }
 }
 initAdmin();
 
 // ============================================
-// BAILEYS WHATSAPP BOT - SESSION TERSIMPAN
+// SESSION STORE - DISIMPAN DI DB
 // ============================================
 let whatsappSockets = {};
 let botStatus = {};
 let pairingCodes = {};
 let botReadyStates = {};
 
+// ✅ FUNGSI UNTUK SAVE SESSION KE DB
+function saveSessionToDB(sessionId, creds) {
+    if (!db.sessions) db.sessions = {};
+    db.sessions[sessionId] = creds;
+    saveDB();
+    console.log(`💾 Session ${sessionId} disimpan ke database`);
+}
+
+// ✅ FUNGSI UNTUK LOAD SESSION DARI DB
+function loadSessionFromDB(sessionId) {
+    if (!db.sessions) return null;
+    return db.sessions[sessionId] || null;
+}
+
+// ✅ FUNGSI UNTUK DELETE SESSION
+function deleteSessionFromDB(sessionId) {
+    if (db.sessions) {
+        delete db.sessions[sessionId];
+        saveDB();
+        console.log(`🗑️ Session ${sessionId} dihapus`);
+    }
+}
+
+// ===== CREATE BAILEYS INSTANCE =====
 async function createBaileysInstance(sessionId, method = 'qris') {
     console.log(`📱 Creating Baileys instance: ${sessionId}`);
     
-    // ✅ PAKAI AUTH YANG SUDAH ADA
-    const { state, saveCreds } = await useMultiFileAuthState(`${AUTH_DIR}/${sessionId}`);
+    // ✅ AMBIL SESSION DARI DB
+    let savedCreds = loadSessionFromDB(sessionId);
+    
+    // ✅ STATE DENGAN SESSION YANG DISIMPAN
+    let state = {
+        creds: savedCreds || {},
+        keys: {}
+    };
+
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
         version,
         logger: pino({ level: 'silent' }),
-        auth: state,
+        auth: {
+            creds: state.creds,
+            keys: state.keys
+        },
         browser: Browsers.windows('Chrome'),
         printQRInTerminal: method === 'qris',
         defaultQueryTimeoutMs: 60000,
         generateHighQualityLinkPreview: true,
         syncFullHistory: false,
-        markOnlineOnConnect: true
+        markOnlineOnConnect: true,
+        // ✅ PENTING: JANGAN KELUAR
+        shouldSyncHistory: () => false,
+        patchMessageBeforeSending: (message) => {
+            return message;
+        }
+    });
+
+    // ✅ SAVE CREDENTIALS KE DB
+    sock.ev.on('creds.update', async (creds) => {
+        saveSessionToDB(sessionId, creds);
+        console.log(`💾 Credentials updated for ${sessionId}`);
     });
 
     // ===== QR CODE =====
@@ -136,10 +177,12 @@ async function createBaileysInstance(sessionId, method = 'qris') {
         }
 
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log(`🔌 Connection closed for ${sessionId}, reconnecting: ${shouldReconnect}`);
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
+            
+            console.log(`🔌 Connection closed for ${sessionId}, code: ${statusCode}, reconnect: ${shouldReconnect}`);
+            
             if (shouldReconnect) {
-                // ✅ RECONNECT OTOMATIS
                 setTimeout(() => {
                     createBaileysInstance(sessionId, method);
                 }, 3000);
@@ -148,9 +191,10 @@ async function createBaileysInstance(sessionId, method = 'qris') {
                 botReadyStates[sessionId] = false;
                 io.emit('botDisconnected', { sessionId, reason: 'Logged out' });
                 // ✅ HAPUS SESSION KALAU LOGOUT
-                try {
-                    fs.removeSync(`${AUTH_DIR}/${sessionId}`);
-                } catch (e) {}
+                deleteSessionFromDB(sessionId);
+                // HAPUS DARI DATABASE BOTS
+                db.bots = db.bots.filter(b => b.id !== sessionId);
+                saveDB();
             }
         } else if (connection === 'open') {
             botStatus[sessionId] = 'ready';
@@ -158,7 +202,6 @@ async function createBaileysInstance(sessionId, method = 'qris') {
             io.emit('botReady', { sessionId });
             console.log(`✅ Bot ${sessionId} siap digunakan!`);
             
-            // ✅ UPDATE DATABASE
             const bot = db.bots.find(b => b.id === sessionId);
             if (bot) {
                 bot.status = 'ready';
@@ -172,14 +215,13 @@ async function createBaileysInstance(sessionId, method = 'qris') {
         }
     });
 
-    sock.ev.on('creds.update', saveCreds);
-
-    // ===== PAIRING CODE VIA PHONE =====
+    // ===== PAIRING CODE =====
     if (method === 'code') {
         const phoneNumber = sessionId.split('_')[0];
         if (phoneNumber && phoneNumber.length > 5) {
             try {
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Tunggu koneksi terbuka
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 const code = await sock.requestPairingCode(phoneNumber);
                 pairingCodes[sessionId] = code;
                 
@@ -192,10 +234,6 @@ async function createBaileysInstance(sessionId, method = 'qris') {
                 io.emit('botPairingCode', { sessionId, code });
                 console.log('========================================');
                 console.log(`🔑 PAIRING CODE: ${code}`);
-                console.log('========================================');
-                console.log(`📱 Buka WhatsApp → Settings → Linked Devices`);
-                console.log(`📱 Pilih "Link with phone number"`);
-                console.log(`📱 Masukkan kode: ${code}`);
                 console.log('========================================');
             } catch (e) {
                 console.log('❌ Gagal pairing code:', e.message);
@@ -210,23 +248,22 @@ async function createBaileysInstance(sessionId, method = 'qris') {
     return sock;
 }
 
-// ✅ FUNGSI UNTUK RESTORE SESSION
+// ✅ RESTORE SESSION
 async function restoreAllSessions() {
     try {
-        const authDirs = fs.readdirSync(AUTH_DIR);
-        for (const dir of authDirs) {
-            if (fs.existsSync(`${AUTH_DIR}/${dir}/creds.json`)) {
-                console.log(`🔄 Restoring session: ${dir}`);
-                const sessionId = dir;
-                const bot = db.bots.find(b => b.id === sessionId);
-                if (bot) {
-                    await createBaileysInstance(sessionId, bot.method || 'qris');
-                    botStatus[sessionId] = 'connecting';
-                }
+        const sessionIds = Object.keys(db.sessions || {});
+        console.log(`🔄 Found ${sessionIds.length} saved sessions`);
+        
+        for (const sessionId of sessionIds) {
+            const bot = db.bots.find(b => b.id === sessionId);
+            if (bot) {
+                console.log(`🔄 Restoring session: ${sessionId}`);
+                await createBaileysInstance(sessionId, bot.method || 'qris');
+                botStatus[sessionId] = 'connecting';
             }
         }
     } catch (e) {
-        console.log('No sessions to restore');
+        console.log('❌ Error restoring sessions:', e.message);
     }
 }
 
@@ -414,12 +451,14 @@ app.post('/api/bots/connect', async (req, res) => {
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
 
-    // ✅ CEK APAKAH BOT SUDAH ADA
+    // ✅ CEK BOT EXISTING DENGAN SESSION
     const existingBot = db.bots.find(b => b.number === number && b.owner === username);
     if (existingBot) {
-        // ✅ RESTORE SESSION
-        if (fs.existsSync(`${AUTH_DIR}/${existingBot.id}`)) {
+        // ✅ CEK SESSION DI DB
+        const sessionExists = db.sessions && db.sessions[existingBot.id];
+        if (sessionExists) {
             try {
+                console.log(`🔄 Restoring existing bot: ${existingBot.id}`);
                 await createBaileysInstance(existingBot.id, existingBot.method || 'qris');
                 botStatus[existingBot.id] = 'connecting';
                 return res.json({
@@ -431,8 +470,18 @@ app.post('/api/bots/connect', async (req, res) => {
                 });
             } catch (e) {
                 console.log('❌ Restore gagal:', e);
+                // HAPUS SESSION YANG CORRUPT
+                deleteSessionFromDB(existingBot.id);
+                db.bots = db.bots.filter(b => b.id !== existingBot.id);
+                saveDB();
             }
         }
+    }
+
+    // ✅ HAPUS BOT LAMA KALAU GAGAL
+    if (existingBot) {
+        db.bots = db.bots.filter(b => b.id !== existingBot.id);
+        saveDB();
     }
 
     const sessionId = `${number}_${Date.now()}`;
@@ -487,6 +536,7 @@ app.post('/api/bots/disconnect', (req, res) => {
         delete botStatus[sessionId];
         delete pairingCodes[sessionId];
         delete botReadyStates[sessionId];
+        deleteSessionFromDB(sessionId);
         db.bots = db.bots.filter(b => b.id !== sessionId);
         saveDB();
     }
@@ -560,7 +610,6 @@ app.post('/api/admin/update-status', (req, res) => {
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
     
-    // ✅ LIMIT SESUAI STATUS
     const limits = { 
         Free: 15, 
         Premium: 200, 
@@ -728,13 +777,5 @@ server.listen(PORT, async () => {
     console.log('🔄 Restoring saved sessions...');
     await restoreAllSessions();
     
-    console.log('========================================');
-    console.log('🔑 PAIRING CODE METHOD:');
-    console.log('1. Pilih metode "Code" di menu Bot');
-    console.log('2. Klik Connect Bot');
-    console.log('3. Tunggu pairing code muncul di web');
-    console.log('4. Buka WhatsApp → Settings → Linked Devices');
-    console.log('5. Pilih "Link with phone number"');
-    console.log('6. Masukkan pairing code');
     console.log('========================================');
 });
