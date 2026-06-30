@@ -2,10 +2,7 @@
 nixPkgs = ["nodejs", "chromium"]
 
 [phases.install]
-cmds = [
-  "npm install --production=false",
-  "npm install express socket.io cors bcryptjs multer fs-extra uuid qrcode whatsapp-web.js dotenv jsonwebtoken puppeteer-core"
-]
+cmds = ["npm install"]
 
 [phases.start]
 cmds = ["npm start"]
