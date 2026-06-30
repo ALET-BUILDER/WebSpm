@@ -20,13 +20,9 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// ===== SERVE STATIC FILES =====
-// SERVE index.html dari ROOT
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ===== ROUTE UNTUK INDEX =====
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -81,44 +77,37 @@ function initAdmin() {
 initAdmin();
 
 // ============================================
-// WHATSAPP BOT REAL - FIX UNTUK RAILWAY
+// WHATSAPP BOT - PAIRING CODE SUPPORT
 // ============================================
 let whatsappClients = {};
 let botStatus = {};
+let pairingCodes = {};
 
-function createBotInstance(sessionId) {
-    // Cari Chromium di Railway
-    let chromiumPath = null;
+// ===== CARI CHROMIUM =====
+function getChromiumPath() {
     const possiblePaths = [
         '/nix/store/*chromium/bin/chromium',
         '/usr/bin/chromium',
         '/usr/bin/chromium-browser',
         '/usr/local/bin/chromium',
-        process.env.PUPPETEER_EXECUTABLE_PATH
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+        '/data/data/com.termux/files/usr/bin/chromium'
     ];
-
-    // Coba semua path
     for (const p of possiblePaths) {
         try {
             const cleanPath = p.replace('*', '');
             if (fs.existsSync(cleanPath)) {
-                chromiumPath = cleanPath;
-                console.log(`✅ Chromium ditemukan di: ${chromiumPath}`);
-                break;
+                return cleanPath;
             }
         } catch (e) {}
     }
+    return null;
+}
 
-    // Coba cari dengan which
-    if (!chromiumPath) {
-        try {
-            const { execSync } = require('child_process');
-            chromiumPath = execSync('which chromium || which chromium-browser || true', { encoding: 'utf8' }).trim();
-            if (chromiumPath) {
-                console.log(`✅ Chromium ditemukan via which: ${chromiumPath}`);
-            }
-        } catch (e) {}
-    }
+// ===== CREATE BOT INSTANCE =====
+function createBotInstance(sessionId, method = 'qris') {
+    const chromiumPath = getChromiumPath();
+    console.log(`🔧 Chromium path: ${chromiumPath || 'default'}`);
 
     const client = new Client({
         authStrategy: new LocalAuth({ clientId: sessionId }),
@@ -133,40 +122,75 @@ function createBotInstance(sessionId) {
                 '--disable-gpu',
                 '--disable-software-rasterizer',
                 '--disable-extensions',
-                '--disable-default-apps',
-                '--disable-sync',
-                '--disable-translate'
+                '--disable-default-apps'
             ]
         }
     });
 
+    // ===== QR CODE METHOD =====
     client.on('qr', async (qr) => {
-        try {
-            const qrImage = await qrcode.toDataURL(qr);
-            io.emit('botQR', { sessionId, qr: qrImage });
-            console.log('📱 QR Code siap');
-        } catch (e) {
-            console.log('📱 QR Code:', qr);
+        if (method === 'qris') {
+            try {
+                const qrImage = await qrcode.toDataURL(qr);
+                io.emit('botQR', { sessionId, qr: qrImage });
+                console.log('📱 QR Code siap di scan');
+            } catch (e) {
+                console.log('📱 QR Code:', qr);
+            }
         }
     });
 
+    // ===== PAIRING CODE METHOD =====
+    client.on('pairing_code', (code) => {
+        pairingCodes[sessionId] = code;
+        
+        console.log('========================================');
+        console.log(`🔑 PAIRING CODE: ${code}`);
+        console.log('========================================');
+        console.log('📱 Buka WhatsApp → Settings → Linked Devices');
+        console.log('📱 Pilih "Link with phone number"');
+        console.log(`📱 Masukkan kode: ${code}`);
+        console.log('========================================');
+        
+        // Kirim ke semua client via socket
+        io.emit('botPairingCode', { sessionId, code });
+        
+        // Simpan ke database
+        const bot = db.bots.find(b => b.id === sessionId);
+        if (bot) {
+            bot.pairingCode = code;
+            saveDB();
+        }
+    });
+
+    // ===== READY =====
     client.on('ready', () => {
         botStatus[sessionId] = 'ready';
         io.emit('botReady', { sessionId });
         console.log('✅ Bot siap digunakan!');
+        
+        // Update database
+        const bot = db.bots.find(b => b.id === sessionId);
+        if (bot) {
+            bot.status = 'ready';
+            saveDB();
+        }
     });
 
+    // ===== AUTHENTICATED =====
     client.on('authenticated', () => {
         botStatus[sessionId] = 'authenticated';
         console.log('🔐 Bot terautentikasi');
     });
 
+    // ===== AUTH FAILURE =====
     client.on('auth_failure', (msg) => {
         botStatus[sessionId] = 'failed';
         io.emit('botError', { sessionId, error: msg });
         console.log('❌ Auth gagal:', msg);
     });
 
+    // ===== DISCONNECTED =====
     client.on('disconnected', (reason) => {
         botStatus[sessionId] = 'disconnected';
         io.emit('botDisconnected', { sessionId, reason });
@@ -177,7 +201,7 @@ function createBotInstance(sessionId) {
 }
 
 // ============================================
-// REAL SPAM FUNCTIONS
+// SPAM FUNCTIONS
 // ============================================
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -344,34 +368,89 @@ app.post('/api/change-password', (req, res) => {
 app.get('/api/bots', (req, res) => {
     const bots = Object.keys(botStatus).map(id => ({
         id,
-        status: botStatus[id] || 'disconnected'
+        status: botStatus[id] || 'disconnected',
+        pairingCode: pairingCodes[id] || null
     }));
-    res.json({ success: true, bots });
+    // Tambahkan dari database
+    const dbBots = db.bots.map(b => ({
+        id: b.id,
+        number: b.number,
+        owner: b.owner,
+        status: b.status || 'disconnected',
+        pairingCode: b.pairingCode || null,
+        method: b.method || 'qris'
+    }));
+    res.json({ success: true, bots: dbBots.length > 0 ? dbBots : bots });
 });
 
+// ===== CONNECT BOT - SUPPORT PAIRING CODE =====
 app.post('/api/bots/connect', (req, res) => {
-    const { number, username } = req.body;
+    const { number, username, method } = req.body;
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+    
     const sessionId = `${username}_${Date.now()}`;
     if (whatsappClients[sessionId]) {
         return res.json({ success: false, message: 'Bot sudah terhubung!' });
     }
+    
     try {
-        const client = createBotInstance(sessionId);
+        const client = createBotInstance(sessionId, method || 'qris');
         whatsappClients[sessionId] = client;
         botStatus[sessionId] = 'connecting';
+        
+        // Initialize
         client.initialize();
+        
+        // Simpan ke database
         db.bots.push({
             id: sessionId,
-            number,
+            number: number,
             owner: username,
             status: 'connecting',
+            method: method || 'qris',
+            pairingCode: null,
             connectedAt: new Date().toISOString()
         });
         saveDB();
-        res.json({ success: true, message: 'Bot sedang menghubungkan...', sessionId });
+        
+        // Jika method code, tunggu pairing code
+        if (method === 'code') {
+            // Pairing code akan muncul via event 'pairing_code'
+            // Kirim pesan ke client
+            setTimeout(() => {
+                if (pairingCodes[sessionId]) {
+                    io.emit('botPairingCode', { sessionId, code: pairingCodes[sessionId] });
+                    console.log(`📤 Pairing code dikirim ke client: ${pairingCodes[sessionId]}`);
+                } else {
+                    // Coba generate ulang
+                    console.log('⏳ Menunggu pairing code...');
+                }
+            }, 3000);
+            
+            // Long polling untuk pairing code
+            let attempts = 0;
+            const checkPairing = setInterval(() => {
+                attempts++;
+                if (pairingCodes[sessionId]) {
+                    io.emit('botPairingCode', { sessionId, code: pairingCodes[sessionId] });
+                    clearInterval(checkPairing);
+                    console.log(`✅ Pairing code ditemukan: ${pairingCodes[sessionId]}`);
+                } else if (attempts > 20) {
+                    clearInterval(checkPairing);
+                    console.log('⏰ Timeout menunggu pairing code');
+                }
+            }, 2000);
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Bot sedang menghubungkan...', 
+            sessionId,
+            method: method || 'qris'
+        });
     } catch (error) {
+        console.error('❌ Error connect bot:', error);
         res.json({ success: false, message: error.message });
     }
 });
@@ -379,9 +458,12 @@ app.post('/api/bots/connect', (req, res) => {
 app.post('/api/bots/disconnect', (req, res) => {
     const { sessionId } = req.body;
     if (whatsappClients[sessionId]) {
-        whatsappClients[sessionId].destroy();
+        try {
+            whatsappClients[sessionId].destroy();
+        } catch (e) {}
         delete whatsappClients[sessionId];
         delete botStatus[sessionId];
+        delete pairingCodes[sessionId];
         db.bots = db.bots.filter(b => b.id !== sessionId);
         saveDB();
     }
@@ -392,7 +474,7 @@ app.post('/api/spam/pairing', async (req, res) => {
     const { sessionId, target, count } = req.body;
     const client = whatsappClients[sessionId];
     if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
+    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap! Status: ' + botStatus[sessionId] });
     try {
         const result = await sendPairingCode(client, target, count, sessionId);
         res.json({ success: true, result });
@@ -405,7 +487,7 @@ app.post('/api/spam/chat', async (req, res) => {
     const { sessionId, target, message, count } = req.body;
     const client = whatsappClients[sessionId];
     if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
+    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap! Status: ' + botStatus[sessionId] });
     try {
         const result = await sendSpamChat(client, target, message, count, sessionId);
         res.json({ success: true, result });
@@ -418,7 +500,7 @@ app.post('/api/spam/call', async (req, res) => {
     const { sessionId, target, type, count } = req.body;
     const client = whatsappClients[sessionId];
     if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
+    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap! Status: ' + botStatus[sessionId] });
     try {
         const result = await sendSpamCall(client, target, type, count, sessionId);
         res.json({ success: true, result });
@@ -558,6 +640,7 @@ const onlineUsers = new Set();
 
 io.on('connection', (socket) => {
     console.log('⚡ User connected:', socket.id);
+    
     socket.on('userOnline', (username) => {
         onlineUsers.add(username);
         const user = db.users.find(u => u.username === username);
@@ -565,12 +648,14 @@ io.on('connection', (socket) => {
         saveDB();
         io.emit('usersOnline', Array.from(onlineUsers));
     });
+    
     socket.on('sendMessage', (data) => {
         db.messages.push(data);
         if (db.messages.length > 1000) db.messages.shift();
         saveDB();
         io.emit('newMessage', data);
     });
+    
     socket.on('disconnect', () => {
         console.log('⚡ User disconnected:', socket.id);
         setTimeout(() => {
@@ -586,7 +671,7 @@ io.on('connection', (socket) => {
 });
 
 // ============================================
-// AUTO CLEAN MESSAGES
+// AUTO CLEAN
 // ============================================
 function checkAndCleanMessages() {
     const now = new Date();
@@ -606,4 +691,13 @@ server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🔗 https://your-app.railway.app`);
     console.log('📱 WhatsApp Bot siap digunakan!');
+    console.log('========================================');
+    console.log('🔑 PAIRING CODE METHOD:');
+    console.log('1. Pilih metode "Code" di menu Bot');
+    console.log('2. Klik Connect Bot');
+    console.log('3. Tunggu pairing code muncul di console atau web');
+    console.log('4. Buka WhatsApp → Settings → Linked Devices');
+    console.log('5. Pilih "Link with phone number"');
+    console.log('6. Masukkan pairing code');
+    console.log('========================================');
 });
