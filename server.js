@@ -7,17 +7,31 @@ const multer = require('multer');
 const fs = require('fs-extra');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
+const io = socketIo(server, { 
+    cors: { origin: "*", methods: ["GET", "POST"] } 
+});
 
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
+app.use(express.urlencoded({ extended: true }));
+
+// ===== SERVE STATIC FILES =====
+// SERVE index.html dari ROOT
+app.use(express.static(__dirname));
+// ATAU kalau mau pindah ke folder public:
+// app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ===== ROUTE UNTUK INDEX =====
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // ===== STORAGE =====
 const DATA_DIR = './data';
@@ -31,7 +45,6 @@ let db = {
     bots: [],
     payments: [],
     messages: [],
-    spamLogs: [],
     settings: { globalLimit: 50, maxBots: 5, maintenance: false }
 };
 
@@ -72,7 +85,7 @@ initAdmin();
 // ============================================
 // WHATSAPP BOT REAL
 // ============================================
-let whatsappClients = {}; // Multi bot support
+let whatsappClients = {};
 let botStatus = {};
 
 function createBotInstance(sessionId) {
@@ -119,148 +132,97 @@ function createBotInstance(sessionId) {
 // ============================================
 // REAL SPAM FUNCTIONS
 // ============================================
-
-// 1. SPAM PAIRING CODE (Real)
 async function sendPairingCode(client, phoneNumber, count, sessionId) {
     const results = { success: 0, failed: 0, logs: [] };
-    
     for (let i = 0; i < count; i++) {
         try {
-            // Generate random pairing code
             const code = Math.random().toString(36).substring(2, 10).toUpperCase();
             const message = `*PAIRING CODE*\n\nKode: ${code}\n\nGunakan kode ini untuk connect WhatsApp Anda.\n\n*PrankMaster Pro*`;
-            
             const chatId = phoneNumber.includes('@c.us') ? phoneNumber : `${phoneNumber}@c.us`;
-            
             await client.sendMessage(chatId, message);
             results.success++;
-            
-            // Log real-time
             io.emit('spamProgress', {
-                sessionId,
-                type: 'pairing',
-                target: phoneNumber,
-                current: i + 1,
-                total: count,
-                success: results.success,
-                failed: results.failed,
+                sessionId, type: 'pairing', target: phoneNumber,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
                 message: `✅ Pairing code terkirim ke ${phoneNumber} (${i+1}/${count})`
             });
-            
-            // Delay biar gak kena banned
             await sleep(2000 + Math.random() * 3000);
-            
         } catch (error) {
             results.failed++;
             io.emit('spamProgress', {
-                sessionId,
-                type: 'pairing',
-                target: phoneNumber,
-                current: i + 1,
-                total: count,
-                success: results.success,
-                failed: results.failed,
+                sessionId, type: 'pairing', target: phoneNumber,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
                 error: error.message
             });
         }
     }
-    
     return results;
 }
 
-// 2. SPAM CHAT (Real)
 async function sendSpamChat(client, phoneNumber, message, count, sessionId) {
-    const results = { success: 0, failed: 0, logs: [] };
-    
+    const results = { success: 0, failed: 0 };
     for (let i = 0; i < count; i++) {
         try {
             const chatId = phoneNumber.includes('@c.us') ? phoneNumber : `${phoneNumber}@c.us`;
             const msg = message + ` (${i+1}/${count})`;
-            
             await client.sendMessage(chatId, msg);
             results.success++;
-            
             io.emit('spamProgress', {
-                sessionId,
-                type: 'chat',
-                target: phoneNumber,
-                current: i + 1,
-                total: count,
-                success: results.success,
-                failed: results.failed,
+                sessionId, type: 'chat', target: phoneNumber,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
                 message: `✅ Chat terkirim ke ${phoneNumber} (${i+1}/${count})`
             });
-            
             await sleep(1500 + Math.random() * 2000);
-            
         } catch (error) {
             results.failed++;
             io.emit('spamProgress', {
-                sessionId,
-                type: 'chat',
-                target: phoneNumber,
-                current: i + 1,
-                total: count,
-                success: results.success,
-                failed: results.failed,
+                sessionId, type: 'chat', target: phoneNumber,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
                 error: error.message
             });
         }
     }
-    
     return results;
 }
 
-// 3. SPAM CALL (Real - Simulasi karena WhatsApp Web gak support call)
-// Tapi kita kirim pesan "missed call" simulation
 async function sendSpamCall(client, phoneNumber, type, count, sessionId) {
-    const results = { success: 0, failed: 0, logs: [] };
+    const results = { success: 0, failed: 0 };
     const callType = type === 'video' ? '📹 Video Call' : '📞 Voice Call';
-    
     for (let i = 0; i < count; i++) {
         try {
             const chatId = phoneNumber.includes('@c.us') ? phoneNumber : `${phoneNumber}@c.us`;
             const message = `*${callType}* (${i+1}/${count})\n\nAda panggilan masuk dari *PrankMaster*!`;
-            
             await client.sendMessage(chatId, message);
             results.success++;
-            
             io.emit('spamProgress', {
-                sessionId,
-                type: 'call',
-                target: phoneNumber,
-                current: i + 1,
-                total: count,
-                success: results.success,
-                failed: results.failed,
+                sessionId, type: 'call', target: phoneNumber,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
                 message: `✅ ${callType} terkirim ke ${phoneNumber} (${i+1}/${count})`
             });
-            
             await sleep(3000 + Math.random() * 4000);
-            
         } catch (error) {
             results.failed++;
             io.emit('spamProgress', {
-                sessionId,
-                type: 'call',
-                target: phoneNumber,
-                current: i + 1,
-                total: count,
-                success: results.success,
-                failed: results.failed,
+                sessionId, type: 'call', target: phoneNumber,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
                 error: error.message
             });
         }
     }
-    
     return results;
 }
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 // ============================================
 // API ROUTES
 // ============================================
-
-// Register
 app.post('/api/register', (req, res) => {
     const { username, password } = req.body;
     if (db.users.find(u => u.username === username)) {
@@ -282,7 +244,6 @@ app.post('/api/register', (req, res) => {
     res.json({ success: true, message: 'Registrasi berhasil!' });
 });
 
-// Login
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     const user = db.users.find(u => u.username === username);
@@ -305,7 +266,6 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// Get user data
 app.get('/api/user/:username', (req, res) => {
     const user = db.users.find(u => u.username === req.params.username);
     if (!user) return res.json({ success: false });
@@ -322,7 +282,6 @@ app.get('/api/user/:username', (req, res) => {
     });
 });
 
-// Change password
 app.post('/api/change-password', (req, res) => {
     const { username, newPassword } = req.body;
     const user = db.users.find(u => u.username === username);
@@ -332,11 +291,6 @@ app.post('/api/change-password', (req, res) => {
     res.json({ success: true, message: 'Password berhasil diubah!' });
 });
 
-// ============================================
-// BOT API - REAL
-// ============================================
-
-// Get all bots
 app.get('/api/bots', (req, res) => {
     const bots = Object.keys(botStatus).map(id => ({
         id,
@@ -345,25 +299,19 @@ app.get('/api/bots', (req, res) => {
     res.json({ success: true, bots });
 });
 
-// Create/Connect Bot
 app.post('/api/bots/connect', (req, res) => {
     const { number, username } = req.body;
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-    
     const sessionId = `${username}_${Date.now()}`;
-    
     if (whatsappClients[sessionId]) {
         return res.json({ success: false, message: 'Bot sudah terhubung!' });
     }
-    
     try {
         const client = createBotInstance(sessionId);
         whatsappClients[sessionId] = client;
         botStatus[sessionId] = 'connecting';
-        
         client.initialize();
-        
         db.bots.push({
             id: sessionId,
             number,
@@ -372,81 +320,12 @@ app.post('/api/bots/connect', (req, res) => {
             connectedAt: new Date().toISOString()
         });
         saveDB();
-        
-        res.json({ 
-            success: true, 
-            message: 'Bot sedang menghubungkan...', 
-            sessionId 
-        });
+        res.json({ success: true, message: 'Bot sedang menghubungkan...', sessionId });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
 });
 
-// Start Spam Pairing - REAL
-app.post('/api/spam/pairing', async (req, res) => {
-    const { sessionId, target, count } = req.body;
-    const client = whatsappClients[sessionId];
-    
-    if (!client) {
-        return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    }
-    
-    if (botStatus[sessionId] !== 'ready') {
-        return res.json({ success: false, message: 'Bot belum siap!' });
-    }
-    
-    try {
-        const result = await sendPairingCode(client, target, count, sessionId);
-        res.json({ success: true, result });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
-});
-
-// Start Spam Chat - REAL
-app.post('/api/spam/chat', async (req, res) => {
-    const { sessionId, target, message, count } = req.body;
-    const client = whatsappClients[sessionId];
-    
-    if (!client) {
-        return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    }
-    
-    if (botStatus[sessionId] !== 'ready') {
-        return res.json({ success: false, message: 'Bot belum siap!' });
-    }
-    
-    try {
-        const result = await sendSpamChat(client, target, message, count, sessionId);
-        res.json({ success: true, result });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
-});
-
-// Start Spam Call - REAL
-app.post('/api/spam/call', async (req, res) => {
-    const { sessionId, target, type, count } = req.body;
-    const client = whatsappClients[sessionId];
-    
-    if (!client) {
-        return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    }
-    
-    if (botStatus[sessionId] !== 'ready') {
-        return res.json({ success: false, message: 'Bot belum siap!' });
-    }
-    
-    try {
-        const result = await sendSpamCall(client, target, type, count, sessionId);
-        res.json({ success: true, result });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
-});
-
-// Disconnect Bot
 app.post('/api/bots/disconnect', (req, res) => {
     const { sessionId } = req.body;
     if (whatsappClients[sessionId]) {
@@ -459,9 +338,46 @@ app.post('/api/bots/disconnect', (req, res) => {
     res.json({ success: true });
 });
 
-// ============================================
-// ADMIN API
-// ============================================
+app.post('/api/spam/pairing', async (req, res) => {
+    const { sessionId, target, count } = req.body;
+    const client = whatsappClients[sessionId];
+    if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
+    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
+    try {
+        const result = await sendPairingCode(client, target, count, sessionId);
+        res.json({ success: true, result });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+app.post('/api/spam/chat', async (req, res) => {
+    const { sessionId, target, message, count } = req.body;
+    const client = whatsappClients[sessionId];
+    if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
+    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
+    try {
+        const result = await sendSpamChat(client, target, message, count, sessionId);
+        res.json({ success: true, result });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+app.post('/api/spam/call', async (req, res) => {
+    const { sessionId, target, type, count } = req.body;
+    const client = whatsappClients[sessionId];
+    if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
+    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
+    try {
+        const result = await sendSpamCall(client, target, type, count, sessionId);
+        res.json({ success: true, result });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// ===== ADMIN API =====
 app.get('/api/admin/users', (req, res) => {
     res.json({
         success: true,
@@ -488,7 +404,6 @@ app.post('/api/admin/update-status', (req, res) => {
     }
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-
     const limits = { Free: 15, Premium: 200, VIP: Infinity, Reseller: 500, Developer: Infinity };
     user.status = status;
     user.limit = limits[status] || 15;
@@ -570,7 +485,6 @@ app.post('/api/payments/submit', upload.single('proof'), (req, res) => {
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
     if (!req.file) return res.json({ success: false, message: 'Upload bukti pembayaran!' });
-
     db.payments.push({
         id: uuidv4(),
         username,
@@ -594,7 +508,6 @@ const onlineUsers = new Set();
 
 io.on('connection', (socket) => {
     console.log('⚡ User connected:', socket.id);
-
     socket.on('userOnline', (username) => {
         onlineUsers.add(username);
         const user = db.users.find(u => u.username === username);
@@ -602,14 +515,12 @@ io.on('connection', (socket) => {
         saveDB();
         io.emit('usersOnline', Array.from(onlineUsers));
     });
-
     socket.on('sendMessage', (data) => {
         db.messages.push(data);
         if (db.messages.length > 1000) db.messages.shift();
         saveDB();
         io.emit('newMessage', data);
     });
-
     socket.on('disconnect', () => {
         console.log('⚡ User disconnected:', socket.id);
         setTimeout(() => {
@@ -625,14 +536,7 @@ io.on('connection', (socket) => {
 });
 
 // ============================================
-// UTILITY
-// ============================================
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// ============================================
-// AUTO CLEAN
+// AUTO CLEAN MESSAGES
 // ============================================
 function checkAndCleanMessages() {
     const now = new Date();
