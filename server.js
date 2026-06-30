@@ -24,8 +24,6 @@ app.use(express.urlencoded({ extended: true }));
 // ===== SERVE STATIC FILES =====
 // SERVE index.html dari ROOT
 app.use(express.static(__dirname));
-// ATAU kalau mau pindah ke folder public:
-// app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ===== ROUTE UNTUK INDEX =====
@@ -83,47 +81,96 @@ function initAdmin() {
 initAdmin();
 
 // ============================================
-// WHATSAPP BOT REAL
+// WHATSAPP BOT REAL - FIX UNTUK RAILWAY
 // ============================================
 let whatsappClients = {};
 let botStatus = {};
 
 function createBotInstance(sessionId) {
+    // Cari Chromium di Railway
+    let chromiumPath = null;
+    const possiblePaths = [
+        '/nix/store/*chromium/bin/chromium',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/usr/local/bin/chromium',
+        process.env.PUPPETEER_EXECUTABLE_PATH
+    ];
+
+    // Coba semua path
+    for (const p of possiblePaths) {
+        try {
+            const cleanPath = p.replace('*', '');
+            if (fs.existsSync(cleanPath)) {
+                chromiumPath = cleanPath;
+                console.log(`✅ Chromium ditemukan di: ${chromiumPath}`);
+                break;
+            }
+        } catch (e) {}
+    }
+
+    // Coba cari dengan which
+    if (!chromiumPath) {
+        try {
+            const { execSync } = require('child_process');
+            chromiumPath = execSync('which chromium || which chromium-browser || true', { encoding: 'utf8' }).trim();
+            if (chromiumPath) {
+                console.log(`✅ Chromium ditemukan via which: ${chromiumPath}`);
+            }
+        } catch (e) {}
+    }
+
     const client = new Client({
         authStrategy: new LocalAuth({ clientId: sessionId }),
         puppeteer: {
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            executablePath: chromiumPath || undefined,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--disable-software-rasterizer',
+                '--disable-extensions',
+                '--disable-default-apps',
+                '--disable-sync',
+                '--disable-translate'
+            ]
         }
     });
 
     client.on('qr', async (qr) => {
-        const qrImage = await qrcode.toDataURL(qr);
-        io.emit('botQR', { sessionId, qr: qrImage });
-        console.log(`📱 QR Code untuk ${sessionId} siap`);
+        try {
+            const qrImage = await qrcode.toDataURL(qr);
+            io.emit('botQR', { sessionId, qr: qrImage });
+            console.log('📱 QR Code siap');
+        } catch (e) {
+            console.log('📱 QR Code:', qr);
+        }
     });
 
     client.on('ready', () => {
         botStatus[sessionId] = 'ready';
         io.emit('botReady', { sessionId });
-        console.log(`✅ Bot ${sessionId} siap!`);
+        console.log('✅ Bot siap digunakan!');
     });
 
     client.on('authenticated', () => {
         botStatus[sessionId] = 'authenticated';
-        console.log(`🔐 Bot ${sessionId} terautentikasi`);
+        console.log('🔐 Bot terautentikasi');
     });
 
     client.on('auth_failure', (msg) => {
         botStatus[sessionId] = 'failed';
         io.emit('botError', { sessionId, error: msg });
-        console.log(`❌ Auth gagal ${sessionId}:`, msg);
+        console.log('❌ Auth gagal:', msg);
     });
 
     client.on('disconnected', (reason) => {
         botStatus[sessionId] = 'disconnected';
         io.emit('botDisconnected', { sessionId, reason });
-        console.log(`🔌 Bot ${sessionId} terputus:`, reason);
+        console.log('🔌 Bot terputus:', reason);
     });
 
     return client;
@@ -132,8 +179,12 @@ function createBotInstance(sessionId) {
 // ============================================
 // REAL SPAM FUNCTIONS
 // ============================================
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function sendPairingCode(client, phoneNumber, count, sessionId) {
-    const results = { success: 0, failed: 0, logs: [] };
+    const results = { success: 0, failed: 0 };
     for (let i = 0; i < count; i++) {
         try {
             const code = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -218,11 +269,10 @@ async function sendSpamCall(client, phoneNumber, type, count, sessionId) {
     return results;
 }
 
-function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
 // ============================================
 // API ROUTES
 // ============================================
+
 app.post('/api/register', (req, res) => {
     const { username, password } = req.body;
     if (db.users.find(u => u.username === username)) {
@@ -554,6 +604,6 @@ setInterval(checkAndCleanMessages, 60000);
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🔗 http://localhost:${PORT}`);
+    console.log(`🔗 https://your-app.railway.app`);
     console.log('📱 WhatsApp Bot siap digunakan!');
 });

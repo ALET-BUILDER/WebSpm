@@ -18,7 +18,8 @@
     "qrcode": "^1.5.3",
     "whatsapp-web.js": "^1.23.0",
     "dotenv": "^16.0.3",
-    "jsonwebtoken": "^9.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "puppeteer-core": "^21.0.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
