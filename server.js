@@ -74,7 +74,7 @@ function initAdmin() {
             username: 'Lynzka',
             password: bcrypt.hashSync('Asiafone11', 10),
             status: 'Developer',
-            limit: Infinity,
+            limit: Infinity, // ✅ INFINITY
             used: 0,
             isAdmin: true,
             isDeveloper: true,
@@ -83,22 +83,31 @@ function initAdmin() {
         });
         saveDB();
         console.log('✅ Admin Lynzka dibuat');
+    } else {
+        // ✅ PASTIKAN ADMIN LIMIT INFINITY
+        if (admin.limit !== Infinity) {
+            admin.limit = Infinity;
+            saveDB();
+            console.log('✅ Admin limit di-set ke Infinity');
+        }
     }
 }
 initAdmin();
 
 // ============================================
-// BAILEYS WHATSAPP BOT
+// BAILEYS WHATSAPP BOT - SESSION TERSIMPAN
 // ============================================
 let whatsappSockets = {};
 let botStatus = {};
 let pairingCodes = {};
+let botReadyStates = {};
 
 async function createBaileysInstance(sessionId, method = 'qris') {
+    console.log(`📱 Creating Baileys instance: ${sessionId}`);
+    
+    // ✅ PAKAI AUTH YANG SUDAH ADA
     const { state, saveCreds } = await useMultiFileAuthState(`${AUTH_DIR}/${sessionId}`);
     const { version } = await fetchLatestBaileysVersion();
-
-    console.log(`📱 Creating Baileys instance: ${sessionId}`);
 
     const sock = makeWASocket({
         version,
@@ -130,15 +139,31 @@ async function createBaileysInstance(sessionId, method = 'qris') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log(`🔌 Connection closed for ${sessionId}, reconnecting: ${shouldReconnect}`);
             if (shouldReconnect) {
-                createBaileysInstance(sessionId, method);
+                // ✅ RECONNECT OTOMATIS
+                setTimeout(() => {
+                    createBaileysInstance(sessionId, method);
+                }, 3000);
             } else {
                 botStatus[sessionId] = 'disconnected';
+                botReadyStates[sessionId] = false;
                 io.emit('botDisconnected', { sessionId, reason: 'Logged out' });
+                // ✅ HAPUS SESSION KALAU LOGOUT
+                try {
+                    fs.removeSync(`${AUTH_DIR}/${sessionId}`);
+                } catch (e) {}
             }
         } else if (connection === 'open') {
             botStatus[sessionId] = 'ready';
+            botReadyStates[sessionId] = true;
             io.emit('botReady', { sessionId });
             console.log(`✅ Bot ${sessionId} siap digunakan!`);
+            
+            // ✅ UPDATE DATABASE
+            const bot = db.bots.find(b => b.id === sessionId);
+            if (bot) {
+                bot.status = 'ready';
+                saveDB();
+            }
         }
 
         if (connection === 'authenticated') {
@@ -154,12 +179,10 @@ async function createBaileysInstance(sessionId, method = 'qris') {
         const phoneNumber = sessionId.split('_')[0];
         if (phoneNumber && phoneNumber.length > 5) {
             try {
-                // Tunggu hingga bot siap
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 const code = await sock.requestPairingCode(phoneNumber);
                 pairingCodes[sessionId] = code;
                 
-                // Update database
                 const bot = db.bots.find(b => b.id === sessionId);
                 if (bot) {
                     bot.pairingCode = code;
@@ -176,7 +199,6 @@ async function createBaileysInstance(sessionId, method = 'qris') {
                 console.log('========================================');
             } catch (e) {
                 console.log('❌ Gagal pairing code:', e.message);
-                // Fallback: generate random
                 const code = Math.random().toString(36).substring(2, 10).toUpperCase();
                 pairingCodes[sessionId] = code;
                 io.emit('botPairingCode', { sessionId, code });
@@ -186,6 +208,26 @@ async function createBaileysInstance(sessionId, method = 'qris') {
 
     whatsappSockets[sessionId] = sock;
     return sock;
+}
+
+// ✅ FUNGSI UNTUK RESTORE SESSION
+async function restoreAllSessions() {
+    try {
+        const authDirs = fs.readdirSync(AUTH_DIR);
+        for (const dir of authDirs) {
+            if (fs.existsSync(`${AUTH_DIR}/${dir}/creds.json`)) {
+                console.log(`🔄 Restoring session: ${dir}`);
+                const sessionId = dir;
+                const bot = db.bots.find(b => b.id === sessionId);
+                if (bot) {
+                    await createBaileysInstance(sessionId, bot.method || 'qris');
+                    botStatus[sessionId] = 'connecting';
+                }
+            }
+        }
+    } catch (e) {
+        console.log('No sessions to restore');
+    }
 }
 
 // ============================================
@@ -354,20 +396,16 @@ app.post('/api/change-password', (req, res) => {
 });
 
 app.get('/api/bots', (req, res) => {
-    const bots = Object.keys(botStatus).map(id => ({
-        id,
-        status: botStatus[id] || 'disconnected',
-        pairingCode: pairingCodes[id] || null
-    }));
     const dbBots = db.bots.map(b => ({
         id: b.id,
         number: b.number,
         owner: b.owner,
         status: b.status || 'disconnected',
         pairingCode: b.pairingCode || null,
-        method: b.method || 'qris'
+        method: b.method || 'qris',
+        isReady: botReadyStates[b.id] || false
     }));
-    res.json({ success: true, bots: dbBots.length > 0 ? dbBots : bots });
+    res.json({ success: true, bots: dbBots });
 });
 
 // ===== CONNECT BOT =====
@@ -376,13 +414,34 @@ app.post('/api/bots/connect', async (req, res) => {
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
 
+    // ✅ CEK APAKAH BOT SUDAH ADA
+    const existingBot = db.bots.find(b => b.number === number && b.owner === username);
+    if (existingBot) {
+        // ✅ RESTORE SESSION
+        if (fs.existsSync(`${AUTH_DIR}/${existingBot.id}`)) {
+            try {
+                await createBaileysInstance(existingBot.id, existingBot.method || 'qris');
+                botStatus[existingBot.id] = 'connecting';
+                return res.json({
+                    success: true,
+                    message: 'Bot sedang di-restore...',
+                    sessionId: existingBot.id,
+                    method: existingBot.method || 'qris',
+                    restored: true
+                });
+            } catch (e) {
+                console.log('❌ Restore gagal:', e);
+            }
+        }
+    }
+
     const sessionId = `${number}_${Date.now()}`;
     if (whatsappSockets[sessionId]) {
         return res.json({ success: false, message: 'Bot sudah terhubung!' });
     }
 
     try {
-        // Simpan ke database
+        // ✅ SIMPAN KE DATABASE
         db.bots.push({
             id: sessionId,
             number: number,
@@ -394,13 +453,11 @@ app.post('/api/bots/connect', async (req, res) => {
         });
         saveDB();
 
-        // Create Baileys instance
-        const sock = await createBaileysInstance(sessionId, method || 'qris');
+        // ✅ CREATE BOT
+        await createBaileysInstance(sessionId, method || 'qris');
         botStatus[sessionId] = 'connecting';
 
-        // Jika method code, pairing code akan keluar otomatis
         if (method === 'code') {
-            // Pairing code akan muncul di event requestPairingCode
             setTimeout(() => {
                 if (pairingCodes[sessionId]) {
                     io.emit('botPairingCode', { sessionId, code: pairingCodes[sessionId] });
@@ -429,6 +486,7 @@ app.post('/api/bots/disconnect', (req, res) => {
         delete whatsappSockets[sessionId];
         delete botStatus[sessionId];
         delete pairingCodes[sessionId];
+        delete botReadyStates[sessionId];
         db.bots = db.bots.filter(b => b.id !== sessionId);
         saveDB();
     }
@@ -481,7 +539,7 @@ app.get('/api/admin/users', (req, res) => {
         users: db.users.map(u => ({
             username: u.username,
             status: u.status,
-            limit: u.limit,
+            limit: u.limit === Infinity ? '∞' : u.limit,
             used: u.used,
             online: u.online || false,
             isAdmin: u.isAdmin,
@@ -501,7 +559,15 @@ app.post('/api/admin/update-status', (req, res) => {
     }
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-    const limits = { Free: 15, Premium: 200, VIP: Infinity, Reseller: 500, Developer: Infinity };
+    
+    // ✅ LIMIT SESUAI STATUS
+    const limits = { 
+        Free: 15, 
+        Premium: 200, 
+        VIP: Infinity, 
+        Reseller: 500, 
+        Developer: Infinity 
+    };
     user.status = status;
     user.limit = limits[status] || 15;
     saveDB();
@@ -652,10 +718,16 @@ setInterval(checkAndCleanMessages, 60000);
 // START SERVER
 // ============================================
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🔗 https://your-app.railway.app`);
     console.log('📱 WhatsApp Bot dengan Baileys siap digunakan!');
+    console.log('========================================');
+    
+    // ✅ RESTORE SESSION OTOMATIS
+    console.log('🔄 Restoring saved sessions...');
+    await restoreAllSessions();
+    
     console.log('========================================');
     console.log('🔑 PAIRING CODE METHOD:');
     console.log('1. Pilih metode "Code" di menu Bot');
