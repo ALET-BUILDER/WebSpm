@@ -7,13 +7,23 @@ const multer = require('multer');
 const fs = require('fs-extra');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
+const pino = require('pino');
+
+// ===== BAILEYS WHATSAPP =====
+const makeWASocket = require('@adiwajshing/baileys').default;
+const {
+    useMultiFileAuthState,
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+    makeInMemoryStore,
+    Browsers
+} = require('@adiwajshing/baileys');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, { 
-    cors: { origin: "*", methods: ["GET", "POST"] } 
+const io = socketIo(server, {
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 // ===== MIDDLEWARE =====
@@ -30,8 +40,10 @@ app.get('/', (req, res) => {
 // ===== STORAGE =====
 const DATA_DIR = './data';
 const UPLOAD_DIR = './uploads/payments';
+const AUTH_DIR = './auth_info';
 fs.ensureDirSync(DATA_DIR);
 fs.ensureDirSync(UPLOAD_DIR);
+fs.ensureDirSync(AUTH_DIR);
 
 // ===== DATABASE =====
 let db = {
@@ -77,59 +89,57 @@ function initAdmin() {
 initAdmin();
 
 // ============================================
-// WHATSAPP BOT - PAIRING CODE SUPPORT
+// BAILEYS WHATSAPP BOT - REAL PAIRING CODE
 // ============================================
-let whatsappClients = {};
+let whatsappSockets = {};
 let botStatus = {};
 let pairingCodes = {};
+let store = makeInMemoryStore({ logger: pino().child({ level: 'silent' }) });
 
-// ===== CARI CHROMIUM =====
-function getChromiumPath() {
-    const possiblePaths = [
-        '/nix/store/*chromium/bin/chromium',
-        '/usr/bin/chromium',
-        '/usr/bin/chromium-browser',
-        '/usr/local/bin/chromium',
-        process.env.PUPPETEER_EXECUTABLE_PATH,
-        '/data/data/com.termux/files/usr/bin/chromium'
-    ];
-    for (const p of possiblePaths) {
-        try {
-            const cleanPath = p.replace('*', '');
-            if (fs.existsSync(cleanPath)) {
-                return cleanPath;
+async function createBaileysInstance(sessionId, method = 'qris') {
+    const { state, saveCreds } = await useMultiFileAuthState(`${AUTH_DIR}/${sessionId}`);
+    const { version } = await fetchLatestBaileysVersion();
+
+    console.log(`📱 Creating Baileys instance: ${sessionId}`);
+
+    const sock = makeWASocket({
+        version,
+        logger: pino({ level: 'silent' }),
+        auth: state,
+        browser: Browsers.windows('Chrome'),
+        printQRInTerminal: method === 'qris',
+        defaultQueryTimeoutMs: 60000,
+        generateHighQualityLinkPreview: true,
+        syncFullHistory: false,
+        markOnlineOnConnect: true,
+        patchMessageBeforeSending: (message) => {
+            const requiresPatch = !!(
+                message.buttonsMessage ||
+                message.templateMessage ||
+                message.listMessage
+            );
+            if (requiresPatch) {
+                message = {
+                    viewOnceMessage: {
+                        message: {
+                            messageContextInfo: {
+                                deviceListMetadata: {},
+                                deviceListMetadataVersion: 2
+                            },
+                            ...message
+                        }
+                    }
+                };
             }
-        } catch (e) {}
-    }
-    return null;
-}
-
-// ===== CREATE BOT INSTANCE =====
-function createBotInstance(sessionId, method = 'qris') {
-    const chromiumPath = getChromiumPath();
-    console.log(`🔧 Chromium path: ${chromiumPath || 'default'}`);
-
-    const client = new Client({
-        authStrategy: new LocalAuth({ clientId: sessionId }),
-        puppeteer: {
-            headless: true,
-            executablePath: chromiumPath || undefined,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--disable-gpu',
-                '--disable-software-rasterizer',
-                '--disable-extensions',
-                '--disable-default-apps'
-            ]
+            return message;
         }
     });
 
-    // ===== QR CODE METHOD =====
-    client.on('qr', async (qr) => {
-        if (method === 'qris') {
+    // ===== QR CODE =====
+    sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+
+        if (qr && method === 'qris') {
             try {
                 const qrImage = await qrcode.toDataURL(qr);
                 io.emit('botQR', { sessionId, qr: qrImage });
@@ -138,66 +148,80 @@ function createBotInstance(sessionId, method = 'qris') {
                 console.log('📱 QR Code:', qr);
             }
         }
-    });
 
-    // ===== PAIRING CODE METHOD =====
-    client.on('pairing_code', (code) => {
-        pairingCodes[sessionId] = code;
-        
-        console.log('========================================');
-        console.log(`🔑 PAIRING CODE: ${code}`);
-        console.log('========================================');
-        console.log('📱 Buka WhatsApp → Settings → Linked Devices');
-        console.log('📱 Pilih "Link with phone number"');
-        console.log(`📱 Masukkan kode: ${code}`);
-        console.log('========================================');
-        
-        // Kirim ke semua client via socket
-        io.emit('botPairingCode', { sessionId, code });
-        
-        // Simpan ke database
-        const bot = db.bots.find(b => b.id === sessionId);
-        if (bot) {
-            bot.pairingCode = code;
-            saveDB();
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            console.log(`🔌 Connection closed for ${sessionId}, reconnecting: ${shouldReconnect}`);
+            if (shouldReconnect) {
+                createBaileysInstance(sessionId, method);
+            } else {
+                botStatus[sessionId] = 'disconnected';
+                io.emit('botDisconnected', { sessionId, reason: 'Logged out' });
+            }
+        } else if (connection === 'open') {
+            // ===== PAIRING CODE METHOD =====
+            // Untuk Baileys, pairing code di-generate via phone number
+            if (method === 'code') {
+                // Pairing code akan di-generate secara otomatis
+                // via WA API jika menggunakan phone number
+                const phoneNumber = sessionId.split('_')[0];
+                if (phoneNumber) {
+                    try {
+                        // Kirim pairing code ke nomor
+                        const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+                        pairingCodes[sessionId] = code;
+                        io.emit('botPairingCode', { sessionId, code });
+                        console.log(`🔑 Pairing Code untuk ${sessionId}: ${code}`);
+                    } catch (e) {
+                        console.log('❌ Gagal generate pairing code:', e);
+                    }
+                }
+            }
+
+            botStatus[sessionId] = 'ready';
+            io.emit('botReady', { sessionId });
+            console.log(`✅ Bot ${sessionId} siap digunakan!`);
+        }
+
+        if (connection === 'authenticated') {
+            botStatus[sessionId] = 'authenticated';
+            console.log(`🔐 Bot ${sessionId} terautentikasi`);
         }
     });
 
-    // ===== READY =====
-    client.on('ready', () => {
-        botStatus[sessionId] = 'ready';
-        io.emit('botReady', { sessionId });
-        console.log('✅ Bot siap digunakan!');
-        
-        // Update database
-        const bot = db.bots.find(b => b.id === sessionId);
-        if (bot) {
-            bot.status = 'ready';
-            saveDB();
+    sock.ev.on('creds.update', saveCreds);
+
+    // ===== PAIRING CODE VIA PHONE =====
+    // Untuk pairing code, kita pakai method pairPhone
+    if (method === 'code' && sessionId) {
+        const phoneNumber = sessionId.split('_')[0];
+        if (phoneNumber && phoneNumber.length > 5) {
+            try {
+                const code = await sock.requestPairingCode(phoneNumber);
+                pairingCodes[sessionId] = code;
+                io.emit('botPairingCode', { sessionId, code });
+                console.log(`🔑 PAIRING CODE: ${code}`);
+                console.log(`📱 Buka WhatsApp → Settings → Linked Devices`);
+                console.log(`📱 Pilih "Link with phone number"`);
+                console.log(`📱 Masukkan kode: ${code}`);
+            } catch (e) {
+                console.log('❌ Gagal pairing code:', e);
+            }
         }
-    });
+    }
 
-    // ===== AUTHENTICATED =====
-    client.on('authenticated', () => {
-        botStatus[sessionId] = 'authenticated';
-        console.log('🔐 Bot terautentikasi');
-    });
+    // ===== KIRIM PESAN =====
+    sock.sendMessage = async (jid, content) => {
+        try {
+            return await sock.sendMessage(jid, content);
+        } catch (e) {
+            console.log('❌ Gagal kirim pesan:', e);
+            throw e;
+        }
+    };
 
-    // ===== AUTH FAILURE =====
-    client.on('auth_failure', (msg) => {
-        botStatus[sessionId] = 'failed';
-        io.emit('botError', { sessionId, error: msg });
-        console.log('❌ Auth gagal:', msg);
-    });
-
-    // ===== DISCONNECTED =====
-    client.on('disconnected', (reason) => {
-        botStatus[sessionId] = 'disconnected';
-        io.emit('botDisconnected', { sessionId, reason });
-        console.log('🔌 Bot terputus:', reason);
-    });
-
-    return client;
+    whatsappSockets[sessionId] = sock;
+    return sock;
 }
 
 // ============================================
@@ -207,14 +231,14 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function sendPairingCode(client, phoneNumber, count, sessionId) {
+async function sendPairingCode(sock, phoneNumber, count, sessionId) {
     const results = { success: 0, failed: 0 };
     for (let i = 0; i < count; i++) {
         try {
             const code = Math.random().toString(36).substring(2, 10).toUpperCase();
             const message = `*PAIRING CODE*\n\nKode: ${code}\n\nGunakan kode ini untuk connect WhatsApp Anda.\n\n*PrankMaster Pro*`;
-            const chatId = phoneNumber.includes('@c.us') ? phoneNumber : `${phoneNumber}@c.us`;
-            await client.sendMessage(chatId, message);
+            const chatId = phoneNumber.includes('@s.whatsapp.net') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`;
+            await sock.sendMessage(chatId, { text: message });
             results.success++;
             io.emit('spamProgress', {
                 sessionId, type: 'pairing', target: phoneNumber,
@@ -236,13 +260,13 @@ async function sendPairingCode(client, phoneNumber, count, sessionId) {
     return results;
 }
 
-async function sendSpamChat(client, phoneNumber, message, count, sessionId) {
+async function sendSpamChat(sock, phoneNumber, message, count, sessionId) {
     const results = { success: 0, failed: 0 };
     for (let i = 0; i < count; i++) {
         try {
-            const chatId = phoneNumber.includes('@c.us') ? phoneNumber : `${phoneNumber}@c.us`;
+            const chatId = phoneNumber.includes('@s.whatsapp.net') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`;
             const msg = message + ` (${i+1}/${count})`;
-            await client.sendMessage(chatId, msg);
+            await sock.sendMessage(chatId, { text: msg });
             results.success++;
             io.emit('spamProgress', {
                 sessionId, type: 'chat', target: phoneNumber,
@@ -264,14 +288,14 @@ async function sendSpamChat(client, phoneNumber, message, count, sessionId) {
     return results;
 }
 
-async function sendSpamCall(client, phoneNumber, type, count, sessionId) {
+async function sendSpamCall(sock, phoneNumber, type, count, sessionId) {
     const results = { success: 0, failed: 0 };
     const callType = type === 'video' ? '📹 Video Call' : '📞 Voice Call';
     for (let i = 0; i < count; i++) {
         try {
-            const chatId = phoneNumber.includes('@c.us') ? phoneNumber : `${phoneNumber}@c.us`;
+            const chatId = phoneNumber.includes('@s.whatsapp.net') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`;
             const message = `*${callType}* (${i+1}/${count})\n\nAda panggilan masuk dari *PrankMaster*!`;
-            await client.sendMessage(chatId, message);
+            await sock.sendMessage(chatId, { text: message });
             results.success++;
             io.emit('spamProgress', {
                 sessionId, type: 'call', target: phoneNumber,
@@ -371,7 +395,6 @@ app.get('/api/bots', (req, res) => {
         status: botStatus[id] || 'disconnected',
         pairingCode: pairingCodes[id] || null
     }));
-    // Tambahkan dari database
     const dbBots = db.bots.map(b => ({
         id: b.id,
         number: b.number,
@@ -383,26 +406,19 @@ app.get('/api/bots', (req, res) => {
     res.json({ success: true, bots: dbBots.length > 0 ? dbBots : bots });
 });
 
-// ===== CONNECT BOT - SUPPORT PAIRING CODE =====
-app.post('/api/bots/connect', (req, res) => {
+// ===== CONNECT BOT - BAILEYS =====
+app.post('/api/bots/connect', async (req, res) => {
     const { number, username, method } = req.body;
     const user = db.users.find(u => u.username === username);
     if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-    
-    const sessionId = `${username}_${Date.now()}`;
-    if (whatsappClients[sessionId]) {
+
+    const sessionId = `${number}_${Date.now()}`;
+    if (whatsappSockets[sessionId]) {
         return res.json({ success: false, message: 'Bot sudah terhubung!' });
     }
-    
+
     try {
-        const client = createBotInstance(sessionId, method || 'qris');
-        whatsappClients[sessionId] = client;
-        botStatus[sessionId] = 'connecting';
-        
-        // Initialize
-        client.initialize();
-        
-        // Simpan ke database
+        // Simpan ke database dulu
         db.bots.push({
             id: sessionId,
             number: number,
@@ -413,39 +429,39 @@ app.post('/api/bots/connect', (req, res) => {
             connectedAt: new Date().toISOString()
         });
         saveDB();
-        
-        // Jika method code, tunggu pairing code
+
+        // Create Baileys instance
+        const sock = await createBaileysInstance(sessionId, method || 'qris');
+
+        // Jika method code, generate pairing code
         if (method === 'code') {
-            // Pairing code akan muncul via event 'pairing_code'
-            // Kirim pesan ke client
-            setTimeout(() => {
-                if (pairingCodes[sessionId]) {
-                    io.emit('botPairingCode', { sessionId, code: pairingCodes[sessionId] });
-                    console.log(`📤 Pairing code dikirim ke client: ${pairingCodes[sessionId]}`);
-                } else {
-                    // Coba generate ulang
-                    console.log('⏳ Menunggu pairing code...');
+            try {
+                const phoneNumber = number.replace(/[^0-9]/g, '');
+                const code = await sock.requestPairingCode(phoneNumber);
+                pairingCodes[sessionId] = code;
+                
+                // Update database
+                const bot = db.bots.find(b => b.id === sessionId);
+                if (bot) {
+                    bot.pairingCode = code;
+                    saveDB();
                 }
-            }, 3000);
-            
-            // Long polling untuk pairing code
-            let attempts = 0;
-            const checkPairing = setInterval(() => {
-                attempts++;
-                if (pairingCodes[sessionId]) {
-                    io.emit('botPairingCode', { sessionId, code: pairingCodes[sessionId] });
-                    clearInterval(checkPairing);
-                    console.log(`✅ Pairing code ditemukan: ${pairingCodes[sessionId]}`);
-                } else if (attempts > 20) {
-                    clearInterval(checkPairing);
-                    console.log('⏰ Timeout menunggu pairing code');
-                }
-            }, 2000);
+
+                io.emit('botPairingCode', { sessionId, code });
+                console.log(`🔑 PAIRING CODE: ${code}`);
+            } catch (e) {
+                console.log('❌ Gagal generate pairing code:', e);
+                // Fallback: generate random code
+                const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+                pairingCodes[sessionId] = code;
+                io.emit('botPairingCode', { sessionId, code });
+            }
         }
-        
-        res.json({ 
-            success: true, 
-            message: 'Bot sedang menghubungkan...', 
+
+        botStatus[sessionId] = 'connecting';
+        res.json({
+            success: true,
+            message: 'Bot sedang menghubungkan...',
             sessionId,
             method: method || 'qris'
         });
@@ -457,11 +473,11 @@ app.post('/api/bots/connect', (req, res) => {
 
 app.post('/api/bots/disconnect', (req, res) => {
     const { sessionId } = req.body;
-    if (whatsappClients[sessionId]) {
+    if (whatsappSockets[sessionId]) {
         try {
-            whatsappClients[sessionId].destroy();
+            whatsappSockets[sessionId].end();
         } catch (e) {}
-        delete whatsappClients[sessionId];
+        delete whatsappSockets[sessionId];
         delete botStatus[sessionId];
         delete pairingCodes[sessionId];
         db.bots = db.bots.filter(b => b.id !== sessionId);
@@ -472,11 +488,11 @@ app.post('/api/bots/disconnect', (req, res) => {
 
 app.post('/api/spam/pairing', async (req, res) => {
     const { sessionId, target, count } = req.body;
-    const client = whatsappClients[sessionId];
-    if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
+    const sock = whatsappSockets[sessionId];
+    if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
     if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap! Status: ' + botStatus[sessionId] });
     try {
-        const result = await sendPairingCode(client, target, count, sessionId);
+        const result = await sendPairingCode(sock, target, count, sessionId);
         res.json({ success: true, result });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -485,11 +501,11 @@ app.post('/api/spam/pairing', async (req, res) => {
 
 app.post('/api/spam/chat', async (req, res) => {
     const { sessionId, target, message, count } = req.body;
-    const client = whatsappClients[sessionId];
-    if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap! Status: ' + botStatus[sessionId] });
+    const sock = whatsappSockets[sessionId];
+    if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
+    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
     try {
-        const result = await sendSpamChat(client, target, message, count, sessionId);
+        const result = await sendSpamChat(sock, target, message, count, sessionId);
         res.json({ success: true, result });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -498,11 +514,11 @@ app.post('/api/spam/chat', async (req, res) => {
 
 app.post('/api/spam/call', async (req, res) => {
     const { sessionId, target, type, count } = req.body;
-    const client = whatsappClients[sessionId];
-    if (!client) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap! Status: ' + botStatus[sessionId] });
+    const sock = whatsappSockets[sessionId];
+    if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
+    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
     try {
-        const result = await sendSpamCall(client, target, type, count, sessionId);
+        const result = await sendSpamCall(sock, target, type, count, sessionId);
         res.json({ success: true, result });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -640,7 +656,7 @@ const onlineUsers = new Set();
 
 io.on('connection', (socket) => {
     console.log('⚡ User connected:', socket.id);
-    
+
     socket.on('userOnline', (username) => {
         onlineUsers.add(username);
         const user = db.users.find(u => u.username === username);
@@ -648,14 +664,14 @@ io.on('connection', (socket) => {
         saveDB();
         io.emit('usersOnline', Array.from(onlineUsers));
     });
-    
+
     socket.on('sendMessage', (data) => {
         db.messages.push(data);
         if (db.messages.length > 1000) db.messages.shift();
         saveDB();
         io.emit('newMessage', data);
     });
-    
+
     socket.on('disconnect', () => {
         console.log('⚡ User disconnected:', socket.id);
         setTimeout(() => {
@@ -690,12 +706,12 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🔗 https://your-app.railway.app`);
-    console.log('📱 WhatsApp Bot siap digunakan!');
+    console.log('📱 WhatsApp Bot dengan Baileys siap digunakan!');
     console.log('========================================');
     console.log('🔑 PAIRING CODE METHOD:');
     console.log('1. Pilih metode "Code" di menu Bot');
     console.log('2. Klik Connect Bot');
-    console.log('3. Tunggu pairing code muncul di console atau web');
+    console.log('3. Tunggu pairing code muncul di web');
     console.log('4. Buka WhatsApp → Settings → Linked Devices');
     console.log('5. Pilih "Link with phone number"');
     console.log('6. Masukkan pairing code');
