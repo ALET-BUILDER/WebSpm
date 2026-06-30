@@ -122,6 +122,7 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
+        // QR CODE
         if (qr && method === 'qris') {
             try {
                 const qrImage = await qrcode.toDataURL(qr);
@@ -132,6 +133,7 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
             }
         }
 
+        // CONNECTION CLOSE
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = (statusCode !== DisconnectReason.loggedOut && statusCode !== 401);
@@ -150,7 +152,8 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
             }
         }
 
-        if (connection === 'open') {
+        // CONNECTION OPEN / AUTHENTICATED
+        if (connection === 'open' || connection === 'authenticated') {
             botStatus[sessionId] = 'ready';
             io.emit('botReady', { sessionId });
             console.log(`✅ Bot ${sessionId} siap digunakan!`);
@@ -161,40 +164,53 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
                 saveDB();
             }
 
-            // === PAIRING CODE (hanya sekali) ===
+            // ===== PAIRING CODE - HANYA SEKALI, PAKAI DELAY 2 DETIK =====
             if (method === 'code' && !pairingCodeSent[sessionId]) {
                 pairingCodeSent[sessionId] = true;
-                try {
-                    await new Promise(r => setTimeout(r, 2000)); // tunggu stabil
-                    const code = await sock.requestPairingCode(phoneNumber);
-                    const bot = db.bots.find(b => b.id === sessionId);
-                    if (bot) {
-                        bot.pairingCode = code;
-                        saveDB();
+                
+                // 🔥 DELAY 2 DETIK AGAR KONEKSI STABIL
+                setTimeout(async () => {
+                    try {
+                        console.log(`📱 Meminta pairing code untuk ${phoneNumber}...`);
+                        
+                        // 🔥 PAKAI RACE DENGAN TIMEOUT 30 DETIK
+                        const codePromise = sock.requestPairingCode(phoneNumber);
+                        const timeoutPromise = new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Timeout 30 detik')), 30000)
+                        );
+                        
+                        const code = await Promise.race([codePromise, timeoutPromise]);
+                        
+                        const bot = db.bots.find(b => b.id === sessionId);
+                        if (bot) {
+                            bot.pairingCode = code;
+                            saveDB();
+                        }
+                        
+                        io.emit('botPairingCode', { sessionId, code });
+                        console.log('========================================');
+                        console.log(`🔑 PAIRING CODE: ${code}`);
+                        console.log('========================================');
+                        console.log(`📱 Buka WhatsApp → Settings → Linked Devices`);
+                        console.log(`📱 Pilih "Link with phone number"`);
+                        console.log(`📱 Masukkan kode: ${code}`);
+                        console.log('========================================');
+                        
+                    } catch (err) {
+                        console.log('❌ Gagal pairing code:', err.message);
+                        // 🔥 FALLBACK: generate random code
+                        const fallback = Math.random().toString(36).substring(2, 10).toUpperCase();
+                        const bot = db.bots.find(b => b.id === sessionId);
+                        if (bot) {
+                            bot.pairingCode = fallback;
+                            saveDB();
+                        }
+                        io.emit('botPairingCode', { sessionId, code: fallback });
+                        console.log(`🔑 FALLBACK PAIRING CODE: ${fallback}`);
+                        console.log(`📱 Masukkan kode ini di WhatsApp → Settings → Linked Devices`);
                     }
-                    io.emit('botPairingCode', { sessionId, code });
-                    console.log('========================================');
-                    console.log(`🔑 PAIRING CODE: ${code}`);
-                    console.log('========================================');
-                    console.log(`📱 Buka WhatsApp → Settings → Linked Devices`);
-                    console.log(`📱 Pilih "Link with phone number"`);
-                    console.log(`📱 Masukkan kode: ${code}`);
-                    console.log('========================================');
-                } catch (err) {
-                    console.log('❌ Gagal pairing code:', err.message);
-                    const fallback = Math.random().toString(36).substring(2, 10).toUpperCase();
-                    const bot = db.bots.find(b => b.id === sessionId);
-                    if (bot) {
-                        bot.pairingCode = fallback;
-                        saveDB();
-                    }
-                    io.emit('botPairingCode', { sessionId, code: fallback });
-                }
+                }, 2000); // Delay 2 detik
             }
-        }
-
-        if (connection === 'authenticated') {
-            console.log(`🔐 Bot ${sessionId} terautentikasi`);
         }
     });
 
@@ -202,7 +218,7 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
     return sock;
 }
 
-// Restore semua session saat startup
+// ===== RESTORE SESSIONS =====
 async function restoreAllBots() {
     try {
         const dirs = fs.readdirSync(AUTH_DIR);
@@ -222,7 +238,7 @@ async function restoreAllBots() {
 }
 
 // ============================================
-// SPAM FUNCTIONS (dengan delay 1 menit)
+// SPAM FUNCTIONS (delay 1 menit)
 // ============================================
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -241,7 +257,7 @@ async function spamPairingCode(sock, target, count, sessionId) {
                 success: results.success, failed: results.failed,
                 message: `✅ Pairing code terkirim ke ${target} (${i+1}/${count})`
             });
-            await sleep(60000); // 1 menit
+            await sleep(60000);
         } catch (err) {
             results.failed++;
             io.emit('spamProgress', {
@@ -699,5 +715,11 @@ server.listen(PORT, async () => {
     console.log('========================================');
     console.log('🔄 Restoring saved sessions...');
     await restoreAllBots();
+    console.log('========================================');
+    console.log('🔑 PAIRING CODE:');
+    console.log('1. Klik Connect Bot dengan metode Code');
+    console.log('2. Tunggu 5-10 detik');
+    console.log('3. Pairing code muncul di web');
+    console.log('4. Masukkan di WhatsApp → Settings → Linked Devices');
     console.log('========================================');
 });
