@@ -980,36 +980,44 @@
                 </div>
             </section>
 
-            <!-- ===== SPAM PAIRING ===== -->
-            <section id="spam-pairing" class="section">
-                <div class="section-header">
-                    <h1><i class="fas fa-code"></i> Spam Pairing</h1>
-                    <p>Kirim pairing code ke nomor target secara massal <span class="badge badge-danger">REAL</span></p>
-                </div>
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
-                    <div class="form-group">
-                        <label><i class="fas fa-bullseye"></i> Nomor Target</label>
-                        <input type="text" id="pairingTarget" placeholder="6281234567890" inputmode="numeric">
-                        <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (tanpa +62)</small>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah (Max 15x)</label>
-                        <input type="number" id="pairingCount" min="1" max="15" value="5">
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="pairingConsole"><div class="log-normal">[✓] Sistem siap...</div></div>
-                    </div>
-                    <div id="pairingProgress" style="display:none;" class="spam-progress">
-                        <div>Progress: <span id="pairingProgressText">0/0</span></div>
-                        <div class="bar" id="pairingProgressBar" style="width:0%"></div>
-                    </div>
-                    <button class="btn btn-primary btn-block" id="pairingStartBtn" onclick="togglePairing()">
-                        <i class="fas fa-play"></i> Start
-                    </button>
-                </div>
-            </section>
+  <!-- ===== SPAM PAIRING ===== -->
+<section id="spam-pairing" class="section">
+    <div class="section-header">
+        <h1><i class="fas fa-code"></i> Spam Pairing</h1>
+        <p>Kirim pairing code ke nomor target secara massal <span class="badge badge-danger">REAL</span></p>
+    </div>
+    <div class="card">
+        <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
+        <div class="form-group">
+            <label><i class="fas fa-bullseye"></i> Nomor Target</label>
+            <input type="text" id="pairingTarget" placeholder="6281234567890" inputmode="numeric">
+            <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (tanpa +62)</small>
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-sort-numeric-up"></i> Jumlah (Max 15x)</label>
+            <input type="number" id="pairingCount" min="1" max="15" value="5">
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-robot"></i> Gunakan Bot</label>
+            <select id="pairingUseBot" style="width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;font-size:0.95rem;font-family:'Inter',sans-serif;">
+                <option value="true">Ya (Pakai Bot yang sudah connect)</option>
+                <option value="false" selected>Tidak (Auto connect tanpa bot)</option>
+            </select>
+            <small style="color:#888;font-size:0.75rem;">Pilih "Tidak" untuk spam pairing tanpa perlu connect bot dulu</small>
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-terminal"></i> Console Log</label>
+            <div class="console-log" id="pairingConsole"><div class="log-normal">[✓] Sistem siap...</div></div>
+        </div>
+        <div id="pairingProgress" style="display:none;" class="spam-progress">
+            <div>Progress: <span id="pairingProgressText">0/0</span></div>
+            <div class="bar" id="pairingProgressBar" style="width:0%"></div>
+        </div>
+        <button class="btn btn-primary btn-block" id="pairingStartBtn" onclick="togglePairing()">
+            <i class="fas fa-play"></i> Start
+        </button>
+    </div>
+</section>
 
             <!-- ===== SPAM CHAT ===== -->
             <section id="spam-chat" class="section">
@@ -2266,6 +2274,7 @@ function togglePairing() {
     if (isSpamming) { stopSpam('pairing'); return; }
     const target = document.getElementById('pairingTarget').value.trim();
     const count = parseInt(document.getElementById('pairingCount').value) || 5;
+    const useBot = document.getElementById('pairingUseBot').value === 'true';
 
     if (!target) {
         updateConsole('pairingConsole', '[✗] Masukkan nomor target!', 'log-error');
@@ -2275,14 +2284,10 @@ function togglePairing() {
         updateConsole('pairingConsole', '[✗] Jumlah 1-15!', 'log-error');
         return;
     }
-    if (!currentSessionId) {
-        updateConsole('pairingConsole', '[✗] Bot belum terhubung! Connect bot dulu.', 'log-error');
-        return;
-    }
 
-    // Cek limit
+    // Cek limit user
     const limit = currentUser.limit;
-    if (limit !== Infinity && limit !== '∞') {
+    if (limit !== Infinity && limit !== '∞' && limit !== null) {
         const remaining = limit - (currentUser.used || 0);
         if (remaining <= 0) {
             updateConsole('pairingConsole', '[✗] Limit spam habis!', 'log-error');
@@ -2296,19 +2301,26 @@ function togglePairing() {
         }
     }
 
+    if (useBot && !currentSessionId) {
+        updateConsole('pairingConsole', '[✗] Bot belum terhubung! Ganti ke "Tanpa Bot" atau connect bot dulu.', 'log-error');
+        return;
+    }
+
     isSpamming = true;
     document.getElementById('pairingStartBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
     document.getElementById('pairingStartBtn').disabled = true;
 
-    updateConsole('pairingConsole', `[✓] Mengirim pairing code ke ${target} ${count}x (delay 1 menit/ kirim)`, 'log-info');
+    const mode = useBot ? 'dengan bot' : 'tanpa bot (auto connect)';
+    updateConsole('pairingConsole', `[✓] Mengirim pairing code ke ${target} ${count}x (${mode}, delay 1 menit/kirim)`, 'log-info');
 
     fetch('/api/spam/pairing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                sessionId: currentSessionId,
+                sessionId: currentSessionId || 'spam_' + Date.now(),
                 target: target,
-                count: count
+                count: count,
+                useBot: useBot
             })
         })
         .then(res => res.json())
@@ -2316,8 +2328,8 @@ function togglePairing() {
             if (data.success) {
                 updateConsole('pairingConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`,
                     'log-success');
-                if (currentUser.used !== undefined) {
-                    currentUser.used += data.result.success || 0;
+                if (data.result.success > 0) {
+                    currentUser.used = (currentUser.used || 0) + data.result.success;
                     loadUserData();
                 }
                 showToast(`Spam selesai! Berhasil: ${data.result.success}`, 'success');
@@ -2336,7 +2348,6 @@ function togglePairing() {
             document.getElementById('pairingStartBtn').disabled = false;
         });
 }
-
 function toggleChat() {
     if (isSpamming) { stopSpam('chat'); return; }
     const target = document.getElementById('chatTarget').value.trim();

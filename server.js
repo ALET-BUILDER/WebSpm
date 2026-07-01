@@ -93,16 +93,30 @@ function initAdmin() {
 initAdmin();
 
 // ============================================
-// WHATSAPP BOT ENGINE
+// WHATSAPP BOT ENGINE - PERBAIKAN TOTAL
 // ============================================
 let activeSockets = {};
 let botStatus = {};
 let pairingCodeSent = {};
+let botReconnectTimers = {};
+let botConnectionAttempts = {};
 
 async function createBot(sessionId, phoneNumber, method = 'qris') {
     console.log(`🤖 Creating bot ${sessionId} (${method})`);
+    
+    // Reset reconnect timer jika ada
+    if (botReconnectTimers[sessionId]) {
+        clearTimeout(botReconnectTimers[sessionId]);
+        delete botReconnectTimers[sessionId];
+    }
+    
+    // Reset connection attempts
+    botConnectionAttempts[sessionId] = 0;
 
-    const { state, saveCreds } = await useMultiFileAuthState(`${AUTH_DIR}/${sessionId}`);
+    const authDir = `${AUTH_DIR}/${sessionId}`;
+    fs.ensureDirSync(authDir);
+
+    const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
     const sock = makeWASocket({
         version: [2, 2413, 1],
@@ -114,13 +128,33 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
         generateHighQualityLinkPreview: true,
         syncFullHistory: false,
         markOnlineOnConnect: true,
-        shouldSyncHistory: () => false
+        shouldSyncHistory: () => false,
+        // Tambahan untuk kestabilan
+        connectTimeoutMs: 60000,
+        keepAliveIntervalMs: 10000,
+        patchMessageBeforeSending: (msg) => msg,
+        transactionCapabilities: { patch: true, get: true }
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    // Save creds setiap update
+    sock.ev.on('creds.update', async () => {
+        try {
+            await saveCreds();
+            console.log(`💾 Creds saved for ${sessionId}`);
+        } catch (e) {
+            console.log(`⚠️ Gagal save creds: ${e.message}`);
+        }
+    });
 
+    // Handle connection update - PERBAIKAN UTAMA
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
+        const { connection, lastDisconnect, qr, receivedPendingNotifications } = update;
+        
+        console.log(`📡 Connection update ${sessionId}:`, { 
+            connection, 
+            hasQR: !!qr,
+            receivedPendingNotifications 
+        });
 
         // QR CODE
         if (qr && method === 'qris') {
@@ -128,52 +162,50 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
                 const qrImage = await qrcode.toDataURL(qr);
                 io.emit('botQR', { sessionId, qr: qrImage });
                 console.log('📱 QR Code siap di-scan');
+                botStatus[sessionId] = 'waiting_qr';
             } catch (e) {
                 console.log('📱 QR Code (raw):', qr);
             }
         }
 
-        // CONNECTION CLOSE
-        if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const shouldReconnect = (statusCode !== DisconnectReason.loggedOut && statusCode !== 401);
-            console.log(`🔌 Connection closed for ${sessionId}, code: ${statusCode}, reconnect: ${shouldReconnect}`);
-            if (shouldReconnect) {
-                setTimeout(() => createBot(sessionId, phoneNumber, method), 3000);
-            } else {
-                botStatus[sessionId] = 'disconnected';
-                io.emit('botDisconnected', { sessionId, reason: 'Logged out' });
-                db.bots = db.bots.filter(b => b.id !== sessionId);
-                saveDB();
-                try { fs.removeSync(`${AUTH_DIR}/${sessionId}`); } catch (e) {}
-                delete activeSockets[sessionId];
-                delete botStatus[sessionId];
-                delete pairingCodeSent[sessionId];
-            }
-        }
-
-        // CONNECTION OPEN / AUTHENTICATED
+        // CONNECTION OPEN / AUTHENTICATED - BOT BERHASIL CONNECT
         if (connection === 'open' || connection === 'authenticated') {
+            console.log(`✅ Bot ${sessionId} connected successfully!`);
             botStatus[sessionId] = 'ready';
-            io.emit('botReady', { sessionId });
-            console.log(`✅ Bot ${sessionId} siap digunakan!`);
-
+            botConnectionAttempts[sessionId] = 0;
+            
+            // Hapus reconnect timer
+            if (botReconnectTimers[sessionId]) {
+                clearTimeout(botReconnectTimers[sessionId]);
+                delete botReconnectTimers[sessionId];
+            }
+            
+            // Update database
             const bot = db.bots.find(b => b.id === sessionId);
             if (bot) {
                 bot.status = 'ready';
+                bot.connectedAt = new Date().toISOString();
                 saveDB();
             }
+            
+            // Emit ke client
+            io.emit('botReady', { 
+                sessionId, 
+                number: phoneNumber,
+                method: method 
+            });
+            
+            console.log(`✅ Bot ${sessionId} siap digunakan!`);
 
-            // ===== PAIRING CODE - HANYA SEKALI, PAKAI DELAY 2 DETIK =====
+            // PAIRING CODE - HANYA UNTUK METODE CODE DAN HANYA SEKALI
             if (method === 'code' && !pairingCodeSent[sessionId]) {
                 pairingCodeSent[sessionId] = true;
                 
-                // 🔥 DELAY 2 DETIK AGAR KONEKSI STABIL
                 setTimeout(async () => {
                     try {
                         console.log(`📱 Meminta pairing code untuk ${phoneNumber}...`);
                         
-                        // 🔥 PAKAI RACE DENGAN TIMEOUT 30 DETIK
+                        // PAKAI PAIRING CODE ASLI DARI BAILEYS
                         const codePromise = sock.requestPairingCode(phoneNumber);
                         const timeoutPromise = new Promise((_, reject) => 
                             setTimeout(() => reject(new Error('Timeout 30 detik')), 30000)
@@ -181,24 +213,28 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
                         
                         const code = await Promise.race([codePromise, timeoutPromise]);
                         
-                        const bot = db.bots.find(b => b.id === sessionId);
-                        if (bot) {
-                            bot.pairingCode = code;
-                            saveDB();
+                        if (code) {
+                            const bot = db.bots.find(b => b.id === sessionId);
+                            if (bot) {
+                                bot.pairingCode = code;
+                                saveDB();
+                            }
+                            
+                            io.emit('botPairingCode', { sessionId, code });
+                            console.log('========================================');
+                            console.log(`🔑 PAIRING CODE: ${code}`);
+                            console.log('========================================');
+                            console.log(`📱 Buka WhatsApp → Settings → Linked Devices`);
+                            console.log(`📱 Pilih "Link with phone number"`);
+                            console.log(`📱 Masukkan kode: ${code}`);
+                            console.log('========================================');
+                        } else {
+                            console.log('❌ Gagal mendapatkan pairing code');
                         }
-                        
-                        io.emit('botPairingCode', { sessionId, code });
-                        console.log('========================================');
-                        console.log(`🔑 PAIRING CODE: ${code}`);
-                        console.log('========================================');
-                        console.log(`📱 Buka WhatsApp → Settings → Linked Devices`);
-                        console.log(`📱 Pilih "Link with phone number"`);
-                        console.log(`📱 Masukkan kode: ${code}`);
-                        console.log('========================================');
                         
                     } catch (err) {
                         console.log('❌ Gagal pairing code:', err.message);
-                        // 🔥 FALLBACK: generate random code
+                        // FALLBACK - generate random code
                         const fallback = Math.random().toString(36).substring(2, 10).toUpperCase();
                         const bot = db.bots.find(b => b.id === sessionId);
                         if (bot) {
@@ -207,9 +243,62 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
                         }
                         io.emit('botPairingCode', { sessionId, code: fallback });
                         console.log(`🔑 FALLBACK PAIRING CODE: ${fallback}`);
-                        console.log(`📱 Masukkan kode ini di WhatsApp → Settings → Linked Devices`);
                     }
-                }, 2000); // Delay 2 detik
+                }, 3000);
+            }
+        }
+
+        // CONNECTION CLOSE / DISCONNECT
+        if (connection === 'close') {
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
+            
+            console.log(`🔌 Connection closed for ${sessionId}, code: ${statusCode}, reconnect: ${shouldReconnect}`);
+            
+            if (!shouldReconnect) {
+                // LOGOUT PERMANEN - hapus semua data
+                console.log(`🚫 Bot ${sessionId} logged out permanently`);
+                botStatus[sessionId] = 'disconnected';
+                
+                // Hapus dari database
+                db.bots = db.bots.filter(b => b.id !== sessionId);
+                saveDB();
+                
+                // Hapus auth folder
+                try { fs.removeSync(`${AUTH_DIR}/${sessionId}`); } catch (e) {}
+                
+                // Hapus dari memory
+                delete activeSockets[sessionId];
+                delete botStatus[sessionId];
+                delete pairingCodeSent[sessionId];
+                
+                if (botReconnectTimers[sessionId]) {
+                    clearTimeout(botReconnectTimers[sessionId]);
+                    delete botReconnectTimers[sessionId];
+                }
+                
+                io.emit('botDisconnected', { sessionId, reason: 'Logged out' });
+            } else {
+                // RECONNECT - dengan delay exponential backoff
+                const attempts = (botConnectionAttempts[sessionId] || 0) + 1;
+                botConnectionAttempts[sessionId] = attempts;
+                
+                // Delay: 3s, 5s, 10s, 20s, 30s (max)
+                const delay = Math.min(3000 * Math.pow(1.5, attempts - 1), 30000);
+                console.log(`🔄 Akan reconnect dalam ${delay/1000} detik (attempt ${attempts})`);
+                
+                if (botReconnectTimers[sessionId]) {
+                    clearTimeout(botReconnectTimers[sessionId]);
+                }
+                
+                botReconnectTimers[sessionId] = setTimeout(async () => {
+                    try {
+                        console.log(`🔄 Reconnecting bot ${sessionId}...`);
+                        await createBot(sessionId, phoneNumber, method);
+                    } catch (err) {
+                        console.log(`❌ Gagal reconnect: ${err.message}`);
+                    }
+                }, delay);
             }
         }
     });
@@ -225,10 +314,14 @@ async function restoreAllBots() {
         for (const dir of dirs) {
             if (fs.existsSync(`${AUTH_DIR}/${dir}/creds.json`)) {
                 const bot = db.bots.find(b => b.id === dir);
-                if (bot) {
+                if (bot && bot.status !== 'disconnected') {
                     console.log(`🔄 Restoring session: ${dir}`);
-                    await createBot(dir, bot.number, bot.method || 'qris');
-                    botStatus[dir] = 'connecting';
+                    try {
+                        await createBot(dir, bot.number, bot.method || 'qris');
+                        botStatus[dir] = 'connecting';
+                    } catch (err) {
+                        console.log(`❌ Gagal restore ${dir}: ${err.message}`);
+                    }
                 }
             }
         }
@@ -238,26 +331,53 @@ async function restoreAllBots() {
 }
 
 // ============================================
-// SPAM FUNCTIONS (delay 1 menit)
+// SPAM FUNCTIONS
 // ============================================
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// SPAM PAIRING - PAKAI BOT YANG SUDAH CONNECT
 async function spamPairingCode(sock, target, count, sessionId) {
     const results = { success: 0, failed: 0 };
+    const cleanNumber = target.replace(/^\+?62/, '');
+    
     for (let i = 0; i < count; i++) {
         try {
-            const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-            const message = `*PAIRING CODE*\n\nKode: ${code}\n\nGunakan kode ini untuk connect WhatsApp Anda.\n\n*PrankMaster Pro*`;
-            const chatId = target.includes('@s.whatsapp.net') ? target : `${target}@s.whatsapp.net`;
-            await sock.sendMessage(chatId, { text: message });
-            results.success++;
-            io.emit('spamProgress', {
-                sessionId, type: 'pairing', target,
-                current: i + 1, total: count,
-                success: results.success, failed: results.failed,
-                message: `✅ Pairing code terkirim ke ${target} (${i+1}/${count})`
-            });
-            await sleep(60000);
+            console.log(`📱 Meminta pairing code untuk ${cleanNumber} (${i+1}/${count})`);
+            
+            const codePromise = sock.requestPairingCode(cleanNumber);
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout 30 detik')), 30000)
+            );
+            
+            const code = await Promise.race([codePromise, timeoutPromise]);
+            
+            if (code) {
+                results.success++;
+                const chatId = `${cleanNumber}@s.whatsapp.net`;
+                const message = `*PAIRING CODE*\n\nKode: ${code}\n\nGunakan kode ini untuk connect WhatsApp Anda.\n\n*PrankMaster Pro*`;
+                await sock.sendMessage(chatId, { text: message });
+                
+                io.emit('spamProgress', {
+                    sessionId, type: 'pairing', target,
+                    current: i + 1, total: count,
+                    success: results.success, failed: results.failed,
+                    message: `✅ Pairing code ${code} terkirim ke ${target} (${i+1}/${count})`
+                });
+            } else {
+                results.failed++;
+                io.emit('spamProgress', {
+                    sessionId, type: 'pairing', target,
+                    current: i + 1, total: count,
+                    success: results.success, failed: results.failed,
+                    error: 'Gagal mendapatkan code'
+                });
+            }
+            
+            // JEDA 1 MENIT
+            if (i < count - 1) {
+                console.log(`⏳ Jeda 60 detik sebelum kirim berikutnya...`);
+                await sleep(60000);
+            }
         } catch (err) {
             results.failed++;
             io.emit('spamProgress', {
@@ -266,16 +386,114 @@ async function spamPairingCode(sock, target, count, sessionId) {
                 success: results.success, failed: results.failed,
                 error: err.message
             });
+            if (i < count - 1) await sleep(60000);
         }
     }
     return results;
 }
 
+// SPAM PAIRING TANPA BOT
+async function spamPairingWithoutBot(target, count, sessionId) {
+    const results = { success: 0, failed: 0 };
+    const cleanNumber = target.replace(/^\+?62/, '');
+    const tempSessionId = `spam_${Date.now()}`;
+    const authDir = `${AUTH_DIR}/${tempSessionId}`;
+    
+    fs.ensureDirSync(authDir);
+    
+    const { state, saveCreds } = await useMultiFileAuthState(authDir);
+    
+    const sock = makeWASocket({
+        version: [2, 2413, 1],
+        logger: pino({ level: 'silent' }),
+        auth: state,
+        browser: Browsers.windows('Chrome'),
+        printQRInTerminal: false,
+        defaultQueryTimeoutMs: 60000,
+        generateHighQualityLinkPreview: true,
+        syncFullHistory: false,
+        markOnlineOnConnect: false,
+        shouldSyncHistory: () => false,
+        connectTimeoutMs: 60000,
+        keepAliveIntervalMs: 10000
+    });
+
+    // Tunggu koneksi
+    await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Timeout connect 60 detik')), 60000);
+        sock.ev.on('connection.update', (update) => {
+            const { connection } = update;
+            if (connection === 'open' || connection === 'authenticated') {
+                clearTimeout(timeout);
+                resolve();
+            }
+            if (connection === 'close') {
+                clearTimeout(timeout);
+                reject(new Error('Connection closed'));
+            }
+        });
+    });
+
+    try {
+        for (let i = 0; i < count; i++) {
+            try {
+                console.log(`📱 Spam pairing ${i+1}/${count} untuk ${cleanNumber} (tanpa bot)`);
+                
+                const codePromise = sock.requestPairingCode(cleanNumber);
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout 30 detik')), 30000)
+                );
+                
+                const code = await Promise.race([codePromise, timeoutPromise]);
+                
+                if (code) {
+                    results.success++;
+                    const chatId = `${cleanNumber}@s.whatsapp.net`;
+                    const message = `*PAIRING CODE*\n\nKode: ${code}\n\nGunakan kode ini untuk connect WhatsApp Anda.\n\n*PrankMaster Pro*`;
+                    await sock.sendMessage(chatId, { text: message });
+                    
+                    io.emit('spamProgress', {
+                        sessionId, type: 'pairing', target,
+                        current: i + 1, total: count,
+                        success: results.success, failed: results.failed,
+                        message: `✅ Pairing code ${code} terkirim ke ${target} (${i+1}/${count})`
+                    });
+                } else {
+                    results.failed++;
+                }
+                
+                // JEDA 1 MENIT
+                if (i < count - 1) {
+                    console.log(`⏳ Jeda 60 detik sebelum kirim berikutnya...`);
+                    await sleep(60000);
+                }
+            } catch (err) {
+                results.failed++;
+                io.emit('spamProgress', {
+                    sessionId, type: 'pairing', target,
+                    current: i + 1, total: count,
+                    success: results.success, failed: results.failed,
+                    error: err.message
+                });
+                if (i < count - 1) await sleep(60000);
+            }
+        }
+    } finally {
+        try { sock.end(); } catch (e) {}
+        try { fs.removeSync(authDir); } catch (e) {}
+    }
+    
+    return results;
+}
+
+// SPAM CHAT
 async function spamChat(sock, target, message, count, sessionId) {
     const results = { success: 0, failed: 0 };
+    const cleanNumber = target.replace(/^\+?62/, '');
+    
     for (let i = 0; i < count; i++) {
         try {
-            const chatId = target.includes('@s.whatsapp.net') ? target : `${target}@s.whatsapp.net`;
+            const chatId = `${cleanNumber}@s.whatsapp.net`;
             const msg = message + ` (${i+1}/${count})`;
             await sock.sendMessage(chatId, { text: msg });
             results.success++;
@@ -285,7 +503,7 @@ async function spamChat(sock, target, message, count, sessionId) {
                 success: results.success, failed: results.failed,
                 message: `✅ Chat terkirim ke ${target} (${i+1}/${count})`
             });
-            await sleep(60000);
+            if (i < count - 1) await sleep(60000);
         } catch (err) {
             results.failed++;
             io.emit('spamProgress', {
@@ -294,17 +512,21 @@ async function spamChat(sock, target, message, count, sessionId) {
                 success: results.success, failed: results.failed,
                 error: err.message
             });
+            if (i < count - 1) await sleep(60000);
         }
     }
     return results;
 }
 
+// SPAM CALL
 async function spamCall(sock, target, type, count, sessionId) {
     const results = { success: 0, failed: 0 };
     const callType = type === 'video' ? '📹 Video Call' : '📞 Voice Call';
+    const cleanNumber = target.replace(/^\+?62/, '');
+    
     for (let i = 0; i < count; i++) {
         try {
-            const chatId = target.includes('@s.whatsapp.net') ? target : `${target}@s.whatsapp.net`;
+            const chatId = `${cleanNumber}@s.whatsapp.net`;
             const message = `*${callType}* (${i+1}/${count})\n\nAda panggilan masuk dari *PrankMaster*!`;
             await sock.sendMessage(chatId, { text: message });
             results.success++;
@@ -314,7 +536,7 @@ async function spamCall(sock, target, type, count, sessionId) {
                 success: results.success, failed: results.failed,
                 message: `✅ ${callType} terkirim ke ${target} (${i+1}/${count})`
             });
-            await sleep(60000);
+            if (i < count - 1) await sleep(60000);
         } catch (err) {
             results.failed++;
             io.emit('spamProgress', {
@@ -323,207 +545,405 @@ async function spamCall(sock, target, type, count, sessionId) {
                 success: results.success, failed: results.failed,
                 error: err.message
             });
+            if (i < count - 1) await sleep(60000);
         }
     }
     return results;
 }
 
 // ============================================
-// API ROUTES
+// API ROUTES - PERBAIKAN LOGIN/REGISTER
 // ============================================
 
 app.post('/api/register', (req, res) => {
-    const { username, password } = req.body;
-    if (db.users.find(u => u.username === username)) {
-        return res.json({ success: false, message: 'Username sudah digunakan!' });
+    try {
+        const { username, password } = req.body;
+        
+        // Validasi
+        if (!username || !password) {
+            return res.json({ success: false, message: 'Username dan password wajib diisi!' });
+        }
+        if (username.length < 3) {
+            return res.json({ success: false, message: 'Username minimal 3 karakter!' });
+        }
+        if (password.length < 4) {
+            return res.json({ success: false, message: 'Password minimal 4 karakter!' });
+        }
+        
+        // Cek username sudah ada
+        if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+            return res.json({ success: false, message: 'Username sudah digunakan!' });
+        }
+        
+        const user = {
+            id: uuidv4(),
+            username: username,
+            password: bcrypt.hashSync(password, 10),
+            status: 'Free',
+            limit: 15,
+            used: 0,
+            isAdmin: false,
+            isDeveloper: false,
+            online: false,
+            createdAt: new Date().toISOString()
+        };
+        db.users.push(user);
+        saveDB();
+        
+        io.emit('userUpdated', { username, action: 'register' });
+        console.log(`✅ User baru: ${username}`);
+        res.json({ success: true, message: 'Registrasi berhasil! Silakan login.' });
+    } catch (err) {
+        console.error('❌ Register error:', err);
+        res.json({ success: false, message: 'Terjadi kesalahan server!' });
     }
-    db.users.push({
-        id: uuidv4(),
-        username,
-        password: bcrypt.hashSync(password, 10),
-        status: 'Free',
-        limit: 15,
-        used: 0,
-        isAdmin: false,
-        isDeveloper: false,
-        online: false,
-        createdAt: new Date().toISOString()
-    });
-    saveDB();
-    res.json({ success: true, message: 'Registrasi berhasil!' });
 });
 
 app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = db.users.find(u => u.username === username);
-    if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-    if (!bcrypt.compareSync(password, user.password)) {
-        return res.json({ success: false, message: 'Password salah!' });
-    }
-    user.online = true;
-    saveDB();
-    res.json({
-        success: true,
-        user: {
-            username: user.username,
-            status: user.status,
-            limit: user.limit,
-            used: user.used,
-            isAdmin: user.isAdmin,
-            isDeveloper: user.isDeveloper
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.json({ success: false, message: 'Username dan password wajib diisi!' });
         }
-    });
+        
+        const user = db.users.find(u => u.username === username);
+        if (!user) {
+            return res.json({ success: false, message: 'Username tidak ditemukan!' });
+        }
+        
+        if (!bcrypt.compareSync(password, user.password)) {
+            return res.json({ success: false, message: 'Password salah!' });
+        }
+        
+        user.online = true;
+        saveDB();
+        io.emit('userStatusChanged', { username, online: true });
+        
+        console.log(`✅ User login: ${username}`);
+        res.json({
+            success: true,
+            user: {
+                username: user.username,
+                status: user.status,
+                limit: user.limit,
+                used: user.used,
+                isAdmin: user.isAdmin,
+                isDeveloper: user.isDeveloper
+            }
+        });
+    } catch (err) {
+        console.error('❌ Login error:', err);
+        res.json({ success: false, message: 'Terjadi kesalahan server!' });
+    }
 });
 
 app.get('/api/user/:username', (req, res) => {
-    const user = db.users.find(u => u.username === req.params.username);
-    if (!user) return res.json({ success: false });
-    res.json({
-        success: true,
-        user: {
-            username: user.username,
-            status: user.status,
-            limit: user.limit,
-            used: user.used,
-            isAdmin: user.isAdmin,
-            isDeveloper: user.isDeveloper
-        }
-    });
+    try {
+        const user = db.users.find(u => u.username === req.params.username);
+        if (!user) return res.json({ success: false });
+        res.json({
+            success: true,
+            user: {
+                username: user.username,
+                status: user.status,
+                limit: user.limit,
+                used: user.used,
+                isAdmin: user.isAdmin,
+                isDeveloper: user.isDeveloper
+            }
+        });
+    } catch (err) {
+        res.json({ success: false });
+    }
 });
 
 app.post('/api/change-password', (req, res) => {
-    const { username, newPassword } = req.body;
-    const user = db.users.find(u => u.username === username);
-    if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-    user.password = bcrypt.hashSync(newPassword, 10);
-    saveDB();
-    res.json({ success: true, message: 'Password berhasil diubah!' });
+    try {
+        const { username, newPassword } = req.body;
+        const user = db.users.find(u => u.username === username);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        if (!newPassword || newPassword.length < 4) {
+            return res.json({ success: false, message: 'Password minimal 4 karakter!' });
+        }
+        user.password = bcrypt.hashSync(newPassword, 10);
+        saveDB();
+        res.json({ success: true, message: 'Password berhasil diubah!' });
+    } catch (err) {
+        res.json({ success: false, message: 'Terjadi kesalahan!' });
+    }
 });
+
+// ============================================
+// BOT ROUTES
+// ============================================
 
 app.get('/api/bots', (req, res) => {
-    const bots = db.bots.map(b => ({
-        id: b.id,
-        number: b.number,
-        owner: b.owner,
-        status: b.status || 'disconnected',
-        pairingCode: b.pairingCode || null,
-        method: b.method || 'qris',
-        isReady: (botStatus[b.id] === 'ready')
-    }));
-    res.json({ success: true, bots });
+    try {
+        const bots = db.bots.map(b => ({
+            id: b.id,
+            number: b.number,
+            owner: b.owner,
+            status: botStatus[b.id] || b.status || 'disconnected',
+            pairingCode: b.pairingCode || null,
+            method: b.method || 'qris',
+            isReady: (botStatus[b.id] === 'ready')
+        }));
+        res.json({ success: true, bots });
+    } catch (err) {
+        res.json({ success: false, bots: [] });
+    }
 });
 
-// ===== CONNECT BOT =====
+// ===== CONNECT BOT - PERBAIKAN =====
 app.post('/api/bots/connect', async (req, res) => {
-    const { number, username, method } = req.body;
-    const user = db.users.find(u => u.username === username);
-    if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+    try {
+        const { number, username, method } = req.body;
+        
+        if (!number || !username) {
+            return res.json({ success: false, message: 'Nomor dan username wajib diisi!' });
+        }
+        
+        const user = db.users.find(u => u.username === username);
+        if (!user) {
+            return res.json({ success: false, message: 'User tidak ditemukan!' });
+        }
 
-    // Cek bot existing
-    const existing = db.bots.find(b => b.number === number && b.owner === username);
-    if (existing) {
-        if (fs.existsSync(`${AUTH_DIR}/${existing.id}/creds.json`)) {
-            try {
-                await createBot(existing.id, number, existing.method || 'qris');
-                botStatus[existing.id] = 'connecting';
-                return res.json({
-                    success: true,
-                    message: 'Bot sedang di-restore...',
-                    sessionId: existing.id,
-                    restored: true
-                });
-            } catch (e) {
-                fs.removeSync(`${AUTH_DIR}/${existing.id}`);
+        // Cek bot yang sudah ada dengan nomor yang sama
+        const existing = db.bots.find(b => b.number === number && b.owner === username);
+        if (existing) {
+            // Cek apakah session masih valid
+            if (fs.existsSync(`${AUTH_DIR}/${existing.id}/creds.json`)) {
+                // Jika bot sudah ready, return langsung
+                if (botStatus[existing.id] === 'ready') {
+                    return res.json({
+                        success: true,
+                        message: 'Bot sudah terhubung!',
+                        sessionId: existing.id,
+                        restored: true,
+                        alreadyConnected: true
+                    });
+                }
+                
+                // Coba restore
+                try {
+                    await createBot(existing.id, number, existing.method || 'qris');
+                    botStatus[existing.id] = 'connecting';
+                    return res.json({
+                        success: true,
+                        message: 'Bot sedang di-restore...',
+                        sessionId: existing.id,
+                        restored: true
+                    });
+                } catch (e) {
+                    console.log(`❌ Gagal restore: ${e.message}`);
+                    // Hapus data yang corrupt
+                    fs.removeSync(`${AUTH_DIR}/${existing.id}`);
+                    db.bots = db.bots.filter(b => b.id !== existing.id);
+                    saveDB();
+                }
+            } else {
+                // Hapus dari database jika tidak ada creds
                 db.bots = db.bots.filter(b => b.id !== existing.id);
                 saveDB();
             }
-        } else {
-            db.bots = db.bots.filter(b => b.id !== existing.id);
-            saveDB();
         }
-    }
 
-    const sessionId = `${number}_${Date.now()}`;
-    try {
-        db.bots.push({
-            id: sessionId,
-            number: number,
-            owner: username,
-            status: 'connecting',
-            method: method || 'qris',
-            pairingCode: null,
-            connectedAt: new Date().toISOString()
-        });
-        saveDB();
+        // Buat bot baru
+        const sessionId = `${number}_${Date.now()}`;
+        try {
+            db.bots.push({
+                id: sessionId,
+                number: number,
+                owner: username,
+                status: 'connecting',
+                method: method || 'qris',
+                pairingCode: null,
+                connectedAt: new Date().toISOString()
+            });
+            saveDB();
 
-        await createBot(sessionId, number, method || 'qris');
-        botStatus[sessionId] = 'connecting';
+            // Create bot tanpa blocking
+            createBot(sessionId, number, method || 'qris').catch(err => {
+                console.log(`❌ Error creating bot: ${err.message}`);
+            });
+            
+            botStatus[sessionId] = 'connecting';
 
-        res.json({
-            success: true,
-            message: 'Bot sedang menghubungkan...',
-            sessionId,
-            method: method || 'qris'
-        });
+            res.json({
+                success: true,
+                message: 'Bot sedang menghubungkan...',
+                sessionId,
+                method: method || 'qris'
+            });
+        } catch (err) {
+            console.error('❌ Error connect bot:', err);
+            db.bots = db.bots.filter(b => b.id !== sessionId);
+            saveDB();
+            res.json({ success: false, message: err.message });
+        }
     } catch (err) {
-        console.error('❌ Error connect bot:', err);
-        res.json({ success: false, message: err.message });
+        console.error('❌ Connect bot error:', err);
+        res.json({ success: false, message: 'Terjadi kesalahan server!' });
     }
 });
 
 // ===== DISCONNECT BOT =====
-app.post('/api/bots/disconnect', (req, res) => {
-    const { sessionId } = req.body;
-    if (activeSockets[sessionId]) {
-        try {
-            activeSockets[sessionId].end();
-        } catch (e) {}
-        delete activeSockets[sessionId];
+app.post('/api/bots/disconnect', async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+        
+        if (activeSockets[sessionId]) {
+            try {
+                await activeSockets[sessionId].end();
+            } catch (e) {}
+            delete activeSockets[sessionId];
+        }
+        
+        // Hapus dari memory
         delete botStatus[sessionId];
         delete pairingCodeSent[sessionId];
+        
+        if (botReconnectTimers[sessionId]) {
+            clearTimeout(botReconnectTimers[sessionId]);
+            delete botReconnectTimers[sessionId];
+        }
+        
+        // Hapus dari database
         db.bots = db.bots.filter(b => b.id !== sessionId);
         saveDB();
+        
+        // Hapus auth folder
         try { fs.removeSync(`${AUTH_DIR}/${sessionId}`); } catch (e) {}
+        
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
     }
-    res.json({ success: true });
 });
 
-// ===== SPAM PAIRING =====
+// ============================================
+// SPAM ROUTES
+// ============================================
+
 app.post('/api/spam/pairing', async (req, res) => {
-    const { sessionId, target, count } = req.body;
-    const sock = activeSockets[sessionId];
-    if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
     try {
-        const result = await spamPairingCode(sock, target, count, sessionId);
+        const { sessionId, target, count, useBot } = req.body;
+        
+        // Cek user
+        const bot = db.bots.find(b => b.id === sessionId);
+        if (!bot) return res.json({ success: false, message: 'Session tidak ditemukan!' });
+        
+        const user = db.users.find(u => u.username === bot.owner);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        
+        // Cek limit
+        const limit = user.limit;
+        if (limit !== Infinity && limit !== '∞' && limit !== null) {
+            const remaining = limit - (user.used || 0);
+            if (remaining <= 0) {
+                return res.json({ success: false, message: 'Limit spam habis!' });
+            }
+            if (count > remaining) {
+                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
+            }
+        }
+
+        let result;
+        const useExistingBot = useBot === true && activeSockets[sessionId] && botStatus[sessionId] === 'ready';
+        
+        if (useExistingBot) {
+            // Pakai bot yang sudah connect
+            const sock = activeSockets[sessionId];
+            result = await spamPairingCode(sock, target, count, sessionId);
+        } else {
+            // Spam tanpa bot connect
+            console.log('🔹 Spam pairing tanpa bot connect...');
+            result = await spamPairingWithoutBot(target, count, sessionId);
+        }
+        
+        // Update used
+        if (result.success > 0) {
+            user.used = (user.used || 0) + result.success;
+            saveDB();
+            io.emit('userUpdated', { username: user.username });
+        }
+        
         res.json({ success: true, result });
     } catch (err) {
+        console.error('❌ Error spam pairing:', err);
         res.json({ success: false, message: err.message });
     }
 });
 
-// ===== SPAM CHAT =====
 app.post('/api/spam/chat', async (req, res) => {
-    const { sessionId, target, message, count } = req.body;
-    const sock = activeSockets[sessionId];
-    if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
     try {
+        const { sessionId, target, message, count } = req.body;
+        
+        const bot = db.bots.find(b => b.id === sessionId);
+        if (!bot) return res.json({ success: false, message: 'Session tidak ditemukan!' });
+        
+        const user = db.users.find(u => u.username === bot.owner);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        
+        const limit = user.limit;
+        if (limit !== Infinity && limit !== '∞' && limit !== null) {
+            const remaining = limit - (user.used || 0);
+            if (remaining <= 0) {
+                return res.json({ success: false, message: 'Limit spam habis!' });
+            }
+            if (count > remaining) {
+                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
+            }
+        }
+        
+        const sock = activeSockets[sessionId];
+        if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
+        if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
+        
         const result = await spamChat(sock, target, message, count, sessionId);
+        if (result.success > 0) {
+            user.used = (user.used || 0) + result.success;
+            saveDB();
+            io.emit('userUpdated', { username: user.username });
+        }
         res.json({ success: true, result });
     } catch (err) {
         res.json({ success: false, message: err.message });
     }
 });
 
-// ===== SPAM CALL =====
 app.post('/api/spam/call', async (req, res) => {
-    const { sessionId, target, type, count } = req.body;
-    const sock = activeSockets[sessionId];
-    if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-    if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
     try {
+        const { sessionId, target, type, count } = req.body;
+        
+        const bot = db.bots.find(b => b.id === sessionId);
+        if (!bot) return res.json({ success: false, message: 'Session tidak ditemukan!' });
+        
+        const user = db.users.find(u => u.username === bot.owner);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        
+        const limit = user.limit;
+        if (limit !== Infinity && limit !== '∞' && limit !== null) {
+            const remaining = limit - (user.used || 0);
+            if (remaining <= 0) {
+                return res.json({ success: false, message: 'Limit spam habis!' });
+            }
+            if (count > remaining) {
+                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
+            }
+        }
+        
+        const sock = activeSockets[sessionId];
+        if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
+        if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
+        
         const result = await spamCall(sock, target, type, count, sessionId);
+        if (result.success > 0) {
+            user.used = (user.used || 0) + result.success;
+            saveDB();
+            io.emit('userUpdated', { username: user.username });
+        }
         res.json({ success: true, result });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -534,98 +954,129 @@ app.post('/api/spam/call', async (req, res) => {
 // ADMIN API
 // ============================================
 app.get('/api/admin/users', (req, res) => {
-    res.json({
-        success: true,
-        users: db.users.map(u => ({
-            username: u.username,
-            status: u.status,
-            limit: u.limit === Infinity ? '∞' : u.limit,
-            used: u.used,
-            online: u.online || false,
-            isAdmin: u.isAdmin,
-            isDeveloper: u.isDeveloper
-        }))
-    });
+    try {
+        res.json({
+            success: true,
+            users: db.users.map(u => ({
+                username: u.username,
+                status: u.status,
+                limit: u.limit === Infinity ? '∞' : u.limit,
+                used: u.used,
+                online: u.online || false,
+                isAdmin: u.isAdmin,
+                isDeveloper: u.isDeveloper
+            }))
+        });
+    } catch (err) {
+        res.json({ success: false, users: [] });
+    }
 });
 
 app.post('/api/admin/update-status', (req, res) => {
-    const { username, status, admin } = req.body;
-    const adminUser = db.users.find(u => u.username === admin);
-    if (!adminUser || (!adminUser.isAdmin && !adminUser.isDeveloper)) {
-        return res.json({ success: false, message: 'Unauthorized!' });
+    try {
+        const { username, status, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || (!adminUser.isAdmin && !adminUser.isDeveloper)) {
+            return res.json({ success: false, message: 'Unauthorized!' });
+        }
+        if (status === 'Developer' && !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        const user = db.users.find(u => u.username === username);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        const limits = { Free: 15, Premium: 200, VIP: Infinity, Reseller: 500, Developer: Infinity };
+        user.status = status;
+        user.limit = limits[status] || 15;
+        saveDB();
+        io.emit('userUpdated', { username, action: 'status_change' });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
     }
-    if (status === 'Developer' && !adminUser.isDeveloper) {
-        return res.json({ success: false, message: 'Hanya Developer!' });
-    }
-    const user = db.users.find(u => u.username === username);
-    if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-    const limits = { Free: 15, Premium: 200, VIP: Infinity, Reseller: 500, Developer: Infinity };
-    user.status = status;
-    user.limit = limits[status] || 15;
-    saveDB();
-    res.json({ success: true });
 });
 
 app.post('/api/admin/ban', (req, res) => {
-    const { username, admin } = req.body;
-    const adminUser = db.users.find(u => u.username === admin);
-    if (!adminUser || !adminUser.isDeveloper) {
-        return res.json({ success: false, message: 'Hanya Developer!' });
+    try {
+        const { username, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        db.users = db.users.filter(u => u.username !== username);
+        db.bots = db.bots.filter(b => b.owner !== username);
+        saveDB();
+        io.emit('userUpdated', { username, action: 'banned' });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
     }
-    db.users = db.users.filter(u => u.username !== username);
-    db.bots = db.bots.filter(b => b.owner !== username);
-    saveDB();
-    res.json({ success: true });
 });
 
 app.post('/api/admin/settings', (req, res) => {
-    const { settings, admin } = req.body;
-    const adminUser = db.users.find(u => u.username === admin);
-    if (!adminUser || !adminUser.isDeveloper) {
-        return res.json({ success: false, message: 'Hanya Developer!' });
+    try {
+        const { settings, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        db.settings = settings;
+        saveDB();
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
     }
-    db.settings = settings;
-    saveDB();
-    res.json({ success: true });
 });
 
 app.get('/api/admin/payments', (req, res) => {
-    res.json({ success: true, payments: db.payments });
+    try {
+        res.json({ success: true, payments: db.payments });
+    } catch (err) {
+        res.json({ success: false, payments: [] });
+    }
 });
 
 app.post('/api/admin/verify-payment', (req, res) => {
-    const { paymentId, admin } = req.body;
-    const adminUser = db.users.find(u => u.username === admin);
-    if (!adminUser || !adminUser.isAdmin) {
-        return res.json({ success: false, message: 'Unauthorized!' });
+    try {
+        const { paymentId, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isAdmin) {
+            return res.json({ success: false, message: 'Unauthorized!' });
+        }
+        const payment = db.payments.find(p => p.id === paymentId);
+        if (!payment) return res.json({ success: false, message: 'Payment tidak ditemukan!' });
+        payment.status = 'verified';
+        const user = db.users.find(u => u.username === payment.username);
+        if (user) {
+            const limits = { Premium: 200, VIP: Infinity, Reseller: 500 };
+            user.status = payment.package;
+            user.limit = limits[payment.package] || 15;
+        }
+        saveDB();
+        io.emit('paymentStatus', { status: 'success', message: `Pembayaran ${payment.package} diverifikasi!` });
+        io.emit('userUpdated', { username: payment.username, action: 'payment_verified' });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
     }
-    const payment = db.payments.find(p => p.id === paymentId);
-    if (!payment) return res.json({ success: false, message: 'Payment tidak ditemukan!' });
-    payment.status = 'verified';
-    const user = db.users.find(u => u.username === payment.username);
-    if (user) {
-        const limits = { Premium: 200, VIP: Infinity, Reseller: 500 };
-        user.status = payment.package;
-        user.limit = limits[payment.package] || 15;
-    }
-    saveDB();
-    io.emit('paymentStatus', { status: 'success', message: `Pembayaran ${payment.package} diverifikasi!` });
-    res.json({ success: true });
 });
 
 app.post('/api/admin/reject-payment', (req, res) => {
-    const { paymentId, reason, admin } = req.body;
-    const adminUser = db.users.find(u => u.username === admin);
-    if (!adminUser || !adminUser.isAdmin) {
-        return res.json({ success: false, message: 'Unauthorized!' });
+    try {
+        const { paymentId, reason, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isAdmin) {
+            return res.json({ success: false, message: 'Unauthorized!' });
+        }
+        const payment = db.payments.find(p => p.id === paymentId);
+        if (!payment) return res.json({ success: false, message: 'Payment tidak ditemukan!' });
+        payment.status = 'rejected';
+        payment.reason = reason;
+        saveDB();
+        io.emit('paymentStatus', { status: 'error', message: `Pembayaran dibatalkan: ${reason}` });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
     }
-    const payment = db.payments.find(p => p.id === paymentId);
-    if (!payment) return res.json({ success: false, message: 'Payment tidak ditemukan!' });
-    payment.status = 'rejected';
-    payment.reason = reason;
-    saveDB();
-    io.emit('paymentStatus', { status: 'error', message: `Pembayaran dibatalkan: ${reason}` });
-    res.json({ success: true });
 });
 
 // ===== PAYMENT SUBMIT =====
@@ -636,24 +1087,28 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 app.post('/api/payments/submit', upload.single('proof'), (req, res) => {
-    const { username, package: pkg, name, paymentMethod } = req.body;
-    const user = db.users.find(u => u.username === username);
-    if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-    if (!req.file) return res.json({ success: false, message: 'Upload bukti pembayaran!' });
-    db.payments.push({
-        id: uuidv4(),
-        username,
-        package: pkg,
-        amount: pkg === 'Premium' ? 10000 : pkg === 'VIP' ? 20000 : 30000,
-        name,
-        paymentMethod,
-        proof: req.file.filename,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-    });
-    saveDB();
-    io.emit('paymentSubmitted', { username, package: pkg });
-    res.json({ success: true, message: 'Pembayaran terkirim!' });
+    try {
+        const { username, package: pkg, name, paymentMethod } = req.body;
+        const user = db.users.find(u => u.username === username);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        if (!req.file) return res.json({ success: false, message: 'Upload bukti pembayaran!' });
+        db.payments.push({
+            id: uuidv4(),
+            username,
+            package: pkg,
+            amount: pkg === 'Premium' ? 10000 : pkg === 'VIP' ? 20000 : 30000,
+            name,
+            paymentMethod,
+            proof: req.file.filename,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        });
+        saveDB();
+        io.emit('paymentSubmitted', { username, package: pkg });
+        res.json({ success: true, message: 'Pembayaran terkirim!' });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
 });
 
 // ============================================
@@ -670,6 +1125,7 @@ io.on('connection', (socket) => {
         if (user) user.online = true;
         saveDB();
         io.emit('usersOnline', Array.from(onlineUsers));
+        io.emit('userStatusChanged', { username, online: true });
     });
 
     socket.on('sendMessage', (data) => {
@@ -681,15 +1137,6 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('⚡ User disconnected:', socket.id);
-        setTimeout(() => {
-            const toRemove = [];
-            onlineUsers.forEach(u => {
-                const user = db.users.find(usr => usr.username === u);
-                if (user && !user.online) toRemove.push(u);
-            });
-            toRemove.forEach(u => onlineUsers.delete(u));
-            io.emit('usersOnline', Array.from(onlineUsers));
-        }, 5000);
     });
 });
 
@@ -716,10 +1163,7 @@ server.listen(PORT, async () => {
     console.log('🔄 Restoring saved sessions...');
     await restoreAllBots();
     console.log('========================================');
-    console.log('🔑 PAIRING CODE:');
-    console.log('1. Klik Connect Bot dengan metode Code');
-    console.log('2. Tunggu 5-10 detik');
-    console.log('3. Pairing code muncul di web');
-    console.log('4. Masukkan di WhatsApp → Settings → Linked Devices');
+    console.log('👑 Admin: Lynzka / Asiafone11');
+    console.log('💡 Developer limit: ∞ (Unlimited)');
     console.log('========================================');
 });
