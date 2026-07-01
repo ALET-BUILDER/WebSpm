@@ -1,15 +1,13 @@
 {
   "name": "prank-master-pro",
-  "version": "3.0.0",
-  "description": "PrankMaster Pro - Suntik Sosial Media + Bypass Zefoy",
+  "version": "5.0.0",
+  "description": "PrankMaster Pro - Multi Provider Social Media Booster",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "@adiwajshing/baileys": "github:WhiskeySockets/Baileys",
-    "@adiwajshing/keyed-db": "^0.2.4",
     "express": "^4.18.2",
     "socket.io": "^4.6.1",
     "cors": "^2.8.5",
@@ -17,15 +15,9 @@
     "multer": "^1.4.5-lts.1",
     "fs-extra": "^11.1.1",
     "uuid": "^9.0.0",
-    "qrcode": "^1.5.3",
     "dotenv": "^16.0.3",
     "jsonwebtoken": "^9.0.0",
-    "pino": "^8.14.1",
-    "wa-sticker-formatter": "^4.4.4",
     "node-fetch": "^2.7.0",
-    "moment-timezone": "^0.5.48",
-    "chalk": "^4.1.2",
-    "https-proxy-agent": "^7.0.2",
     "cheerio": "^1.0.0-rc.12",
     "axios": "^1.6.2",
     "compression": "^1.7.4",
@@ -35,7 +27,12 @@
     "winston": "^3.11.0",
     "node-cron": "^3.0.2",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer-extra-plugin-adblocker": "^2.13.6",
+    "sharp": "^0.33.0",
+    "user-agents": "^1.1.0",
+    "fake-useragent": "^1.0.1",
+    "puppeteer": "^21.5.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
