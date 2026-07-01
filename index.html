@@ -592,37 +592,43 @@
                 </div>
             </section>
 
-            <!-- ===== SPAM OTP ===== -->
-            <section id="spam-otp" class="section">
-                <div class="section-header">
-                    <h1><i class="fas fa-bolt"></i> Spam OTP</h1>
-                    <p>Kirim OTP ke nomor target menggunakan <span class="badge badge-success">45+ API</span></p>
-                </div>
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
-                    <div class="form-group">
-                        <label><i class="fas fa-bullseye"></i> Nomor Target</label>
-                        <input type="text" id="otpTarget" placeholder="6281234567890" inputmode="numeric">
-                        <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (tanpa +62)</small>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah Pengiriman</label>
-                        <input type="number" id="otpCount" min="1" max="200" value="5">
-                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="otpConsole"><div class="log-normal">[✓] Sistem siap... 45+ API OTP</div></div>
-                    </div>
-                    <div id="otpProgress" style="display:none;" class="spam-progress">
-                        <div>Progress: <span id="otpProgressText">0/0</span></div>
-                        <div class="bar" id="otpProgressBar" style="width:0%"></div>
-                    </div>
-                    <button class="btn btn-primary btn-block" id="otpStartBtn" onclick="toggleOTP()">
-                        <i class="fas fa-play"></i> Start Spam OTP
-                    </button>
-                </div>
-            </section>
+<!-- ===== SPAM OTP ===== -->
+<section id="spam-otp" class="section">
+    <div class="section-header">
+        <h1><i class="fas fa-bolt"></i> Spam OTP</h1>
+        <p>Kirim OTP ke nomor target menggunakan <span class="badge badge-success">80+ API</span></p>
+    </div>
+    <div class="card">
+        <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
+        <div class="form-group">
+            <label><i class="fas fa-bullseye"></i> Nomor Target</label>
+            <input type="text" id="otpTarget" placeholder="6281234567890" inputmode="numeric" value="628">
+            <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (awali dengan 628)</small>
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-sort-numeric-up"></i> Jumlah Pengiriman</label>
+            <input type="number" id="otpCount" min="1" max="200" value="5">
+            <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
+        </div>
+        <div class="form-group">
+            <label><i class="fas fa-terminal"></i> Console Log</label>
+            <div class="console-log" id="otpConsole"><div class="log-normal">[✓] Sistem siap... 80+ API OTP</div></div>
+        </div>
+        <div id="otpProgress" style="display:none;" class="spam-progress">
+            <div>Progress: <span id="otpProgressText">0/0</span></div>
+            <div class="bar" id="otpProgressBar" style="width:0%"></div>
+            <div style="margin-top:10px;font-size:0.8rem;color:#888;" id="otpDetailProgress"></div>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary btn-block" id="otpStartBtn" onclick="toggleOTP()">
+                <i class="fas fa-play"></i> Start Spam OTP
+            </button>
+            <button class="btn btn-danger btn-block" id="otpStopBtn" onclick="stopOTP()" style="display:none;flex:1;">
+                <i class="fas fa-stop"></i> STOP
+            </button>
+        </div>
+    </div>
+</section>
 
             <!-- ===== SPAM PAIRING ===== -->
             <section id="spam-pairing" class="section">
@@ -1444,35 +1450,58 @@
     // ============================================
     // UPDATE SPAM PROGRESS
     // ============================================
-    function updateSpamProgress(data) {
-        const progressMap = {
-            'otp': { container: 'otpProgress', text: 'otpProgressText', bar: 'otpProgressBar', console: 'otpConsole' },
-            'pairing': { container: 'pairingProgress', text: 'pairingProgressText', bar: 'pairingProgressBar',
-                console: 'pairingConsole' }
-        };
+// ============================================
+// UPDATE SPAM PROGRESS
+// ============================================
+function updateSpamProgress(data) {
+    const progressMap = {
+        'otp': { container: 'otpProgress', text: 'otpProgressText', bar: 'otpProgressBar', console: 'otpConsole', detail: 'otpDetailProgress' },
+        'pairing': { container: 'pairingProgress', text: 'pairingProgressText', bar: 'pairingProgressBar', console: 'pairingConsole', detail: null }
+    };
 
-        const p = progressMap[data.type];
-        if (!p) return;
+    const p = progressMap[data.type];
+    if (!p) return;
 
-        const container = document.getElementById(p.container);
-        if (container) container.style.display = 'block';
+    const container = document.getElementById(p.container);
+    if (container) container.style.display = 'block';
 
-        const textEl = document.getElementById(p.text);
-        if (textEl) textEl.textContent = `${data.current}/${data.total}`;
+    const textEl = document.getElementById(p.text);
+    if (textEl) textEl.textContent = `${data.current}/${data.total}`;
 
-        const barEl = document.getElementById(p.bar);
-        if (barEl) barEl.style.width = `${(data.current/data.total)*100}%`;
-
-        if (data.message) {
-            updateConsole(p.console, data.message, 'log-success');
+    const barEl = document.getElementById(p.bar);
+    if (barEl) barEl.style.width = `${(data.current/data.total)*100}%`;
+    
+    // Tampilkan detail API
+    if (p.detail && data.details) {
+        const detailEl = document.getElementById(p.detail);
+        if (detailEl) {
+            const successList = data.details.filter(s => s.success).map(s => s.service).join(', ');
+            const failedList = data.details.filter(s => !s.success).map(s => s.service).join(', ');
+            detailEl.innerHTML = `
+                ✅ Berhasil: ${successList || 'Tidak ada'} | 
+                ❌ Gagal: ${failedList || 'Tidak ada'}
+            `;
         }
-        if (data.error) {
-            updateConsole(p.console, `[✗] ${data.error}`, 'log-error');
-        }
+    }
 
-        if (data.current >= data.total) {
-            setTimeout(() => {
-                if (container) container.style.display = 'none';
+    if (data.message) {
+        updateConsole(p.console, data.message, 'log-success');
+    }
+    if (data.error) {
+        updateConsole(p.console, `[✗] ${data.error}`, 'log-error');
+    }
+    
+    if (data.stopped) {
+        if (container) container.style.display = 'none';
+        resetOTPButtons();
+    }
+
+    if (data.current >= data.total) {
+        setTimeout(() => {
+            if (container) container.style.display = 'none';
+            if (data.type === 'otp') {
+                resetOTPButtons();
+            } else {
                 isSpamming = false;
                 const btnMap = {
                     'otp': 'otpStartBtn',
@@ -1484,9 +1513,10 @@
                     btn.disabled = false;
                     btn.className = 'btn btn-primary btn-block';
                 }
-            }, 2000);
-        }
+            }
+        }, 2000);
     }
+}
 
     // ============================================
     // NAVIGATION
@@ -1611,88 +1641,155 @@
     // ============================================
     // SPAM OTP
     // ============================================
-    function toggleOTP() {
-        if (isSpamming) { stopSpam('otp'); return; }
+// ============================================
+// SPAM OTP - DENGAN TOMBOL STOP
+// ============================================
+let currentOTPSession = null;
 
-        const target = document.getElementById('otpTarget')?.value.trim();
-        const count = parseInt(document.getElementById('otpCount')?.value) || 5;
-
-        if (!target) {
-            updateConsole('otpConsole', '[✗] Masukkan nomor target!', 'log-error');
-            return;
-        }
-        if (count < 1) {
-            updateConsole('otpConsole', '[✗] Jumlah minimal 1!', 'log-error');
-            return;
-        }
-
-        const limit = currentUser?.limit;
-        if (limit !== Infinity && limit !== '∞' && limit !== null) {
-            const remaining = limit - (currentUser?.used || 0);
-            if (remaining <= 0) {
-                updateConsole('otpConsole', '[✗] Limit spam habis! Tunggu 1 jam.', 'log-error');
-                showToast('Limit spam habis! Tunggu 1 jam.', 'error');
-                return;
-            }
-            if (count > remaining) {
-                updateConsole('otpConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
-                showToast(`Sisa limit hanya ${remaining}!`, 'error');
-                return;
-            }
-        }
-
-        isSpamming = true;
-        const btn = document.getElementById('otpStartBtn');
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim OTP...';
-            btn.disabled = true;
-        }
-
-        updateConsole('otpConsole', `[✓] Mengirim OTP ke ${target} ${count}x (45+ API, jeda 60 detik/round)`, 'log-info');
-
-        fetch('/api/spam/otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    target: target,
-                    count: count
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    updateConsole('otpConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`,
-                        'log-success');
-                    if (data.result.success > 0 && currentUser) {
-                        currentUser.used = (currentUser.used || 0) + data.result.success;
-                        loadUserData();
-                    }
-                    showToast(`Spam OTP selesai! Berhasil: ${data.result.success}`, 'success');
-                } else {
-                    if (data.maintenance) {
-                        updateConsole('otpConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
-                        showToast('Server maintenance!', 'error');
-                    } else {
-                        updateConsole('otpConsole', `[✗] ${data.message}`, 'log-error');
-                        showToast(data.message, 'error');
-                    }
-                }
-                isSpamming = false;
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-play"></i> Start Spam OTP';
-                    btn.disabled = false;
-                }
-            })
-            .catch(err => {
-                updateConsole('otpConsole', `[✗] Error: ${err.message}`, 'log-error');
-                isSpamming = false;
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-play"></i> Start Spam OTP';
-                    btn.disabled = false;
-                }
-            });
+function toggleOTP() {
+    if (isSpamming) { 
+        stopOTP(); 
+        return; 
     }
+
+    const target = document.getElementById('otpTarget')?.value.trim();
+    const count = parseInt(document.getElementById('otpCount')?.value) || 5;
+
+    if (!target) {
+        updateConsole('otpConsole', '[✗] Masukkan nomor target!', 'log-error');
+        return;
+    }
+    
+    // Validasi format 628
+    if (!target.startsWith('628')) {
+        updateConsole('otpConsole', '[✗] Nomor harus diawali 628! Contoh: 6281234567890', 'log-error');
+        return;
+    }
+    
+    if (target.length < 11) {
+        updateConsole('otpConsole', '[✗] Nomor tidak valid! Minimal 11 digit setelah 628', 'log-error');
+        return;
+    }
+
+    if (count < 1) {
+        updateConsole('otpConsole', '[✗] Jumlah minimal 1!', 'log-error');
+        return;
+    }
+
+    const limit = currentUser?.limit;
+    if (limit !== Infinity && limit !== '∞' && limit !== null) {
+        const remaining = limit - (currentUser?.used || 0);
+        if (remaining <= 0) {
+            updateConsole('otpConsole', '[✗] Limit spam habis! Tunggu 1 jam.', 'log-error');
+            showToast('Limit spam habis! Tunggu 1 jam.', 'error');
+            return;
+        }
+        if (count > remaining) {
+            updateConsole('otpConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
+            showToast(`Sisa limit hanya ${remaining}!`, 'error');
+            return;
+        }
+    }
+
+    isSpamming = true;
+    currentOTPSession = `otp_${currentUser.username}_${Date.now()}`;
+    
+    const startBtn = document.getElementById('otpStartBtn');
+    const stopBtn = document.getElementById('otpStopBtn');
+    
+    if (startBtn) {
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim OTP...';
+        startBtn.disabled = true;
+        startBtn.style.display = 'none';
+    }
+    if (stopBtn) {
+        stopBtn.style.display = 'block';
+        stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
+    }
+
+    updateConsole('otpConsole', `[✓] Mengirim OTP ke ${target} ${count}x (80+ API, LANGSUNG SEMUA)`, 'log-info');
+
+    fetch('/api/spam/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: currentUser.username,
+            target: target,
+            count: count
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            updateConsole('otpConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
+            if (data.result.success > 0 && currentUser) {
+                currentUser.used = (currentUser.used || 0) + data.result.success;
+                loadUserData();
+            }
+            showToast(`Spam OTP selesai! Berhasil: ${data.result.success}`, 'success');
+        } else {
+            if (data.maintenance) {
+                updateConsole('otpConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
+                showToast('Server maintenance!', 'error');
+            } else {
+                updateConsole('otpConsole', `[✗] ${data.message}`, 'log-error');
+                showToast(data.message, 'error');
+            }
+        }
+        resetOTPButtons();
+    })
+    .catch(err => {
+        updateConsole('otpConsole', `[✗] Error: ${err.message}`, 'log-error');
+        resetOTPButtons();
+    });
+}
+
+function stopOTP() {
+    if (!currentOTPSession) {
+        resetOTPButtons();
+        return;
+    }
+    
+    updateConsole('otpConsole', '[⛔] Menghentikan spam OTP...', 'log-warning');
+    showToast('Menghentikan spam...', 'info');
+    
+    fetch('/api/spam/otp/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: currentOTPSession })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            updateConsole('otpConsole', '[⛔] Spam dihentikan!', 'log-warning');
+            showToast('Spam dihentikan!', 'warning');
+        }
+        resetOTPButtons();
+    })
+    .catch(err => {
+        updateConsole('otpConsole', `[✗] Error stop: ${err.message}`, 'log-error');
+        resetOTPButtons();
+    });
+    
+    isSpamming = false;
+}
+
+function resetOTPButtons() {
+    isSpamming = false;
+    currentOTPSession = null;
+    
+    const startBtn = document.getElementById('otpStartBtn');
+    const stopBtn = document.getElementById('otpStopBtn');
+    
+    if (startBtn) {
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Start Spam OTP';
+        startBtn.disabled = false;
+        startBtn.style.display = 'block';
+    }
+    if (stopBtn) {
+        stopBtn.style.display = 'none';
+    }
+}
 
     // ============================================
     // SPAM PAIRING
