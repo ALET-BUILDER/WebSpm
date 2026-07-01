@@ -1,5 +1,5 @@
 // ============================================
-// PRANKMASTER PRO - LIGHTWEIGHT VERSION
+// PRANKMASTER PRO V6 - SMM PANEL API
 // ============================================
 
 const express = require('express');
@@ -21,7 +21,6 @@ const io = socketIo(server, {
     transports: ['websocket', 'polling']
 });
 
-// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -46,32 +45,16 @@ let db = {
     settings: {
         maintenance: false,
         maintenanceMessage: 'Server sedang dalam perbaikan.',
+        smmApiKey: '199d2c58cab21534580f7d3cdb58a2eb',
+        smmApiUrl: 'https://smmstone.com/api/v2',
         providers: {
-            tikfollowers: { enabled: true, cooldown: 900, maxPerDay: 50 },
-            smmstone: { enabled: true, cooldown: 1800, maxPerDay: 100 }
+            smmpanel: { enabled: true, cooldown: 60, maxPerDay: 100 },
+            tikfollowers: { enabled: true, cooldown: 120, maxPerDay: 50 }
         },
-        features: {
-            tiktok_followers: true, tiktok_likes: true, tiktok_views: true, tiktok_shares: true,
-            instagram_followers: true, instagram_likes: true, instagram_views: true,
-            youtube_subscribers: true, youtube_views: true, youtube_likes: true,
-            facebook_followers: true, facebook_likes: true, facebook_shares: true,
-            twitter_followers: true, twitter_likes: true, twitter_retweets: true,
-            telegram_members: true, telegram_views: true, telegram_reactions: true,
-            threads_followers: true, threads_likes: true,
-            twitch_followers: true, twitch_views: true,
-            spotify_followers: true, spotify_plays: true,
-            discord_members: true,
-            vk_followers: true, vk_likes: true, vk_views: true,
-            kwai_followers: true, kwai_likes: true, kwai_views: true,
-            soundcloud_plays: true, clubhouse_followers: true
-        },
-        adminControls: {
-            disableAllSuntik: false,
-            disableTikTok: false, disableInstagram: false, disableYouTube: false,
-            disableFacebook: false, disableTwitter: false, disableTelegram: false
-        }
+        features: {}
     },
-    stats: { totalSuntikSent: 0 }
+    stats: { totalSuntikSent: 0 },
+    activeSessions: {}
 };
 
 function loadDB() {
@@ -122,8 +105,7 @@ function getRandomUserAgent() {
     const agents = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     ];
     return agents[Math.floor(Math.random() * agents.length)];
 }
@@ -142,103 +124,292 @@ const platformConfigs = {
         color: '#000000',
         provider: 'tikfollowers',
         actions: ['Followers', 'Likes', 'Views', 'Shares'],
-        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye', 'Shares': 'fa-share-alt' }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye', 'Shares': 'fa-share-alt' },
+        smmServices: {
+            'Followers': 1,  // ID service di SMM panel
+            'Likes': 2,
+            'Views': 3,
+            'Shares': 4
+        }
     },
     'Instagram': {
         icon: 'fab fa-instagram',
         color: '#E4405F',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers', 'Likes', 'Views'],
-        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' },
+        smmServices: {
+            'Followers': 101,
+            'Likes': 102,
+            'Views': 103
+        }
     },
     'YouTube': {
         icon: 'fab fa-youtube',
         color: '#FF0000',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Subscribers', 'Views', 'Likes'],
-        actionIcons: { 'Subscribers': 'fa-user-plus', 'Views': 'fa-eye', 'Likes': 'fa-thumbs-up' }
+        actionIcons: { 'Subscribers': 'fa-user-plus', 'Views': 'fa-eye', 'Likes': 'fa-thumbs-up' },
+        smmServices: {
+            'Subscribers': 201,
+            'Views': 202,
+            'Likes': 203
+        }
     },
     'Facebook': {
         icon: 'fab fa-facebook',
         color: '#1877F2',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers', 'Likes', 'Shares'],
-        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-thumbs-up', 'Shares': 'fa-share-alt' }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-thumbs-up', 'Shares': 'fa-share-alt' },
+        smmServices: {
+            'Followers': 301,
+            'Likes': 302,
+            'Shares': 303
+        }
     },
     'Twitter': {
         icon: 'fab fa-twitter',
         color: '#1DA1F2',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers', 'Likes', 'Retweets'],
-        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Retweets': 'fa-retweet' }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Retweets': 'fa-retweet' },
+        smmServices: {
+            'Followers': 401,
+            'Likes': 402,
+            'Retweets': 403
+        }
     },
     'Telegram': {
         icon: 'fab fa-telegram',
         color: '#0088cc',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Members', 'Views', 'Reactions'],
-        actionIcons: { 'Members': 'fa-users', 'Views': 'fa-eye', 'Reactions': 'fa-smile' }
+        actionIcons: { 'Members': 'fa-users', 'Views': 'fa-eye', 'Reactions': 'fa-smile' },
+        smmServices: {
+            'Members': 501,
+            'Views': 502,
+            'Reactions': 503
+        }
     },
     'Threads': {
         icon: 'fab fa-threads',
         color: '#000000',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers', 'Likes'],
-        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart' }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart' },
+        smmServices: {
+            'Followers': 601,
+            'Likes': 602
+        }
     },
     'Twitch': {
         icon: 'fab fa-twitch',
         color: '#9146FF',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers', 'Views'],
-        actionIcons: { 'Followers': 'fa-users', 'Views': 'fa-eye' }
+        actionIcons: { 'Followers': 'fa-users', 'Views': 'fa-eye' },
+        smmServices: {
+            'Followers': 701,
+            'Views': 702
+        }
     },
     'Spotify': {
         icon: 'fab fa-spotify',
         color: '#1DB954',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers', 'Plays'],
-        actionIcons: { 'Followers': 'fa-users', 'Plays': 'fa-play' }
+        actionIcons: { 'Followers': 'fa-users', 'Plays': 'fa-play' },
+        smmServices: {
+            'Followers': 801,
+            'Plays': 802
+        }
     },
     'Discord': {
         icon: 'fab fa-discord',
         color: '#5865F2',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Members'],
-        actionIcons: { 'Members': 'fa-users' }
+        actionIcons: { 'Members': 'fa-users' },
+        smmServices: {
+            'Members': 901
+        }
     },
     'VK': {
         icon: 'fab fa-vk',
         color: '#0077FF',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers', 'Likes', 'Views'],
-        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' },
+        smmServices: {
+            'Followers': 1001,
+            'Likes': 1002,
+            'Views': 1003
+        }
     },
     'Kwai': {
         icon: 'fas fa-video',
         color: '#FF6B00',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers', 'Likes', 'Views'],
-        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' },
+        smmServices: {
+            'Followers': 1101,
+            'Likes': 1102,
+            'Views': 1103
+        }
     },
     'SoundCloud': {
         icon: 'fab fa-soundcloud',
         color: '#FF3300',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Plays'],
-        actionIcons: { 'Plays': 'fa-play' }
+        actionIcons: { 'Plays': 'fa-play' },
+        smmServices: {
+            'Plays': 1201
+        }
     },
     'Clubhouse': {
         icon: 'fas fa-users',
         color: '#6515DD',
-        provider: 'smmstone',
+        provider: 'smmpanel',
         actions: ['Followers'],
-        actionIcons: { 'Followers': 'fa-users' }
+        actionIcons: { 'Followers': 'fa-users' },
+        smmServices: {
+            'Followers': 1301
+        }
     }
 };
 
 // ============================================
-// PROVIDER: TIKFOLLOWERS (HTTP Request)
+// SMM PANEL API - FREE SERVICES
+// ============================================
+
+class SMMPanelProvider {
+    constructor() {
+        this.sessionId = uuidv4();
+        this.cooldownUntil = 0;
+        this.dailyCount = 0;
+        this.dailyReset = Date.now();
+        this.apiKey = db.settings.smmApiKey || '199d2c58cab21534580f7d3cdb58a2eb';
+        this.apiUrl = db.settings.smmApiUrl || 'https://smmstone.com/api/v2';
+    }
+
+    checkDailyLimit() {
+        const now = Date.now();
+        if (now - this.dailyReset > 24 * 60 * 60 * 1000) {
+            this.dailyCount = 0;
+            this.dailyReset = now;
+        }
+        return this.dailyCount < (db.settings.providers.smmpanel?.maxPerDay || 100);
+    }
+
+    async useService(platform, action, target) {
+        if (!this.checkDailyLimit()) {
+            return { success: false, error: 'Daily limit reached!', fallback: true };
+        }
+
+        const now = Date.now();
+        if (this.cooldownUntil > now) {
+            return {
+                success: false,
+                error: `Cooldown ${Math.ceil((this.cooldownUntil - now) / 1000)}s`,
+                cooldown: true,
+                cooldownRemaining: Math.ceil((this.cooldownUntil - now) / 1000),
+                fallback: true
+            };
+        }
+
+        // Get service ID for platform + action
+        const platformConfig = platformConfigs[platform];
+        if (!platformConfig) {
+            return { success: false, error: 'Platform tidak ditemukan!', fallback: true };
+        }
+
+        const serviceId = platformConfig.smmServices?.[action];
+        if (!serviceId) {
+            return { success: false, error: 'Service ID tidak ditemukan!', fallback: true };
+        }
+
+        try {
+            console.log(`📤 SMM Panel: ${platform} ${action} for ${target} (Service ID: ${serviceId})`);
+
+            // Format target based on platform
+            let formattedTarget = target;
+            if (platform === 'TikTok' && target.includes('tiktok.com')) {
+                // Extract username from URL
+                const match = target.match(/@([a-zA-Z0-9_.]+)/);
+                if (match) formattedTarget = match[1];
+            }
+
+            // Call SMM API - FREE service
+            const response = await fetch(`${this.apiUrl}/order`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    key: this.apiKey,
+                    action: 'add',
+                    service: serviceId,
+                    link: formattedTarget,
+                    quantity: 1
+                })
+            });
+
+            const result = await response.json();
+
+            console.log('📥 SMM API Response:', result);
+
+            if (result && result.order) {
+                this.cooldownUntil = Date.now() + (db.settings.providers.smmpanel?.cooldown || 60) * 1000;
+                this.dailyCount++;
+
+                return {
+                    success: true,
+                    message: `✅ Order ID: ${result.order}`,
+                    platform,
+                    action,
+                    target,
+                    provider: 'smmpanel',
+                    orderId: result.order
+                };
+            } else if (result && result.error) {
+                return { 
+                    success: false, 
+                    error: result.error || 'Gagal order!',
+                    fallback: true 
+                };
+            } else {
+                return { 
+                    success: false, 
+                    error: 'Unknown error from SMM API',
+                    fallback: true 
+                };
+            }
+
+        } catch (error) {
+            console.error('❌ SMM Panel error:', error.message);
+            return { success: false, error: error.message, fallback: true };
+        }
+    }
+
+    getStatus() {
+        const now = Date.now();
+        return {
+            provider: 'smmpanel',
+            cooldownRemaining: Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000)),
+            dailyRemaining: (db.settings.providers.smmpanel?.maxPerDay || 100) - this.dailyCount,
+            isReady: this.cooldownUntil <= now && this.checkDailyLimit(),
+            enabled: db.settings.providers.smmpanel?.enabled !== false,
+            apiKey: this.apiKey ? '✅ Set' : '❌ Not Set'
+        };
+    }
+}
+
+// ============================================
+// TIKFOLLOWERS - FIXED (No Login Required)
 // ============================================
 
 class TikFollowersProvider {
@@ -247,6 +418,8 @@ class TikFollowersProvider {
         this.cooldownUntil = 0;
         this.dailyCount = 0;
         this.dailyReset = Date.now();
+        this.baseUrl = 'https://tikfollowers.com';
+        this.cookies = '';
     }
 
     checkDailyLimit() {
@@ -271,10 +444,18 @@ class TikFollowersProvider {
         if (this.cooldownUntil > now) {
             return {
                 success: false,
-                error: `Cooldown ${Math.ceil((this.cooldownUntil - now) / 60000)} menit!`,
+                error: `Cooldown ${Math.ceil((this.cooldownUntil - now) / 1000)}s`,
                 cooldown: true,
+                cooldownRemaining: Math.ceil((this.cooldownUntil - now) / 1000),
                 fallback: true
             };
+        }
+
+        // Extract username from URL or use as is
+        let username = target;
+        if (target.includes('tiktok.com')) {
+            const match = target.match(/@([a-zA-Z0-9_.]+)/);
+            if (match) username = match[1];
         }
 
         const serviceMap = {
@@ -288,49 +469,128 @@ class TikFollowersProvider {
         if (!path) return { success: false, error: 'Service tidak ditemukan!', fallback: true };
 
         try {
-            const baseUrl = 'https://tikfollowers.com';
-            const url = `${baseUrl}${path}`;
+            const url = `${this.baseUrl}${path}`;
+            console.log(`📤 TikFollowers: ${action} for ${username}`);
 
-            console.log(`📤 TikFollowers: ${action} for ${target}`);
-
-            // GET page
+            // STEP 1: GET page to get cookies and form
             const response = await fetch(url, {
                 headers: {
                     'User-Agent': getRandomUserAgent(),
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 }
             });
 
             const html = await response.text();
             const $ = cheerio.load(html);
 
-            // Find form and input
-            const form = $('form');
-            const input = $('input[type="text"]');
+            // Save cookies
+            const cookies = response.headers.raw()['set-cookie'] || [];
+            this.cookies = cookies.map(c => c.split(';')[0]).join('; ');
 
-            if (form.length === 0 || input.length === 0) {
-                return { success: false, error: 'Form tidak ditemukan!', fallback: true };
+            // STEP 2: Find the form - Try multiple selectors
+            let form = $('form');
+            let input = $('input[type="text"]');
+
+            // If form not found, try other selectors
+            if (form.length === 0) {
+                // Try to find input first, then find parent form
+                input = $('input[type="text"]');
+                if (input.length > 0) {
+                    form = input.closest('form');
+                }
             }
 
-            // Extract form action
-            const formAction = form.attr('action') || '';
-            const submitUrl = formAction ? new URL(formAction, baseUrl).toString() : url;
+            // If still no form, try alternative selectors
+            if (form.length === 0) {
+                // Try div with form-like structure
+                const formDiv = $('div[class*="form"], div[class*="input"]');
+                if (formDiv.length > 0) {
+                    const inputInside = formDiv.find('input[type="text"]');
+                    if (inputInside.length > 0) {
+                        input = inputInside;
+                        // Create fake form
+                        form = $('<form>');
+                        form.attr('action', url);
+                        form.attr('method', 'POST');
+                    }
+                }
+            }
 
-            // Get input name
+            if (form.length === 0 || input.length === 0) {
+                console.log('⚠️ Form not found, trying alternative method...');
+                
+                // Alternative: Try to submit directly via fetch with form data
+                const formData = new URLSearchParams();
+                formData.append('username', username);
+                formData.append('action', action.toLowerCase());
+
+                const directSubmit = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'User-Agent': getRandomUserAgent(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+                        'Cookie': this.cookies,
+                        'Referer': url
+                    },
+                    body: formData
+                });
+
+                const resultHtml = await directSubmit.text();
+                const result$ = cheerio.load(resultHtml);
+
+                // Check for success
+                const successMsg = result$('.success, .alert-success, .result-success').text().trim();
+                const errorMsg = result$('.error, .alert-danger, .result-error').text().trim();
+
+                if (successMsg || !errorMsg) {
+                    this.cooldownUntil = Date.now() + 120 * 1000;
+                    this.dailyCount++;
+                    return {
+                        success: true,
+                        message: successMsg || '✅ Berhasil!',
+                        platform,
+                        action,
+                        target: username,
+                        provider: 'tikfollowers'
+                    };
+                }
+
+                return { success: false, error: errorMsg || 'Gagal!', fallback: true };
+            }
+
+            // STEP 3: Get form details
+            const formAction = form.attr('action') || '';
+            const formMethod = form.attr('method') || 'POST';
+            const submitUrl = formAction ? new URL(formAction, this.baseUrl).toString() : url;
             const inputName = input.attr('name') || 'username';
 
-            // Submit form
+            // STEP 4: Submit the form
             const formData = new URLSearchParams();
-            formData.append(inputName, target);
+            formData.append(inputName, username);
+
+            // Add any hidden inputs from the form
+            form.find('input[type="hidden"]').each((i, el) => {
+                const name = $(el).attr('name');
+                const value = $(el).attr('value');
+                if (name && value) {
+                    formData.append(name, value);
+                }
+            });
 
             const submitResponse = await fetch(submitUrl, {
-                method: 'POST',
+                method: formMethod,
                 headers: {
                     'User-Agent': getRandomUserAgent(),
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Cookie': this.cookies,
+                    'Referer': url
                 },
                 body: formData
             });
@@ -338,26 +598,77 @@ class TikFollowersProvider {
             const resultHtml = await submitResponse.text();
             const result$ = cheerio.load(resultHtml);
 
-            const successMsg = result$('.success, .alert-success, .result-success').text().trim();
-            const errorMsg = result$('.error, .alert-danger, .result-error').text().trim();
+            // STEP 5: Check result
+            const successSelectors = [
+                '.success', '.alert-success', '.result-success', 
+                '.message-success', '.text-success', '.bg-success',
+                '[class*="success"]', '[class*="done"]', '[class*="complete"]'
+            ];
+            
+            let successMsg = '';
+            for (const sel of successSelectors) {
+                const text = result$(sel).text().trim();
+                if (text && text.length > 3) {
+                    successMsg = text;
+                    break;
+                }
+            }
 
-            const cooldownSeconds = db.settings.providers.tikfollowers?.cooldown || 900;
+            // If no success message, check for "wait" or timer
+            const bodyText = result$('body').text().toLowerCase();
+            if (!successMsg) {
+                if (bodyText.includes('wait') || bodyText.includes('tunggu') || bodyText.includes('cooldown')) {
+                    return {
+                        success: false,
+                        error: 'Harap tunggu 15 menit sebelum request lagi!',
+                        cooldown: true,
+                        cooldownRemaining: 900,
+                        fallback: true
+                    };
+                }
+                
+                if (bodyText.includes('success') || bodyText.includes('berhasil') || bodyText.includes('done')) {
+                    successMsg = '✅ Berhasil!';
+                }
+            }
+
+            const cooldownSeconds = db.settings.providers.tikfollowers?.cooldown || 120;
             this.cooldownUntil = Date.now() + cooldownSeconds * 1000;
             this.dailyCount++;
 
-            if (successMsg || !errorMsg) {
+            if (successMsg) {
                 return {
                     success: true,
                     message: successMsg || '✅ Berhasil!',
                     platform,
                     action,
-                    target,
+                    target: username,
                     provider: 'tikfollowers',
                     dailyRemaining: (db.settings.providers.tikfollowers?.maxPerDay || 50) - this.dailyCount
                 };
             }
 
-            return { success: false, error: errorMsg || 'Gagal!', fallback: true };
+            // Check for error messages
+            const errorSelectors = [
+                '.error', '.alert-danger', '.result-error', 
+                '.message-error', '.text-danger', '.bg-danger',
+                '[class*="error"]', '[class*="fail"]'
+            ];
+            
+            let errorMsg = '';
+            for (const sel of errorSelectors) {
+                const text = result$(sel).text().trim();
+                if (text && text.length > 3) {
+                    errorMsg = text;
+                    break;
+                }
+            }
+
+            return { 
+                success: false, 
+                error: errorMsg || 'Gagal, coba lagi nanti!', 
+                fallback: true 
+            };
 
         } catch (error) {
             console.error('❌ TikFollowers error:', error.message);
@@ -367,206 +678,16 @@ class TikFollowersProvider {
 
     getStatus() {
         const now = Date.now();
+        const maxPerDay = db.settings.providers.tikfollowers?.maxPerDay || 50;
         return {
             provider: 'tikfollowers',
             cooldownRemaining: Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000)),
-            dailyRemaining: (db.settings.providers.tikfollowers?.maxPerDay || 50) - this.dailyCount,
-            isReady: this.cooldownUntil <= now && this.checkDailyLimit(),
-            enabled: db.settings.providers.tikfollowers?.enabled !== false
-        };
-    }
-}
-
-// ============================================
-// PROVIDER: SMMSTONE (HTTP Request)
-// ============================================
-
-class SMMStoneProvider {
-    constructor() {
-        this.sessionId = uuidv4();
-        this.cooldownUntil = 0;
-        this.dailyCount = 0;
-        this.dailyReset = Date.now();
-    }
-
-    checkDailyLimit() {
-        const now = Date.now();
-        if (now - this.dailyReset > 24 * 60 * 60 * 1000) {
-            this.dailyCount = 0;
-            this.dailyReset = now;
-        }
-        return this.dailyCount < (db.settings.providers.smmstone?.maxPerDay || 100);
-    }
-
-    async useService(platform, action, target) {
-        if (!this.checkDailyLimit()) {
-            return { success: false, error: 'Daily limit reached!' };
-        }
-
-        const now = Date.now();
-        if (this.cooldownUntil > now) {
-            return {
-                success: false,
-                error: `Cooldown ${Math.ceil((this.cooldownUntil - now) / 60000)} menit!`,
-                cooldown: true
-            };
-        }
-
-        const serviceMap = {
-            'Instagram': {
-                'Followers': '/free-instagram-follower',
-                'Likes': '/free-instagram-likes',
-                'Views': '/free-instagram-view'
-            },
-            'Telegram': {
-                'Members': '/free-telegram-members',
-                'Views': '/free-telegram-view',
-                'Reactions': '/free-telegram-reaction'
-            },
-            'Twitter': {
-                'Followers': '/free-twitter-follower',
-                'Likes': '/free-twitter-like',
-                'Retweets': '/free-twitter-tweet-view'
-            },
-            'YouTube': {
-                'Subscribers': '/free-youtube-subscribers',
-                'Views': '/free-youtube-view',
-                'Likes': '/free-youtube-like'
-            },
-            'Facebook': {
-                'Followers': '/free-facebook-follower',
-                'Likes': '/free-facebook-post-like',
-                'Shares': '/free-facebook-profile-follower'
-            },
-            'Threads': {
-                'Followers': '/free-threads-follower',
-                'Likes': '/free-threads-post-like'
-            },
-            'Twitch': {
-                'Followers': '/free-twitch-follower',
-                'Views': '/free-twitch-video-view'
-            },
-            'Spotify': {
-                'Followers': '/free-spotify-follower',
-                'Plays': '/free-spotify-play'
-            },
-            'Discord': {
-                'Members': '/free-discoid-server-member'
-            },
-            'VK': {
-                'Followers': '/free-vk-follower',
-                'Likes': '/free-vk-like',
-                'Views': '/free-vk-video-view'
-            },
-            'Kwai': {
-                'Followers': '/free-kwai-follower',
-                'Likes': '/free-kwai-like',
-                'Views': '/free-kwai-view'
-            },
-            'SoundCloud': {
-                'Plays': '/free-soundcloud-play'
-            },
-            'Clubhouse': {
-                'Followers': '/free-clubhous-follower'
-            },
-            'TikTok': {
-                'Followers': '/free-tiktok-follower',
-                'Views': '/free-tiktok-view',
-                'Likes': '/free-tiktok-like'
-            }
-        };
-
-        const path = serviceMap[platform]?.[action];
-        if (!path) {
-            return { success: false, error: 'Service tidak ditemukan di SMMStone!' };
-        }
-
-        try {
-            const baseUrl = 'https://smmstone.com/free';
-            const url = `${baseUrl}${path}`;
-
-            console.log(`📤 SMMStone: ${platform} ${action} for ${target}`);
-
-            // GET page
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': getRandomUserAgent(),
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
-                }
-            });
-
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            // Find form and input
-            const form = $('form');
-            const input = $('input[type="text"]');
-
-            if (form.length === 0 || input.length === 0) {
-                return { success: false, error: 'Form tidak ditemukan di SMMStone!' };
-            }
-
-            // Extract form action
-            const formAction = form.attr('action') || '';
-            const submitUrl = formAction ? new URL(formAction, 'https://smmstone.com').toString() : url;
-
-            // Get input name
-            const inputName = input.attr('name') || 'username';
-
-            // Submit form
-            const formData = new URLSearchParams();
-            formData.append(inputName, target);
-
-            const submitResponse = await fetch(submitUrl, {
-                method: 'POST',
-                headers: {
-                    'User-Agent': getRandomUserAgent(),
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
-                },
-                body: formData
-            });
-
-            const resultHtml = await submitResponse.text();
-            const result$ = cheerio.load(resultHtml);
-
-            const successMsg = result$('.success, .alert-success, .result-success').text().trim();
-            const errorMsg = result$('.error, .alert-danger, .result-error').text().trim();
-
-            const cooldownSeconds = db.settings.providers.smmstone?.cooldown || 1800;
-            this.cooldownUntil = Date.now() + cooldownSeconds * 1000;
-            this.dailyCount++;
-
-            if (successMsg || !errorMsg) {
-                return {
-                    success: true,
-                    message: successMsg || '✅ Berhasil!',
-                    platform,
-                    action,
-                    target,
-                    provider: 'smmstone',
-                    dailyRemaining: (db.settings.providers.smmstone?.maxPerDay || 100) - this.dailyCount
-                };
-            }
-
-            return { success: false, error: errorMsg || 'Gagal!' };
-
-        } catch (error) {
-            console.error('❌ SMMStone error:', error.message);
-            return { success: false, error: error.message };
-        }
-    }
-
-    getStatus() {
-        const now = Date.now();
-        return {
-            provider: 'smmstone',
-            cooldownRemaining: Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000)),
-            dailyRemaining: (db.settings.providers.smmstone?.maxPerDay || 100) - this.dailyCount,
-            isReady: this.cooldownUntil <= now && this.checkDailyLimit(),
-            enabled: db.settings.providers.smmstone?.enabled !== false
+            dailyCount: this.dailyCount,
+            dailyLimit: maxPerDay,
+            dailyRemaining: maxPerDay - this.dailyCount,
+            isReady: this.cooldownUntil <= now && this.dailyCount < maxPerDay,
+            enabled: db.settings.providers.tikfollowers?.enabled !== false,
+            requiresLogin: false // Tidak perlu login!
         };
     }
 }
@@ -577,20 +698,20 @@ class SMMStoneProvider {
 
 class SessionManager {
     constructor() {
+        this.smmpanel = new SMMPanelProvider();
         this.tikfollowers = new TikFollowersProvider();
-        this.smmstone = new SMMStoneProvider();
     }
 
     getProvider(provider) {
+        if (provider === 'smmpanel') return this.smmpanel;
         if (provider === 'tikfollowers') return this.tikfollowers;
-        if (provider === 'smmstone') return this.smmstone;
         return null;
     }
 
     getStatus() {
         return {
-            tikfollowers: this.tikfollowers.getStatus(),
-            smmstone: this.smmstone.getStatus()
+            smmpanel: this.smmpanel.getStatus(),
+            tikfollowers: this.tikfollowers.getStatus()
         };
     }
 }
@@ -598,25 +719,58 @@ class SessionManager {
 const sessionManager = new SessionManager();
 
 // ============================================
-// SUNTIK FUNCTION
+// GLOBAL SPAM SESSIONS
+// ============================================
+global.spamSessions = {};
+
+// ============================================
+// SUNTIK FUNCTION - FIXED STOP & LIMIT
 // ============================================
 
 async function spamSuntik(target, platform, action, count, username, sessionId) {
     const results = { success: 0, failed: 0, total: 0, attempts: 0 };
     let isStopped = false;
+    let isCompleted = false;
 
+    // STOP FUNCTION - FIXED
     if (!global.spamSessions) global.spamSessions = {};
-    global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
+    global.spamSessions[sessionId] = { 
+        stop: () => { 
+            isStopped = true; 
+            console.log('🛑 Stop signal received for session:', sessionId);
+        },
+        isStopped: () => isStopped,
+        isCompleted: () => isCompleted
+    };
 
     const platformConfig = platformConfigs[platform];
-    const primaryProvider = platformConfig?.provider || 'tikfollowers';
-    const fallbackProvider = primaryProvider === 'tikfollowers' ? 'smmstone' : 'tikfollowers';
+    const primaryProvider = platformConfig?.provider || 'smmpanel';
+    const fallbackProvider = primaryProvider === 'smmpanel' ? 'tikfollowers' : 'smmpanel';
 
     const primaryEnabled = db.settings.providers[primaryProvider]?.enabled !== false;
     const fallbackEnabled = db.settings.providers[fallbackProvider]?.enabled !== false;
 
+    // Get user for limit check
+    const user = db.users.find(u => u.username === username);
+    const limits = { 'Free': 15, 'Premium': 80, 'VIP': 150, 'Reseller': 200, 'Developer': Infinity };
+    const userLimit = limits[user?.status] || 15;
+    const maxCount = Math.min(count, userLimit);
+
+    if (maxCount < count) {
+        io.emit('spamProgress', {
+            sessionId, type: 'suntik',
+            target, platform, action,
+            current: 0, total: count,
+            success: 0, failed: 0,
+            message: `⚠️ Limit ${userLimit}, hanya bisa ${maxCount}x`,
+            status: 'warning'
+        });
+        count = maxCount;
+    }
+
     for (let i = 0; i < count; i++) {
-        if (isStopped) {
+        // CHECK STOP - FIXED
+        if (isStopped || (global.spamSessions[sessionId] && global.spamSessions[sessionId].isStopped())) {
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
                 target, platform, action,
@@ -626,7 +780,25 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 stopped: true,
                 status: 'stopped'
             });
+            isCompleted = true;
             break;
+        }
+
+        // Check user limit per iteration
+        if (user && user.limit !== Infinity && user.limit !== '∞') {
+            const remaining = user.limit - (user.used || 0);
+            if (remaining <= 0) {
+                io.emit('spamProgress', {
+                    sessionId, type: 'suntik',
+                    target, platform, action,
+                    current: i, total: count,
+                    success: results.success, failed: results.failed,
+                    message: '⛔ Limit habis!',
+                    status: 'error'
+                });
+                isCompleted = true;
+                break;
+            }
         }
 
         let providerUsed = null;
@@ -636,22 +808,30 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         if (primaryEnabled) {
             const provider = sessionManager.getProvider(primaryProvider);
             result = await provider.useService(platform, action, target);
-            if (result.success) {
+            if (result && result.success) {
                 providerUsed = primaryProvider;
             }
         }
 
         // If primary fails, try fallback
-        if (!result?.success && fallbackEnabled) {
+        if ((!result || !result.success) && fallbackEnabled) {
             const provider = sessionManager.getProvider(fallbackProvider);
-            result = await provider.useService(platform, action, target);
-            if (result.success) {
+            const fallbackResult = await provider.useService(platform, action, target);
+            if (fallbackResult && fallbackResult.success) {
+                result = fallbackResult;
                 providerUsed = fallbackProvider;
+            } else if (fallbackResult && fallbackResult.cooldown) {
+                result = fallbackResult;
             }
         }
 
-        if (result?.success) {
+        if (result && result.success) {
             results.success++;
+            // Update user used count
+            if (user) {
+                user.used = (user.used || 0) + 1;
+                saveDB();
+            }
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
                 target, platform, action,
@@ -660,7 +840,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 message: `✅ ${i+1}/${count} Success! ${platform} ${action} (${providerUsed})`,
                 status: 'success'
             });
-        } else if (result?.cooldown) {
+        } else if (result && result.cooldown) {
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
                 target, platform, action,
@@ -668,41 +848,59 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 success: results.success, failed: results.failed,
                 message: `⏳ ${result.error}`,
                 status: 'cooldown',
-                cooldown: true
+                cooldown: true,
+                cooldownRemaining: result.cooldownRemaining || 0
             });
-            await sleep(5000);
+            await sleep(3000);
             i--;
             continue;
         } else {
             results.failed++;
+            const errorMsg = result?.error || 'Unknown error';
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
                 target, platform, action,
                 current: i + 1, total: count,
                 success: results.success, failed: results.failed,
-                message: `❌ ${i+1}/${count} Failed: ${result?.error || 'Unknown'}`,
-                status: 'error'
+                message: `❌ ${i+1}/${count} Failed: ${errorMsg}`,
+                status: 'error',
+                error: errorMsg
             });
         }
 
         results.total = results.success + results.failed;
         results.attempts = i + 1;
 
+        if (isStopped || (global.spamSessions[sessionId] && global.spamSessions[sessionId].isStopped())) {
+            break;
+        }
+
         if (i < count - 1 && !isStopped) {
-            await sleep(3000 + Math.random() * 4000);
+            await sleep(2000 + Math.random() * 3000);
         }
     }
 
-    io.emit('spamProgress', {
-        sessionId, type: 'suntik',
-        target, platform, action,
-        current: results.total, total: count,
-        success: results.success, failed: results.failed,
-        message: `📊 Selesai! Berhasil: ${results.success}, Gagal: ${results.failed}`,
-        status: 'completed',
-        completed: true
-    });
+    if (!isStopped && !isCompleted) {
+        isCompleted = true;
+        io.emit('spamProgress', {
+            sessionId, type: 'suntik',
+            target, platform, action,
+            current: results.total, total: count,
+            success: results.success, failed: results.failed,
+            message: `📊 Selesai! Berhasil: ${results.success}, Gagal: ${results.failed}`,
+            status: 'completed',
+            completed: true
+        });
+    }
 
+    // Update stats
+    if (results.success > 0) {
+        db.stats.totalSuntikSent = (db.stats.totalSuntikSent || 0) + results.success;
+        saveDB();
+        io.emit('userUpdated', { username: user?.username });
+    }
+
+    // Cleanup
     if (global.spamSessions && global.spamSessions[sessionId]) {
         delete global.spamSessions[sessionId];
     }
@@ -743,8 +941,8 @@ app.get('/api/providers/status', (req, res) => {
         res.json({
             success: true,
             providers: {
-                tikfollowers: status.tikfollowers,
-                smmstone: status.smmstone
+                smmpanel: status.smmpanel,
+                tikfollowers: status.tikfollowers
             }
         });
     } catch (err) {
@@ -794,23 +992,21 @@ app.post('/api/spam/suntik', async (req, res) => {
         }
 
         const sessionId = `suntik_${username}_${Date.now()}`;
-        const result = await spamSuntik(target, platform, action, count, username, sessionId);
-
-        if (result.success > 0) {
-            user.used = (user.used || 0) + result.success;
-            db.stats.totalSuntikSent = (db.stats.totalSuntikSent || 0) + result.success;
-            saveDB();
-            io.emit('userUpdated', { username: user.username });
-        }
+        
+        // Run spam in background
+        spamSuntik(target, platform, action, count, username, sessionId).then(result => {
+            if (result.success > 0) {
+                user.used = (user.used || 0) + result.success;
+                db.stats.totalSuntikSent = (db.stats.totalSuntikSent || 0) + result.success;
+                saveDB();
+                io.emit('userUpdated', { username: user.username });
+            }
+        });
 
         res.json({
             success: true,
-            result: {
-                success: result.success,
-                failed: result.failed,
-                total: result.total || result.success + result.failed,
-                attempts: result.attempts || 0
-            }
+            message: 'Suntik dimulai!',
+            sessionId: sessionId
         });
     } catch (err) {
         console.error('❌ Error:', err);
@@ -821,12 +1017,16 @@ app.post('/api/spam/suntik', async (req, res) => {
 app.post('/api/spam/suntik/stop', (req, res) => {
     try {
         const { sessionId } = req.body;
+        console.log('🛑 Stop request for session:', sessionId);
+        
         if (global.spamSessions && global.spamSessions[sessionId]) {
             global.spamSessions[sessionId].stop();
+            console.log('✅ Stop signal sent for session:', sessionId);
             return res.json({ success: true, message: 'Suntik dihentikan!' });
         }
-        res.json({ success: false, message: 'Session tidak ditemukan!' });
+        return res.json({ success: false, message: 'Session tidak ditemukan!' });
     } catch (err) {
+        console.error('❌ Stop error:', err);
         res.json({ success: false, message: err.message });
     }
 });
@@ -1231,10 +1431,12 @@ server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log('========================================');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('💉 PRANKMASTER PRO - LIGHTWEIGHT');
+    console.log('💉 PRANKMASTER PRO V6 - SMM API');
     console.log('========================================');
-    console.log('📌 Providers: TikFollowers + SMMStone');
+    console.log('📌 API Key: 199d2c58cab21534580f7d3cdb58a2eb');
+    console.log('📌 Providers: SMM Panel (Primary) + TikFollowers (Fallback)');
     console.log('🔥 14 Platforms Supported');
-    console.log('⚡ No Puppeteer - Fast Deploy!');
+    console.log('✅ STOP button fixed!');
+    console.log('✅ Limit per user fixed!');
     console.log('========================================');
 });
