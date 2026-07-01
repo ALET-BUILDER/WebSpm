@@ -1,5 +1,5 @@
 // ============================================
-// PRANKMASTER PRO V5 - MULTI PROVIDER
+// PRANKMASTER PRO - LIGHTWEIGHT VERSION
 // ============================================
 
 const express = require('express');
@@ -13,13 +13,6 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
-const userAgent = require('user-agents');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
-
-puppeteer.use(StealthPlugin());
-puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 
 const app = express();
 const server = http.createServer(app);
@@ -34,20 +27,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-const helmet = require('helmet');
-app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-}));
-
-const rateLimit = require('express-rate-limit');
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 200,
-    message: { success: false, message: 'Terlalu banyak request!' }
-});
-app.use('/api/', limiter);
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -66,80 +45,33 @@ let db = {
     messages: [],
     settings: {
         maintenance: false,
-        maintenanceMessage: 'Server sedang dalam perbaikan. Silakan coba lagi nanti.',
-        primaryProvider: 'tikfollowers', // tikfollowers | smmstone
-        fallbackEnabled: true,
+        maintenanceMessage: 'Server sedang dalam perbaikan.',
         providers: {
-            tikfollowers: {
-                enabled: true,
-                cooldown: 900, // 15 menit
-                maxPerDay: 50,
-                baseUrl: 'https://tikfollowers.com'
-            },
-            smmstone: {
-                enabled: true,
-                cooldown: 1800, // 30 menit
-                maxPerDay: 100,
-                baseUrl: 'https://smmstone.com/free'
-            }
+            tikfollowers: { enabled: true, cooldown: 900, maxPerDay: 50 },
+            smmstone: { enabled: true, cooldown: 1800, maxPerDay: 100 }
         },
         features: {
-            // TikTok
-            tiktok_followers: true,
-            tiktok_likes: true,
-            tiktok_views: true,
-            tiktok_shares: true,
-            // Instagram
-            instagram_followers: true,
-            instagram_likes: true,
-            instagram_views: true,
-            // YouTube
-            youtube_subscribers: true,
-            youtube_views: true,
-            youtube_likes: true,
-            // Facebook
-            facebook_followers: true,
-            facebook_likes: true,
-            facebook_shares: true,
-            // Twitter
-            twitter_followers: true,
-            twitter_likes: true,
-            twitter_retweets: true,
-            // Telegram
-            telegram_members: true,
-            telegram_views: true,
-            telegram_reactions: true,
-            // Others
-            threads_followers: true,
-            threads_likes: true,
-            twitch_followers: true,
-            twitch_views: true,
-            spotify_followers: true,
-            spotify_plays: true,
+            tiktok_followers: true, tiktok_likes: true, tiktok_views: true, tiktok_shares: true,
+            instagram_followers: true, instagram_likes: true, instagram_views: true,
+            youtube_subscribers: true, youtube_views: true, youtube_likes: true,
+            facebook_followers: true, facebook_likes: true, facebook_shares: true,
+            twitter_followers: true, twitter_likes: true, twitter_retweets: true,
+            telegram_members: true, telegram_views: true, telegram_reactions: true,
+            threads_followers: true, threads_likes: true,
+            twitch_followers: true, twitch_views: true,
+            spotify_followers: true, spotify_plays: true,
             discord_members: true,
-            vk_followers: true,
-            vk_likes: true,
-            kwai_followers: true,
-            kwai_likes: true,
-            soundcloud_plays: true,
-            clubhouse_followers: true
+            vk_followers: true, vk_likes: true, vk_views: true,
+            kwai_followers: true, kwai_likes: true, kwai_views: true,
+            soundcloud_plays: true, clubhouse_followers: true
         },
         adminControls: {
             disableAllSuntik: false,
-            disableTikTok: false,
-            disableInstagram: false,
-            disableYouTube: false,
-            disableFacebook: false,
-            disableTwitter: false,
-            disableTelegram: false,
-            disableOthers: false
+            disableTikTok: false, disableInstagram: false, disableYouTube: false,
+            disableFacebook: false, disableTwitter: false, disableTelegram: false
         }
     },
-    stats: {
-        totalSuntikSent: 0,
-        dailyStats: {},
-        lastReset: Date.now()
-    }
+    stats: { totalSuntikSent: 0 }
 };
 
 function loadDB() {
@@ -184,95 +116,24 @@ function generateApiKey() {
 }
 
 // ============================================
-// HUMAN-LIKE BEHAVIOR
+// USER AGENT
 // ============================================
-
 function getRandomUserAgent() {
-    try {
-        return new userAgent().toString();
-    } catch (e) {
-        return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-    }
-}
-
-function getRandomDelay(min = 1000, max = 5000) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    const agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ];
+    return agents[Math.floor(Math.random() * agents.length)];
 }
 
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms + (Math.random() * 500)));
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ============================================
-// PUPPETEER BROWSER MANAGER
-// ============================================
-
-let browserInstance = null;
-
-async function getBrowser() {
-    if (!browserInstance) {
-        browserInstance = await puppeteer.launch({
-            headless: 'new',
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--disable-gpu',
-                '--window-size=1920,1080',
-                '--disable-blink-features=AutomationControlled',
-                '--disable-features=IsolateOrigins,site-per-process',
-                '--disable-web-security'
-            ],
-            ignoreDefaultArgs: ['--enable-automation'],
-            defaultViewport: {
-                width: 1920,
-                height: 1080,
-                deviceScaleFactor: 1,
-                hasTouch: false,
-                isLandscape: true,
-                isMobile: false,
-            }
-        });
-    }
-    return browserInstance;
-}
-
-async function getPage() {
-    const browser = await getBrowser();
-    const page = await browser.newPage();
-
-    const viewports = [
-        { width: 1366, height: 768 },
-        { width: 1440, height: 900 },
-        { width: 1536, height: 864 },
-        { width: 1600, height: 900 },
-        { width: 1680, height: 1050 },
-        { width: 1920, height: 1080 }
-    ];
-    const vp = viewports[Math.floor(Math.random() * viewports.length)];
-    await page.setViewport(vp);
-
-    await page.setUserAgent(getRandomUserAgent());
-
-    await page.setExtraHTTPHeaders({
-        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
-    });
-
-    await page.evaluateOnNewDocument(() => {
-        Object.defineProperty(navigator, 'webdriver', { get: () => false });
-        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-        Object.defineProperty(navigator, 'languages', { get: () => ['id-ID', 'id', 'en-US', 'en'] });
-    });
-
-    return page;
-}
-
-// ============================================
-// PLATFORM CONFIG - SEMUA PLATFORM
+// PLATFORM CONFIG
 // ============================================
 
 const platformConfigs = {
@@ -281,169 +142,111 @@ const platformConfigs = {
         color: '#000000',
         provider: 'tikfollowers',
         actions: ['Followers', 'Likes', 'Views', 'Shares'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Likes': 'fa-heart',
-            'Views': 'fa-eye',
-            'Shares': 'fa-share-alt'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye', 'Shares': 'fa-share-alt' }
     },
     'Instagram': {
         icon: 'fab fa-instagram',
         color: '#E4405F',
         provider: 'smmstone',
         actions: ['Followers', 'Likes', 'Views'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Likes': 'fa-heart',
-            'Views': 'fa-eye'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' }
     },
     'YouTube': {
         icon: 'fab fa-youtube',
         color: '#FF0000',
         provider: 'smmstone',
         actions: ['Subscribers', 'Views', 'Likes'],
-        actionIcons: {
-            'Subscribers': 'fa-user-plus',
-            'Views': 'fa-eye',
-            'Likes': 'fa-thumbs-up'
-        }
+        actionIcons: { 'Subscribers': 'fa-user-plus', 'Views': 'fa-eye', 'Likes': 'fa-thumbs-up' }
     },
     'Facebook': {
         icon: 'fab fa-facebook',
         color: '#1877F2',
         provider: 'smmstone',
         actions: ['Followers', 'Likes', 'Shares'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Likes': 'fa-thumbs-up',
-            'Shares': 'fa-share-alt'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-thumbs-up', 'Shares': 'fa-share-alt' }
     },
     'Twitter': {
         icon: 'fab fa-twitter',
         color: '#1DA1F2',
         provider: 'smmstone',
         actions: ['Followers', 'Likes', 'Retweets'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Likes': 'fa-heart',
-            'Retweets': 'fa-retweet'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Retweets': 'fa-retweet' }
     },
     'Telegram': {
         icon: 'fab fa-telegram',
         color: '#0088cc',
         provider: 'smmstone',
         actions: ['Members', 'Views', 'Reactions'],
-        actionIcons: {
-            'Members': 'fa-users',
-            'Views': 'fa-eye',
-            'Reactions': 'fa-smile'
-        }
+        actionIcons: { 'Members': 'fa-users', 'Views': 'fa-eye', 'Reactions': 'fa-smile' }
     },
     'Threads': {
         icon: 'fab fa-threads',
         color: '#000000',
         provider: 'smmstone',
         actions: ['Followers', 'Likes'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Likes': 'fa-heart'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart' }
     },
     'Twitch': {
         icon: 'fab fa-twitch',
         color: '#9146FF',
         provider: 'smmstone',
         actions: ['Followers', 'Views'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Views': 'fa-eye'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Views': 'fa-eye' }
     },
     'Spotify': {
         icon: 'fab fa-spotify',
         color: '#1DB954',
         provider: 'smmstone',
         actions: ['Followers', 'Plays'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Plays': 'fa-play'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Plays': 'fa-play' }
     },
     'Discord': {
         icon: 'fab fa-discord',
         color: '#5865F2',
         provider: 'smmstone',
         actions: ['Members'],
-        actionIcons: {
-            'Members': 'fa-users'
-        }
+        actionIcons: { 'Members': 'fa-users' }
     },
     'VK': {
         icon: 'fab fa-vk',
         color: '#0077FF',
         provider: 'smmstone',
         actions: ['Followers', 'Likes', 'Views'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Likes': 'fa-heart',
-            'Views': 'fa-eye'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' }
     },
     'Kwai': {
         icon: 'fas fa-video',
         color: '#FF6B00',
         provider: 'smmstone',
         actions: ['Followers', 'Likes', 'Views'],
-        actionIcons: {
-            'Followers': 'fa-users',
-            'Likes': 'fa-heart',
-            'Views': 'fa-eye'
-        }
+        actionIcons: { 'Followers': 'fa-users', 'Likes': 'fa-heart', 'Views': 'fa-eye' }
     },
     'SoundCloud': {
         icon: 'fab fa-soundcloud',
         color: '#FF3300',
         provider: 'smmstone',
         actions: ['Plays'],
-        actionIcons: {
-            'Plays': 'fa-play'
-        }
+        actionIcons: { 'Plays': 'fa-play' }
     },
     'Clubhouse': {
         icon: 'fas fa-users',
         color: '#6515DD',
         provider: 'smmstone',
         actions: ['Followers'],
-        actionIcons: {
-            'Followers': 'fa-users'
-        }
+        actionIcons: { 'Followers': 'fa-users' }
     }
 };
 
 // ============================================
-// PROVIDER: TIKFOLLOWERS.COM
+// PROVIDER: TIKFOLLOWERS (HTTP Request)
 // ============================================
 
 class TikFollowersProvider {
-    constructor(sessionId) {
-        this.sessionId = sessionId || uuidv4();
-        this.baseUrl = 'https://tikfollowers.com';
-        this.cookies = '';
-        this.lastUsed = Date.now();
+    constructor() {
+        this.sessionId = uuidv4();
         this.cooldownUntil = 0;
         this.dailyCount = 0;
         this.dailyReset = Date.now();
-        this.headers = {
-            'User-Agent': getRandomUserAgent(),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive'
-        };
     }
 
     checkDailyLimit() {
@@ -452,35 +255,24 @@ class TikFollowersProvider {
             this.dailyCount = 0;
             this.dailyReset = now;
         }
-        const maxPerDay = db.settings.providers.tikfollowers?.maxPerDay || 50;
-        return this.dailyCount < maxPerDay;
+        return this.dailyCount < (db.settings.providers.tikfollowers?.maxPerDay || 50);
     }
 
     async useService(platform, action, target) {
         if (platform !== 'TikTok') {
-            return {
-                success: false,
-                error: 'TikFollowers hanya support TikTok!',
-                fallback: true
-            };
+            return { success: false, error: 'TikFollowers hanya support TikTok!', fallback: true };
         }
 
         if (!this.checkDailyLimit()) {
-            return {
-                success: false,
-                error: 'Daily limit reached!',
-                fallback: true
-            };
+            return { success: false, error: 'Daily limit reached!', fallback: true };
         }
 
         const now = Date.now();
         if (this.cooldownUntil > now) {
-            const remaining = Math.ceil((this.cooldownUntil - now) / 1000);
             return {
                 success: false,
-                error: `Cooldown ${Math.ceil(remaining/60)} menit!`,
+                error: `Cooldown ${Math.ceil((this.cooldownUntil - now) / 60000)} menit!`,
                 cooldown: true,
-                cooldownRemaining: remaining,
                 fallback: true
             };
         }
@@ -496,64 +288,58 @@ class TikFollowersProvider {
         if (!path) return { success: false, error: 'Service tidak ditemukan!', fallback: true };
 
         try {
+            const baseUrl = 'https://tikfollowers.com';
+            const url = `${baseUrl}${path}`;
+
             console.log(`📤 TikFollowers: ${action} for ${target}`);
 
-            const page = await getPage();
-            const url = `${this.baseUrl}${path}`;
-
-            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-            await sleep(1000 + Math.random() * 2000);
-            await page.evaluate(() => {
-                window.scrollBy(0, Math.random() * 300 + 100);
-            });
-            await sleep(500 + Math.random() * 1000);
-
-            const cookies = await page.cookies();
-            this.cookies = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-            this.headers['Cookie'] = this.cookies;
-
-            // Fill username
-            const inputFilled = await page.evaluate((target) => {
-                const inputs = document.querySelectorAll('input[type="text"]');
-                for (const input of inputs) {
-                    const placeholder = (input.placeholder || '').toLowerCase();
-                    const name = (input.name || '').toLowerCase();
-                    if (placeholder.includes('username') || placeholder.includes('user') ||
-                        name.includes('username') || name.includes('user')) {
-                        input.value = target;
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                        return true;
-                    }
+            // GET page
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': getRandomUserAgent(),
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
                 }
-                return false;
-            }, target);
+            });
 
-            if (!inputFilled) {
-                return { success: false, error: 'Tidak dapat menemukan input username!', fallback: true };
+            const html = await response.text();
+            const $ = cheerio.load(html);
+
+            // Find form and input
+            const form = $('form');
+            const input = $('input[type="text"]');
+
+            if (form.length === 0 || input.length === 0) {
+                return { success: false, error: 'Form tidak ditemukan!', fallback: true };
             }
 
-            await sleep(500 + Math.random() * 1000);
+            // Extract form action
+            const formAction = form.attr('action') || '';
+            const submitUrl = formAction ? new URL(formAction, baseUrl).toString() : url;
 
-            // Click submit
-            await page.evaluate(() => {
-                const buttons = document.querySelectorAll('button, input[type="submit"]');
-                for (const btn of buttons) {
-                    const text = (btn.textContent || '').toLowerCase();
-                    if (text.includes('submit') || text.includes('get') || text.includes('start')) {
-                        btn.click();
-                        break;
-                    }
-                }
+            // Get input name
+            const inputName = input.attr('name') || 'username';
+
+            // Submit form
+            const formData = new URLSearchParams();
+            formData.append(inputName, target);
+
+            const submitResponse = await fetch(submitUrl, {
+                method: 'POST',
+                headers: {
+                    'User-Agent': getRandomUserAgent(),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+                },
+                body: formData
             });
 
-            await sleep(5000 + Math.random() * 3000);
+            const resultHtml = await submitResponse.text();
+            const result$ = cheerio.load(resultHtml);
 
-            // Check result
-            const resultHtml = await page.content();
-            const $ = cheerio.load(resultHtml);
-
-            const successMsg = $('.success, .alert-success, .result-success').text().trim();
-            const errorMsg = $('.error, .alert-danger, .result-error').text().trim();
+            const successMsg = result$('.success, .alert-success, .result-success').text().trim();
+            const errorMsg = result$('.error, .alert-danger, .result-error').text().trim();
 
             const cooldownSeconds = db.settings.providers.tikfollowers?.cooldown || 900;
             this.cooldownUntil = Date.now() + cooldownSeconds * 1000;
@@ -571,60 +357,36 @@ class TikFollowersProvider {
                 };
             }
 
-            return {
-                success: false,
-                error: errorMsg || 'Gagal, coba lagi nanti',
-                fallback: true
-            };
+            return { success: false, error: errorMsg || 'Gagal!', fallback: true };
 
         } catch (error) {
             console.error('❌ TikFollowers error:', error.message);
-            return {
-                success: false,
-                error: error.message,
-                fallback: true
-            };
+            return { success: false, error: error.message, fallback: true };
         }
     }
 
     getStatus() {
         const now = Date.now();
-        const cooldownRemaining = Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000));
-        const maxPerDay = db.settings.providers.tikfollowers?.maxPerDay || 50;
-
         return {
-            sessionId: this.sessionId,
             provider: 'tikfollowers',
-            cooldownRemaining: cooldownRemaining,
-            dailyCount: this.dailyCount,
-            dailyLimit: maxPerDay,
-            dailyRemaining: maxPerDay - this.dailyCount,
-            isReady: cooldownRemaining === 0 && this.dailyCount < maxPerDay,
+            cooldownRemaining: Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000)),
+            dailyRemaining: (db.settings.providers.tikfollowers?.maxPerDay || 50) - this.dailyCount,
+            isReady: this.cooldownUntil <= now && this.checkDailyLimit(),
             enabled: db.settings.providers.tikfollowers?.enabled !== false
         };
     }
 }
 
 // ============================================
-// PROVIDER: SMMSTONE.COM
+// PROVIDER: SMMSTONE (HTTP Request)
 // ============================================
 
 class SMMStoneProvider {
-    constructor(sessionId) {
-        this.sessionId = sessionId || uuidv4();
-        this.baseUrl = 'https://smmstone.com/free';
-        this.cookies = '';
-        this.lastUsed = Date.now();
+    constructor() {
+        this.sessionId = uuidv4();
         this.cooldownUntil = 0;
         this.dailyCount = 0;
         this.dailyReset = Date.now();
-        this.headers = {
-            'User-Agent': getRandomUserAgent(),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive'
-        };
     }
 
     checkDailyLimit() {
@@ -633,30 +395,23 @@ class SMMStoneProvider {
             this.dailyCount = 0;
             this.dailyReset = now;
         }
-        const maxPerDay = db.settings.providers.smmstone?.maxPerDay || 100;
-        return this.dailyCount < maxPerDay;
+        return this.dailyCount < (db.settings.providers.smmstone?.maxPerDay || 100);
     }
 
     async useService(platform, action, target) {
         if (!this.checkDailyLimit()) {
-            return {
-                success: false,
-                error: 'Daily limit reached!'
-            };
+            return { success: false, error: 'Daily limit reached!' };
         }
 
         const now = Date.now();
         if (this.cooldownUntil > now) {
-            const remaining = Math.ceil((this.cooldownUntil - now) / 1000);
             return {
                 success: false,
-                error: `Cooldown ${Math.ceil(remaining/60)} menit!`,
-                cooldown: true,
-                cooldownRemaining: remaining
+                error: `Cooldown ${Math.ceil((this.cooldownUntil - now) / 60000)} menit!`,
+                cooldown: true
             };
         }
 
-        // Map platform + action to SMMStone path
         const serviceMap = {
             'Instagram': {
                 'Followers': '/free-instagram-follower',
@@ -727,123 +482,90 @@ class SMMStoneProvider {
         }
 
         try {
+            const baseUrl = 'https://smmstone.com/free';
+            const url = `${baseUrl}${path}`;
+
             console.log(`📤 SMMStone: ${platform} ${action} for ${target}`);
 
-            const page = await getPage();
-            const url = `${this.baseUrl}${path}`;
-
-            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-            await sleep(1000 + Math.random() * 2000);
-            await page.evaluate(() => {
-                window.scrollBy(0, Math.random() * 300 + 100);
+            // GET page
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': getRandomUserAgent(),
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+                }
             });
-            await sleep(500 + Math.random() * 1000);
 
-            const cookies = await page.cookies();
-            this.cookies = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-            this.headers['Cookie'] = this.cookies;
-
-            // Check if need login
-            const html = await page.content();
+            const html = await response.text();
             const $ = cheerio.load(html);
-            const needLogin = $('input[name="username"], input[name="password"], .login-form').length > 0;
 
-            if (needLogin) {
-                // Try to find and fill input without login
-                const inputFilled = await page.evaluate((target) => {
-                    const inputs = document.querySelectorAll('input[type="text"]');
-                    for (const input of inputs) {
-                        const placeholder = (input.placeholder || '').toLowerCase();
-                        const name = (input.name || '').toLowerCase();
-                        if (placeholder.includes('username') || placeholder.includes('link') ||
-                            placeholder.includes('target') || name.includes('username') ||
-                            name.includes('link') || name.includes('target')) {
-                            input.value = target;
-                            input.dispatchEvent(new Event('input', { bubbles: true }));
-                            return true;
-                        }
-                    }
-                    return false;
-                }, target);
+            // Find form and input
+            const form = $('form');
+            const input = $('input[type="text"]');
 
-                if (!inputFilled) {
-                    return { success: false, error: 'Tidak dapat menemukan input target!' };
-                }
+            if (form.length === 0 || input.length === 0) {
+                return { success: false, error: 'Form tidak ditemukan di SMMStone!' };
+            }
 
-                await sleep(500 + Math.random() * 1000);
+            // Extract form action
+            const formAction = form.attr('action') || '';
+            const submitUrl = formAction ? new URL(formAction, 'https://smmstone.com').toString() : url;
 
-                // Click submit/get button
-                await page.evaluate(() => {
-                    const buttons = document.querySelectorAll('button, input[type="submit"]');
-                    for (const btn of buttons) {
-                        const text = (btn.textContent || '').toLowerCase();
-                        if (text.includes('get') || text.includes('submit') || text.includes('start') ||
-                            text.includes('kirim') || text.includes('send')) {
-                            btn.click();
-                            break;
-                        }
-                    }
-                });
+            // Get input name
+            const inputName = input.attr('name') || 'username';
 
-                await sleep(5000 + Math.random() * 3000);
+            // Submit form
+            const formData = new URLSearchParams();
+            formData.append(inputName, target);
 
-                // Check result
-                const resultHtml = await page.content();
-                const result$ = cheerio.load(resultHtml);
+            const submitResponse = await fetch(submitUrl, {
+                method: 'POST',
+                headers: {
+                    'User-Agent': getRandomUserAgent(),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+                },
+                body: formData
+            });
 
-                const successMsg = result$('.success, .alert-success, .result-success').text().trim();
-                const errorMsg = result$('.error, .alert-danger, .result-error').text().trim();
+            const resultHtml = await submitResponse.text();
+            const result$ = cheerio.load(resultHtml);
 
-                const cooldownSeconds = db.settings.providers.smmstone?.cooldown || 1800;
-                this.cooldownUntil = Date.now() + cooldownSeconds * 1000;
-                this.dailyCount++;
+            const successMsg = result$('.success, .alert-success, .result-success').text().trim();
+            const errorMsg = result$('.error, .alert-danger, .result-error').text().trim();
 
-                if (successMsg || !errorMsg) {
-                    return {
-                        success: true,
-                        message: successMsg || '✅ Berhasil!',
-                        platform,
-                        action,
-                        target,
-                        provider: 'smmstone',
-                        dailyRemaining: (db.settings.providers.smmstone?.maxPerDay || 100) - this.dailyCount
-                    };
-                }
+            const cooldownSeconds = db.settings.providers.smmstone?.cooldown || 1800;
+            this.cooldownUntil = Date.now() + cooldownSeconds * 1000;
+            this.dailyCount++;
 
+            if (successMsg || !errorMsg) {
                 return {
-                    success: false,
-                    error: errorMsg || 'Gagal, coba lagi nanti'
+                    success: true,
+                    message: successMsg || '✅ Berhasil!',
+                    platform,
+                    action,
+                    target,
+                    provider: 'smmstone',
+                    dailyRemaining: (db.settings.providers.smmstone?.maxPerDay || 100) - this.dailyCount
                 };
             }
 
-            // If login required, return error
-            return {
-                success: false,
-                error: 'SMMStone membutuhkan login. Gunakan TikFollowers untuk TikTok.'
-            };
+            return { success: false, error: errorMsg || 'Gagal!' };
 
         } catch (error) {
             console.error('❌ SMMStone error:', error.message);
-            return {
-                success: false,
-                error: error.message
-            };
+            return { success: false, error: error.message };
         }
     }
 
     getStatus() {
         const now = Date.now();
-        const cooldownRemaining = Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000));
-        const maxPerDay = db.settings.providers.smmstone?.maxPerDay || 100;
-
         return {
-            sessionId: this.sessionId,
             provider: 'smmstone',
-            cooldownRemaining: cooldownRemaining,
-            dailyCount: this.dailyCount,
-            dailyLimit: maxPerDay,
-            dailyRemaining: maxPerDay - this.dailyCount,
-            isReady: cooldownRemaining === 0 && this.dailyCount < maxPerDay,
+            cooldownRemaining: Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000)),
+            dailyRemaining: (db.settings.providers.smmstone?.maxPerDay || 100) - this.dailyCount,
+            isReady: this.cooldownUntil <= now && this.checkDailyLimit(),
             enabled: db.settings.providers.smmstone?.enabled !== false
         };
     }
@@ -855,96 +577,20 @@ class SMMStoneProvider {
 
 class SessionManager {
     constructor() {
-        this.sessions = [];
-        this.maxSessions = db.settings.maxConcurrent || 5;
-        this.providerSessions = {
-            tikfollowers: [],
-            smmstone: []
-        };
+        this.tikfollowers = new TikFollowersProvider();
+        this.smmstone = new SMMStoneProvider();
     }
 
-    createSession(provider) {
-        const sessionId = uuidv4();
-        let session;
-
-        if (provider === 'tikfollowers') {
-            session = new TikFollowersProvider(sessionId);
-        } else if (provider === 'smmstone') {
-            session = new SMMStoneProvider(sessionId);
-        } else {
-            return null;
-        }
-
-        this.sessions.push(session);
-        if (!this.providerSessions[provider]) this.providerSessions[provider] = [];
-        this.providerSessions[provider].push(session);
-
-        this.cleanup();
-        return session;
+    getProvider(provider) {
+        if (provider === 'tikfollowers') return this.tikfollowers;
+        if (provider === 'smmstone') return this.smmstone;
+        return null;
     }
 
-    getAvailableSession(provider) {
-        const sessions = this.providerSessions[provider] || [];
-        const now = Date.now();
-
-        for (const session of sessions) {
-            const status = session.getStatus ? session.getStatus() : {};
-            if (status.isReady !== false && status.enabled !== false) {
-                return session;
-            }
-        }
-
-        if (sessions.length < this.maxSessions) {
-            return this.createSession(provider);
-        }
-
-        let bestSession = null;
-        let bestCooldown = Infinity;
-        for (const session of sessions) {
-            const status = session.getStatus ? session.getStatus() : {};
-            const cooldown = status.cooldownRemaining || 0;
-            if (cooldown < bestCooldown && status.enabled !== false) {
-                bestCooldown = cooldown;
-                bestSession = session;
-            }
-        }
-
-        return bestSession;
-    }
-
-    cleanup() {
-        const now = Date.now();
-        for (const provider of ['tikfollowers', 'smmstone']) {
-            this.providerSessions[provider] = this.providerSessions[provider].filter(s => {
-                const lastUsed = s.lastUsed || 0;
-                return now - lastUsed < 30 * 60 * 1000;
-            });
-        }
-    }
-
-    getStats() {
-        const tikSessions = this.providerSessions.tikfollowers || [];
-        const smmSessions = this.providerSessions.smmstone || [];
-
+    getStatus() {
         return {
-            totalSessions: this.sessions.length,
-            tikfollowers: {
-                count: tikSessions.length,
-                ready: tikSessions.filter(s => {
-                    const status = s.getStatus ? s.getStatus() : {};
-                    return status.isReady !== false && status.enabled !== false;
-                }).length,
-                enabled: db.settings.providers.tikfollowers?.enabled !== false
-            },
-            smmstone: {
-                count: smmSessions.length,
-                ready: smmSessions.filter(s => {
-                    const status = s.getStatus ? s.getStatus() : {};
-                    return status.isReady !== false && status.enabled !== false;
-                }).length,
-                enabled: db.settings.providers.smmstone?.enabled !== false
-            },
-            maxSessions: this.maxSessions
+            tikfollowers: this.tikfollowers.getStatus(),
+            smmstone: this.smmstone.getStatus()
         };
     }
 }
@@ -958,59 +604,16 @@ const sessionManager = new SessionManager();
 async function spamSuntik(target, platform, action, count, username, sessionId) {
     const results = { success: 0, failed: 0, total: 0, attempts: 0 };
     let isStopped = false;
-    let providerUsed = '';
 
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
 
-    // Determine primary provider for this platform
     const platformConfig = platformConfigs[platform];
     const primaryProvider = platformConfig?.provider || 'tikfollowers';
     const fallbackProvider = primaryProvider === 'tikfollowers' ? 'smmstone' : 'tikfollowers';
 
-    // Check if primary provider is enabled
     const primaryEnabled = db.settings.providers[primaryProvider]?.enabled !== false;
-
-    // Try primary provider first
-    let provider = primaryEnabled ? primaryProvider : null;
-
-    if (!provider) {
-        // Try fallback if primary is disabled
-        const fallbackEnabled = db.settings.providers[fallbackProvider]?.enabled !== false;
-        if (fallbackEnabled && db.settings.fallbackEnabled) {
-            provider = fallbackProvider;
-        } else {
-            io.emit('spamProgress', {
-                sessionId, type: 'suntik',
-                target, platform, action,
-                current: 0, total: count,
-                success: 0, failed: 0,
-                message: '❌ Semua provider dinonaktifkan!',
-                status: 'error'
-            });
-            return { success: 0, failed: count, total: count, attempts: 0 };
-        }
-    }
-
-    // Get session
-    let session = sessionManager.getAvailableSession(provider);
-    if (!session) {
-        session = sessionManager.createSession(provider);
-    }
-
-    if (!session) {
-        io.emit('spamProgress', {
-            sessionId, type: 'suntik',
-            target, platform, action,
-            current: 0, total: count,
-            success: 0, failed: 0,
-            message: `❌ Gagal membuat session ${provider}!`,
-            status: 'error'
-        });
-        return { success: 0, failed: count, total: count, attempts: 0 };
-    }
-
-    providerUsed = provider;
+    const fallbackEnabled = db.settings.providers[fallbackProvider]?.enabled !== false;
 
     for (let i = 0; i < count; i++) {
         if (isStopped) {
@@ -1026,134 +629,59 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             break;
         }
 
-        // Check if session is ready
-        let currentSession = session;
-        const status = currentSession.getStatus ? currentSession.getStatus() : {};
+        let providerUsed = null;
+        let result = null;
 
-        if (status.isReady === false) {
-            // Try fallback if available and enabled
-            const fallbackEnabled = db.settings.providers[fallbackProvider]?.enabled !== false;
-            if (fallbackEnabled && db.settings.fallbackEnabled && provider !== fallbackProvider) {
-                const altSession = sessionManager.getAvailableSession(fallbackProvider);
-                if (altSession) {
-                    currentSession = altSession;
-                    providerUsed = fallbackProvider;
-                    io.emit('spamProgress', {
-                        sessionId, type: 'suntik',
-                        target, platform, action,
-                        current: i + 1, total: count,
-                        success: results.success, failed: results.failed,
-                        message: `🔄 Switch to ${fallbackProvider}...`,
-                        status: 'info'
-                    });
-                } else {
-                    // Wait and retry
-                    await sleep(5000);
-                    i--;
-                    continue;
-                }
-            } else {
-                // Show cooldown
-                const cooldownRemaining = status.cooldownRemaining || 0;
-                if (cooldownRemaining > 0) {
-                    io.emit('spamProgress', {
-                        sessionId, type: 'suntik',
-                        target, platform, action,
-                        current: i + 1, total: count,
-                        success: results.success, failed: results.failed,
-                        message: `⏳ Cooldown: ${Math.ceil(cooldownRemaining/60)} menit (${providerUsed})`,
-                        status: 'cooldown',
-                        cooldown: true,
-                        cooldownRemaining: cooldownRemaining
-                    });
-
-                    await sleep(5000);
-                    i--;
-                    continue;
-                }
+        // Try primary provider
+        if (primaryEnabled) {
+            const provider = sessionManager.getProvider(primaryProvider);
+            result = await provider.useService(platform, action, target);
+            if (result.success) {
+                providerUsed = primaryProvider;
             }
         }
 
-        // Execute
-        try {
-            const result = await currentSession.useService(platform, action, target);
-
+        // If primary fails, try fallback
+        if (!result?.success && fallbackEnabled) {
+            const provider = sessionManager.getProvider(fallbackProvider);
+            result = await provider.useService(platform, action, target);
             if (result.success) {
-                results.success++;
-                io.emit('spamProgress', {
-                    sessionId, type: 'suntik',
-                    target, platform, action,
-                    current: i + 1, total: count,
-                    success: results.success, failed: results.failed,
-                    message: `✅ ${i+1}/${count} Success! ${platform} ${action} (${providerUsed})`,
-                    status: 'success',
-                    provider: providerUsed
-                });
-            } else if (result.fallback && provider !== fallbackProvider) {
-                // Try fallback
-                const fallbackEnabled = db.settings.providers[fallbackProvider]?.enabled !== false;
-                if (fallbackEnabled && db.settings.fallbackEnabled) {
-                    const altSession = sessionManager.getAvailableSession(fallbackProvider);
-                    if (altSession) {
-                        currentSession = altSession;
-                        providerUsed = fallbackProvider;
-                        i--; // Retry with fallback
-                        io.emit('spamProgress', {
-                            sessionId, type: 'suntik',
-                            target, platform, action,
-                            current: i + 1, total: count,
-                            success: results.success, failed: results.failed,
-                            message: `🔄 Switching to ${fallbackProvider}...`,
-                            status: 'info'
-                        });
-                        continue;
-                    }
-                }
-                results.failed++;
-                io.emit('spamProgress', {
-                    sessionId, type: 'suntik',
-                    target, platform, action,
-                    current: i + 1, total: count,
-                    success: results.success, failed: results.failed,
-                    message: `❌ ${i+1}/${count} Failed: ${result.error || 'Unknown'}`,
-                    status: 'error',
-                    error: result.error
-                });
-            } else if (result.cooldown) {
-                io.emit('spamProgress', {
-                    sessionId, type: 'suntik',
-                    target, platform, action,
-                    current: i + 1, total: count,
-                    success: results.success, failed: results.failed,
-                    message: `⏳ ${result.error}`,
-                    status: 'cooldown',
-                    cooldown: true
-                });
-                await sleep(5000);
-                i--;
-                continue;
-            } else {
-                results.failed++;
-                io.emit('spamProgress', {
-                    sessionId, type: 'suntik',
-                    target, platform, action,
-                    current: i + 1, total: count,
-                    success: results.success, failed: results.failed,
-                    message: `❌ ${i+1}/${count} Failed: ${result.error || 'Unknown'}`,
-                    status: 'error',
-                    error: result.error
-                });
+                providerUsed = fallbackProvider;
             }
-        } catch (error) {
+        }
+
+        if (result?.success) {
+            results.success++;
+            io.emit('spamProgress', {
+                sessionId, type: 'suntik',
+                target, platform, action,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
+                message: `✅ ${i+1}/${count} Success! ${platform} ${action} (${providerUsed})`,
+                status: 'success'
+            });
+        } else if (result?.cooldown) {
+            io.emit('spamProgress', {
+                sessionId, type: 'suntik',
+                target, platform, action,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
+                message: `⏳ ${result.error}`,
+                status: 'cooldown',
+                cooldown: true
+            });
+            await sleep(5000);
+            i--;
+            continue;
+        } else {
             results.failed++;
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
                 target, platform, action,
                 current: i + 1, total: count,
                 success: results.success, failed: results.failed,
-                message: `❌ ${i+1}/${count} Error: ${error.message}`,
-                status: 'error',
-                error: error.message
+                message: `❌ ${i+1}/${count} Failed: ${result?.error || 'Unknown'}`,
+                status: 'error'
             });
         }
 
@@ -1161,7 +689,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         results.attempts = i + 1;
 
         if (i < count - 1 && !isStopped) {
-            await sleep(getRandomDelay(3000, 7000));
+            await sleep(3000 + Math.random() * 4000);
         }
     }
 
@@ -1172,11 +700,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         success: results.success, failed: results.failed,
         message: `📊 Selesai! Berhasil: ${results.success}, Gagal: ${results.failed}`,
         status: 'completed',
-        completed: true,
-        totalSuccess: results.success,
-        totalFailed: results.failed,
-        totalAttempts: results.attempts,
-        provider: providerUsed
+        completed: true
     });
 
     if (global.spamSessions && global.spamSessions[sessionId]) {
@@ -1190,23 +714,19 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
 // API ROUTES
 // ============================================
 
-// ===== GET PLATFORMS =====
 app.get('/api/suntik/platforms', (req, res) => {
     try {
         const platforms = Object.keys(platformConfigs).map(key => {
-            const config = platformConfigs[key];
             const isDisabled = db.settings.adminControls?.[`disable${key}`] || false;
-            const isAllDisabled = db.settings.adminControls?.disableAllSuntik || false;
-
             return {
                 name: key,
-                icon: config.icon,
-                color: config.color,
-                provider: config.provider,
-                disabled: isDisabled || isAllDisabled,
-                actions: config.actions.map(action => ({
+                icon: platformConfigs[key].icon,
+                color: platformConfigs[key].color,
+                provider: platformConfigs[key].provider,
+                disabled: isDisabled || db.settings.adminControls?.disableAllSuntik || false,
+                actions: platformConfigs[key].actions.map(action => ({
                     name: action,
-                    icon: config.actionIcons?.[action] || 'fa-circle',
+                    icon: platformConfigs[key].actionIcons?.[action] || 'fa-circle',
                     enabled: db.settings.features?.[`${key.toLowerCase()}_${action.toLowerCase().replace(/ /g, '_')}`] !== false
                 }))
             };
@@ -1217,129 +737,60 @@ app.get('/api/suntik/platforms', (req, res) => {
     }
 });
 
-// ===== PROVIDER STATUS =====
 app.get('/api/providers/status', (req, res) => {
     try {
-        const stats = sessionManager.getStats();
-        const tikSessions = sessionManager.providerSessions.tikfollowers || [];
-        const smmSessions = sessionManager.providerSessions.smmstone || [];
-
+        const status = sessionManager.getStatus();
         res.json({
             success: true,
-            stats: stats,
             providers: {
-                tikfollowers: {
-                    enabled: db.settings.providers.tikfollowers?.enabled !== false,
-                    cooldown: db.settings.providers.tikfollowers?.cooldown || 900,
-                    maxPerDay: db.settings.providers.tikfollowers?.maxPerDay || 50,
-                    sessions: tikSessions.map(s => s.getStatus ? s.getStatus() : {}),
-                    isPrimary: db.settings.primaryProvider === 'tikfollowers'
-                },
-                smmstone: {
-                    enabled: db.settings.providers.smmstone?.enabled !== false,
-                    cooldown: db.settings.providers.smmstone?.cooldown || 1800,
-                    maxPerDay: db.settings.providers.smmstone?.maxPerDay || 100,
-                    sessions: smmSessions.map(s => s.getStatus ? s.getStatus() : {}),
-                    isPrimary: db.settings.primaryProvider === 'smmstone'
-                }
-            },
-            fallbackEnabled: db.settings.fallbackEnabled !== false
+                tikfollowers: status.tikfollowers,
+                smmstone: status.smmstone
+            }
         });
     } catch (err) {
         res.json({ success: false, error: err.message });
     }
 });
 
-// ===== SPAM SUNTIK =====
 app.post('/api/spam/suntik', async (req, res) => {
     try {
         const { username, target, platform, action, count } = req.body;
 
-        // Admin controls
         if (db.settings.adminControls?.disableAllSuntik) {
-            return res.json({
-                success: false,
-                message: '⚠️ Semua fitur suntik sedang dinonaktifkan oleh admin!'
-            });
+            return res.json({ success: false, message: '⚠️ Semua fitur suntik dinonaktifkan!' });
         }
 
         if (db.settings.adminControls?.[`disable${platform}`]) {
-            return res.json({
-                success: false,
-                message: `⚠️ Platform ${platform} sedang dinonaktifkan oleh admin!`
-            });
-        }
-
-        if (!username) {
-            return res.json({ success: false, message: 'Username tidak ditemukan!' });
+            return res.json({ success: false, message: `⚠️ ${platform} dinonaktifkan!` });
         }
 
         const user = db.users.find(u => u.username === username);
-        if (!user) {
-            return res.json({ success: false, message: 'User tidak ditemukan!' });
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+
+        if (db.settings.maintenance && user.status !== 'Developer') {
+            return res.json({ success: false, message: db.settings.maintenanceMessage });
         }
 
-        if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP') {
-            return res.json({
-                success: false,
-                message: db.settings.maintenanceMessage || 'Server sedang dalam perbaikan.',
-                maintenance: true
-            });
-        }
-
-        if (!target) {
-            return res.json({ success: false, message: 'Link/Username target wajib diisi!' });
-        }
-
-        if (!platform || !action) {
-            return res.json({ success: false, message: 'Pilih platform dan aksi!' });
-        }
+        if (!target) return res.json({ success: false, message: 'Target wajib diisi!' });
+        if (!platform || !action) return res.json({ success: false, message: 'Pilih platform dan aksi!' });
 
         const featureKey = `${platform.toLowerCase()}_${action.toLowerCase().replace(/ /g, '_')}`;
-        if (db.settings.features && db.settings.features[featureKey] === false) {
-            return res.json({
-                success: false,
-                message: `Fitur ${platform} ${action} sedang dinonaktifkan oleh admin.`
-            });
+        if (db.settings.features?.[featureKey] === false) {
+            return res.json({ success: false, message: `Fitur ${platform} ${action} dinonaktifkan!` });
         }
 
-        if (!count || count < 1) {
-            return res.json({ success: false, message: 'Jumlah minimal 1!' });
-        }
+        if (!count || count < 1) return res.json({ success: false, message: 'Jumlah minimal 1!' });
 
-        const limits = {
-            'Free': 15,
-            'Premium': 80,
-            'VIP': 150,
-            'Reseller': 200,
-            'Developer': Infinity
-        };
-
+        const limits = { 'Free': 15, 'Premium': 80, 'VIP': 150, 'Reseller': 200, 'Developer': Infinity };
         const maxLimit = limits[user.status] || 15;
 
-        if (user.limit !== Infinity && user.limit !== '∞' && user.limit !== null) {
+        if (user.limit !== Infinity && user.limit !== '∞') {
             if (count > maxLimit) {
-                return res.json({ success: false, message: `Maksimal suntik untuk ${user.status} adalah ${maxLimit}x!` });
+                return res.json({ success: false, message: `Maksimal ${maxLimit}x untuk ${user.status}!` });
             }
-
             const remaining = user.limit - (user.used || 0);
-            if (remaining <= 0) {
-                return res.json({ success: false, message: 'Limit habis! Tunggu 1 jam untuk reset.' });
-            }
-            if (count > remaining) {
-                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
-            }
-        }
-
-        // Check if any provider is enabled
-        const tikEnabled = db.settings.providers.tikfollowers?.enabled !== false;
-        const smmEnabled = db.settings.providers.smmstone?.enabled !== false;
-
-        if (!tikEnabled && !smmEnabled) {
-            return res.json({
-                success: false,
-                message: '⚠️ Semua provider sedang dinonaktifkan oleh admin!'
-            });
+            if (remaining <= 0) return res.json({ success: false, message: 'Limit habis! Tunggu 1 jam.' });
+            if (count > remaining) return res.json({ success: false, message: `Sisa limit ${remaining}!` });
         }
 
         const sessionId = `suntik_${username}_${Date.now()}`;
@@ -1347,7 +798,6 @@ app.post('/api/spam/suntik', async (req, res) => {
 
         if (result.success > 0) {
             user.used = (user.used || 0) + result.success;
-            if (!db.stats) db.stats = { totalSuntikSent: 0 };
             db.stats.totalSuntikSent = (db.stats.totalSuntikSent || 0) + result.success;
             saveDB();
             io.emit('userUpdated', { username: user.username });
@@ -1359,17 +809,15 @@ app.post('/api/spam/suntik', async (req, res) => {
                 success: result.success,
                 failed: result.failed,
                 total: result.total || result.success + result.failed,
-                attempts: result.attempts || 0,
-                needCaptcha: result.needCaptcha || false
+                attempts: result.attempts || 0
             }
         });
     } catch (err) {
-        console.error('❌ Error spam suntik:', err);
-        res.json({ success: false, message: err.message || 'Terjadi kesalahan server!' });
+        console.error('❌ Error:', err);
+        res.json({ success: false, message: err.message });
     }
 });
 
-// ===== STOP SUNTIK =====
 app.post('/api/spam/suntik/stop', (req, res) => {
     try {
         const { sessionId } = req.body;
@@ -1383,25 +831,22 @@ app.post('/api/spam/suntik/stop', (req, res) => {
     }
 });
 
-// ===== AUTH ROUTES =====
+// ============================================
+// AUTH ROUTES
+// ============================================
+
 app.post('/api/register', (req, res) => {
     try {
         const { username, password } = req.body;
-        if (!username || !password) {
-            return res.json({ success: false, message: 'Username dan password wajib diisi!' });
-        }
-        if (username.length < 3) {
-            return res.json({ success: false, message: 'Username minimal 3 karakter!' });
-        }
-        if (password.length < 4) {
-            return res.json({ success: false, message: 'Password minimal 4 karakter!' });
-        }
+        if (!username || !password) return res.json({ success: false, message: 'Isi semua field!' });
+        if (username.length < 3) return res.json({ success: false, message: 'Username min 3 karakter!' });
+        if (password.length < 4) return res.json({ success: false, message: 'Password min 4 karakter!' });
         if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
             return res.json({ success: false, message: 'Username sudah digunakan!' });
         }
         db.users.push({
             id: uuidv4(),
-            username: username,
+            username,
             password: bcrypt.hashSync(password, 10),
             status: 'Free',
             limit: 15,
@@ -1415,29 +860,22 @@ app.post('/api/register', (req, res) => {
             apiKey: generateApiKey()
         });
         saveDB();
-        io.emit('userUpdated', { username, action: 'register' });
-        res.json({ success: true, message: 'Registrasi berhasil! Silakan login.' });
+        res.json({ success: true, message: 'Registrasi berhasil!' });
     } catch (err) {
-        res.json({ success: false, message: 'Terjadi kesalahan server!' });
+        res.json({ success: false, message: 'Server error!' });
     }
 });
 
 app.post('/api/login', (req, res) => {
     try {
         const { username, password } = req.body;
-        if (!username || !password) {
-            return res.json({ success: false, message: 'Username dan password wajib diisi!' });
-        }
         const user = db.users.find(u => u.username === username);
-        if (!user) {
-            return res.json({ success: false, message: 'Username tidak ditemukan!' });
-        }
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
         if (!bcrypt.compareSync(password, user.password)) {
             return res.json({ success: false, message: 'Password salah!' });
         }
         user.online = true;
         saveDB();
-        io.emit('userStatusChanged', { username, online: true });
         res.json({
             success: true,
             user: {
@@ -1452,7 +890,7 @@ app.post('/api/login', (req, res) => {
             }
         });
     } catch (err) {
-        res.json({ success: false, message: 'Terjadi kesalahan server!' });
+        res.json({ success: false, message: 'Server error!' });
     }
 });
 
@@ -1484,17 +922,20 @@ app.post('/api/change-password', (req, res) => {
         const user = db.users.find(u => u.username === username);
         if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
         if (!newPassword || newPassword.length < 4) {
-            return res.json({ success: false, message: 'Password minimal 4 karakter!' });
+            return res.json({ success: false, message: 'Password min 4 karakter!' });
         }
         user.password = bcrypt.hashSync(newPassword, 10);
         saveDB();
         res.json({ success: true, message: 'Password berhasil diubah!' });
     } catch (err) {
-        res.json({ success: false, message: 'Terjadi kesalahan!' });
+        res.json({ success: false, message: 'Error!' });
     }
 });
 
-// ===== ADMIN ROUTES =====
+// ============================================
+// ADMIN ROUTES
+// ============================================
+
 app.get('/api/admin/users', (req, res) => {
     try {
         res.json({
@@ -1507,8 +948,7 @@ app.get('/api/admin/users', (req, res) => {
                 online: u.online || false,
                 isAdmin: u.isAdmin,
                 isDeveloper: u.isDeveloper,
-                isReseller: u.isReseller,
-                apiKey: u.apiKey
+                isReseller: u.isReseller
             }))
         });
     } catch (err) {
@@ -1533,7 +973,6 @@ app.post('/api/admin/update-status', (req, res) => {
         user.isAdmin = (status === 'Developer');
         user.isDeveloper = (status === 'Developer');
         saveDB();
-        io.emit('userUpdated', { username, action: 'status_change' });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1549,7 +988,6 @@ app.post('/api/admin/ban', (req, res) => {
         }
         db.users = db.users.filter(u => u.username !== username);
         saveDB();
-        io.emit('userUpdated', { username, action: 'banned' });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1574,10 +1012,7 @@ app.post('/api/admin/settings', (req, res) => {
 
 app.get('/api/admin/features', (req, res) => {
     try {
-        res.json({
-            success: true,
-            features: db.settings.features || {}
-        });
+        res.json({ success: true, features: db.settings.features || {} });
     } catch (err) {
         res.json({ success: false, features: {} });
     }
@@ -1593,7 +1028,6 @@ app.post('/api/admin/features/toggle', (req, res) => {
         if (!db.settings.features) db.settings.features = {};
         db.settings.features[featureKey] = enabled;
         saveDB();
-        io.emit('settingsUpdated', { settings: db.settings });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1610,7 +1044,6 @@ app.post('/api/admin/control/toggle', (req, res) => {
         if (!db.settings.adminControls) db.settings.adminControls = {};
         db.settings.adminControls[controlKey] = enabled;
         saveDB();
-        io.emit('settingsUpdated', { settings: db.settings });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1628,42 +1061,6 @@ app.post('/api/admin/provider/toggle', (req, res) => {
         if (!db.settings.providers[provider]) db.settings.providers[provider] = {};
         db.settings.providers[provider].enabled = enabled;
         saveDB();
-        io.emit('settingsUpdated', { settings: db.settings });
-        res.json({ success: true });
-    } catch (err) {
-        res.json({ success: false, message: err.message });
-    }
-});
-
-app.post('/api/admin/primary-provider', (req, res) => {
-    try {
-        const { provider, admin } = req.body;
-        const adminUser = db.users.find(u => u.username === admin);
-        if (!adminUser || !adminUser.isDeveloper) {
-            return res.json({ success: false, message: 'Hanya Developer!' });
-        }
-        if (provider !== 'tikfollowers' && provider !== 'smmstone') {
-            return res.json({ success: false, message: 'Provider tidak valid!' });
-        }
-        db.settings.primaryProvider = provider;
-        saveDB();
-        io.emit('settingsUpdated', { settings: db.settings });
-        res.json({ success: true });
-    } catch (err) {
-        res.json({ success: false, message: err.message });
-    }
-});
-
-app.post('/api/admin/fallback-toggle', (req, res) => {
-    try {
-        const { enabled, admin } = req.body;
-        const adminUser = db.users.find(u => u.username === admin);
-        if (!adminUser || !adminUser.isDeveloper) {
-            return res.json({ success: false, message: 'Hanya Developer!' });
-        }
-        db.settings.fallbackEnabled = enabled;
-        saveDB();
-        io.emit('settingsUpdated', { settings: db.settings });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1697,8 +1094,6 @@ app.post('/api/admin/verify-payment', (req, res) => {
             user.isReseller = (payment.package === 'Reseller');
         }
         saveDB();
-        io.emit('paymentStatus', { status: 'success', message: `Pembayaran ${payment.package} diverifikasi!` });
-        io.emit('userUpdated', { username: payment.username, action: 'payment_verified' });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1717,7 +1112,6 @@ app.post('/api/admin/reject-payment', (req, res) => {
         payment.status = 'rejected';
         payment.reason = reason;
         saveDB();
-        io.emit('paymentStatus', { status: 'error', message: `Pembayaran dibatalkan: ${reason}` });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1750,7 +1144,6 @@ app.post('/api/payments/submit', upload.single('proof'), (req, res) => {
             createdAt: new Date().toISOString()
         });
         saveDB();
-        io.emit('paymentSubmitted', { username, package: pkg });
         res.json({ success: true, message: 'Pembayaran terkirim!' });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1771,7 +1164,6 @@ io.on('connection', (socket) => {
         if (user) user.online = true;
         saveDB();
         io.emit('usersOnline', Array.from(onlineUsers));
-        io.emit('userStatusChanged', { username, online: true });
     });
 
     socket.on('sendMessage', (data) => {
@@ -1817,15 +1209,13 @@ setInterval(() => {
 // ============================================
 app.get('/api/stats', (req, res) => {
     try {
-        if (!db.stats) db.stats = { totalSuntikSent: 0 };
         res.json({
             success: true,
             stats: {
                 totalUsers: db.users.length,
                 totalSuntikSent: db.stats.totalSuntikSent || 0,
                 totalPayments: db.payments?.length || 0,
-                onlineUsers: onlineUsers.size,
-                providers: sessionManager.getStats()
+                onlineUsers: onlineUsers.size
             }
         });
     } catch (err) {
@@ -1841,32 +1231,10 @@ server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log('========================================');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('💉 PRANKMASTER PRO V5');
+    console.log('💉 PRANKMASTER PRO - LIGHTWEIGHT');
     console.log('========================================');
-    console.log('📌 Providers:');
-    console.log('  🔵 TikFollowers.com (Primary - TikTok)');
-    console.log('  🟢 SMMStone.com (Fallback - All Platforms)');
+    console.log('📌 Providers: TikFollowers + SMMStone');
+    console.log('🔥 14 Platforms Supported');
+    console.log('⚡ No Puppeteer - Fast Deploy!');
     console.log('========================================');
-    console.log('🔥 Supported Platforms:');
-    console.log('  TikTok, Instagram, YouTube, Facebook, Twitter');
-    console.log('  Telegram, Threads, Twitch, Spotify, Discord');
-    console.log('  VK, Kwai, SoundCloud, Clubhouse');
-    console.log('========================================');
-
-    // Init sessions
-    console.log('🔄 Initializing providers...');
-    sessionManager.createSession('tikfollowers');
-    sessionManager.createSession('smmstone');
-    console.log('✅ All providers ready!');
-});
-
-// ============================================
-// GRACEFUL SHUTDOWN
-// ============================================
-process.on('SIGINT', async () => {
-    console.log('🛑 Shutting down gracefully...');
-    if (browserInstance) {
-        await browserInstance.close();
-    }
-    process.exit(0);
 });
