@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrankMaster Pro - Spam OTP & Suntik</title>
+    <title>PrankMaster Pro - Suntik Sosial Media</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <style>
+        /* CSS SAMA SEPERTI SEBELUMNYA TAPI HAPUS OTP */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
@@ -15,9 +16,10 @@
             color: #e0e0e0;
             min-height: 100vh;
         }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1a1a2e; }
         ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #6c5ce7, #a29bfe); border-radius: 10px; }
+        
         .navbar {
             background: rgba(16, 16, 30, 0.95);
             backdrop-filter: blur(20px);
@@ -82,7 +84,6 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .nav-user span { font-size: 0.85rem; font-weight: 500; color: #c0c0d8; }
-        .nav-user span i { margin-right: 6px; color: #6c5ce7; }
         .btn-logout {
             background: rgba(255, 71, 87, 0.15);
             border: none;
@@ -93,22 +94,12 @@
             transition: all 0.3s ease;
             font-size: 0.9rem;
         }
-        .btn-logout:hover { background: rgba(255, 71, 87, 0.25); transform: scale(1.05); }
+        .btn-logout:hover { background: rgba(255, 71, 87, 0.25); }
         .main-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
         .section { display: none; animation: fadeIn 0.4s ease; }
         .section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .section-header { margin-bottom: 2rem; }
-        .section-header h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .section-header h1 i { color: #6c5ce7; }
-        .section-header p { color: #8888aa; margin-top: 6px; font-size: 0.95rem; }
+        
         .card {
             background: rgba(20, 20, 40, 0.8);
             backdrop-filter: blur(10px);
@@ -116,9 +107,8 @@
             border-radius: 20px;
             padding: 2rem;
             margin-bottom: 1.5rem;
-            transition: all 0.3s ease;
         }
-        .card:hover { border-color: rgba(108, 92, 231, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+        .card:hover { border-color: rgba(108, 92, 231, 0.2); }
         .card-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -129,6 +119,7 @@
             gap: 10px;
         }
         .card-title i { color: #6c5ce7; }
+        
         .form-group { margin-bottom: 1.2rem; }
         .form-group label {
             display: block;
@@ -138,7 +129,6 @@
             margin-bottom: 6px;
         }
         .form-group input,
-        .form-group textarea,
         .form-group select {
             width: 100%;
             padding: 12px 16px;
@@ -147,21 +137,17 @@
             border-radius: 12px;
             color: #fff;
             font-size: 0.95rem;
-            font-family: 'Inter', sans-serif;
             transition: all 0.3s ease;
             outline: none;
         }
         .form-group input:focus,
-        .form-group textarea:focus,
         .form-group select:focus {
             border-color: #6c5ce7;
             background: rgba(108, 92, 231, 0.05);
             box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
         }
-        .form-group input::placeholder,
-        .form-group textarea::placeholder { color: #666688; }
-        .form-group textarea { resize: vertical; min-height: 80px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group input::placeholder { color: #666688; }
+        
         .btn {
             padding: 12px 32px;
             border: none;
@@ -190,20 +176,16 @@
             color: #fff;
         }
         .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 210, 211, 0.3); }
-        .btn-warning {
-            background: linear-gradient(135deg, #f9ca24, #f0932b);
-            color: #fff;
-        }
-        .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(249, 202, 36, 0.3); }
         .btn-block { width: 100%; justify-content: center; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+        
         .console-log {
             background: rgba(0, 0, 0, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 12px;
             padding: 1rem;
             min-height: 150px;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             font-family: 'Courier New', monospace;
             font-size: 0.85rem;
@@ -215,21 +197,7 @@
         .console-log .log-info { color: #f9ca24; }
         .console-log .log-warning { color: #ff9ff3; }
         .console-log .log-normal { color: #b0b0c8; }
-        .admin-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1.5rem 0;
-        }
-        .stat-card {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            padding: 1.2rem;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .stat-card .number { font-size: 2rem; font-weight: 800; color: #6c5ce7; }
-        .stat-card .label { font-size: 0.8rem; color: #8888aa; margin-top: 4px; }
+        
         .spam-progress {
             background: rgba(0, 0, 0, 0.4);
             border-radius: 8px;
@@ -244,6 +212,7 @@
             transition: width 0.5s ease;
             margin-top: 4px;
         }
+        
         .badge {
             display: inline-block;
             padding: 2px 12px;
@@ -259,6 +228,7 @@
         .badge-reseller { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
         .badge-developer { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         .badge-free { background: rgba(45, 52, 54, 0.5); color: #b2bec3; }
+        
         .login-page {
             min-height: 100vh;
             display: flex;
@@ -289,6 +259,7 @@
             display: none;
         }
         .login-error.show { display: block; }
+        
         .toast {
             position: fixed;
             bottom: 2rem;
@@ -309,8 +280,41 @@
         .toast-info { border-color: rgba(108, 92, 231, 0.3); }
         .toast-warning { border-color: rgba(249, 202, 36, 0.3); }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .mt-1 { margin-top: 1rem; }
-        .hidden { display: none !important; }
+        
+        .platform-grid, .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .platform-option, .action-option {
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .platform-option:hover, .action-option:hover {
+            background: rgba(108, 92, 231, 0.05);
+            border-color: rgba(108, 92, 231, 0.2);
+        }
+        .platform-option.active, .action-option.active {
+            border-color: #6c5ce7;
+            background: rgba(108, 92, 231, 0.1);
+        }
+        .platform-option i, .action-option i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .platform-option span, .action-option span {
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: block;
+        }
+        
         .admin-panel {
             background: rgba(20, 20, 40, 0.9);
             border: 1px solid rgba(255, 71, 87, 0.2);
@@ -323,13 +327,12 @@
             border-collapse: collapse;
             margin-top: 1rem;
         }
-        .admin-table th,
-        .admin-table td {
+        .admin-table th, .admin-table td {
             padding: 12px 16px;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .admin-table th { color: #8888aa; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .admin-table th { color: #8888aa; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
         .admin-table td { color: #e0e0e0; }
         .admin-table .btn-sm {
             padding: 4px 12px;
@@ -341,56 +344,38 @@
             transition: all 0.3s ease;
         }
         .admin-table .btn-sm.btn-edit { background: rgba(108, 92, 231, 0.2); color: #6c5ce7; }
-        .admin-table .btn-sm.btn-edit:hover { background: rgba(108, 92, 231, 0.3); }
         .admin-table .btn-sm.btn-delete { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
-        .admin-table .btn-sm.btn-delete:hover { background: rgba(255, 71, 87, 0.3); }
-        .admin-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            padding-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-        .admin-tab {
-            padding: 8px 20px;
-            border-radius: 10px;
-            border: none;
-            background: transparent;
-            color: #8888aa;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Inter', sans-serif;
-        }
-        .admin-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
-        .admin-tab.active { color: #fff; background: rgba(108, 92, 231, 0.15); }
-        .pricing-grid {
+        
+        .admin-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
         }
-        .pricing-card {
+        .stat-card {
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            padding: 2rem;
+            border-radius: 12px;
+            padding: 1.2rem;
             text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
-        .pricing-card:hover { transform: translateY(-5px); border-color: rgba(108, 92, 231, 0.3); }
-        .pricing-card.selected { border-color: #6c5ce7; background: rgba(108, 92, 231, 0.05); }
-        .pricing-card h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .pricing-card .price { font-size: 2rem; font-weight: 800; color: #6c5ce7; margin: 1rem 0; }
-        .pricing-card .features { list-style: none; text-align: left; margin: 1rem 0; }
-        .pricing-card .features li { padding: 0.5rem 0; color: #b0b0c8; display: flex; align-items: center; gap: 8px; }
-        .pricing-card .features li i { color: #00d2d3; }
+        .stat-card .number { font-size: 2rem; font-weight: 800; color: #6c5ce7; }
+        .stat-card .label { font-size: 0.8rem; color: #8888aa; margin-top: 4px; }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(20, 20, 40, 0.6);
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
         .chat-container {
             display: flex;
             flex-direction: column;
-            height: 500px;
+            height: 400px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
             overflow: hidden;
@@ -421,21 +406,45 @@
             background: rgba(0, 0, 0, 0.3);
             border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .chat-input input { flex: 1; padding: 0.8rem 1rem; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: #fff; }
-        .chat-input button { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; background: #6c5ce7; color: #fff; cursor: pointer; }
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.6rem;
-            font-weight: 700;
-            margin-left: 6px;
+        .chat-input input {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
         }
-        .status-badge.free { background: #2d3436; color: #b2bec3; }
-        .status-badge.premium { background: #6c5ce7; color: #fff; }
-        .status-badge.vip { background: #ffd700; color: #000; }
-        .status-badge.reseller { background: #00d2d3; color: #fff; }
-        .status-badge.developer { background: #ff4757; color: #fff; }
+        .chat-input button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: #6c5ce7;
+            color: #fff;
+            cursor: pointer;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .pricing-card:hover { transform: translateY(-5px); border-color: rgba(108, 92, 231, 0.3); }
+        .pricing-card.selected { border-color: #6c5ce7; background: rgba(108, 92, 231, 0.05); }
+        .pricing-card .price { font-size: 2rem; font-weight: 800; color: #6c5ce7; margin: 1rem 0; }
+        .pricing-card .features { list-style: none; text-align: left; margin: 1rem 0; }
+        .pricing-card .features li { padding: 0.5rem 0; color: #b0b0c8; display: flex; align-items: center; gap: 8px; }
+        .pricing-card .features li i { color: #00d2d3; }
+        
         .call-options {
             display: flex;
             gap: 1rem;
@@ -444,8 +453,8 @@
         }
         .call-option {
             flex: 1;
-            min-width: 100px;
-            padding: 16px;
+            min-width: 80px;
+            padding: 12px;
             background: rgba(255, 255, 255, 0.03);
             border: 2px solid rgba(255, 255, 255, 0.06);
             border-radius: 12px;
@@ -455,39 +464,33 @@
         }
         .call-option:hover { background: rgba(108, 92, 231, 0.05); border-color: rgba(108, 92, 231, 0.2); }
         .call-option.active { border-color: #6c5ce7; background: rgba(108, 92, 231, 0.1); }
-        .call-option i { font-size: 2rem; display: block; margin-bottom: 6px; }
-        .call-option span { font-size: 0.85rem; font-weight: 500; display: block; }
-        .call-option .sub-text { font-size: 0.6rem; color: #888; margin-top: 4px; }
-        .platform-icon {
-            font-size: 2.5rem !important;
-        }
-        .platform-option .fab { font-size: 2.5rem !important; }
-        .action-option i { font-size: 1.8rem !important; }
-        .code-display {
+        .call-option i { font-size: 2rem; display: block; margin-bottom: 4px; }
+        .call-option span { font-size: 0.8rem; font-weight: 500; display: block; }
+        
+        .section-header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fff;
             display: flex;
-            justify-content: center;
             align-items: center;
-            padding: 2rem;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 12px;
-            min-height: 200px;
-            margin: 1rem 0;
+            gap: 12px;
         }
+        .section-header h1 i { color: #6c5ce7; }
+        .section-header p { color: #8888aa; margin-top: 6px; font-size: 0.95rem; }
+        
         @media (max-width: 768px) {
             .navbar { padding: 0 1rem; height: 60px; }
             .nav-logo { font-size: 1.2rem; }
             .nav-menu { gap: 4px; }
             .nav-link { padding: 4px 10px; font-size: 0.7rem; }
             .nav-link span { display: none; }
-            .nav-link i { font-size: 1rem; }
             .main-container { padding: 1rem; }
             .card { padding: 1.2rem; }
-            .form-row { grid-template-columns: 1fr; }
-            .call-options { flex-direction: column; }
-            .section-header h1 { font-size: 1.5rem; }
+            .platform-grid, .action-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
             .login-box { padding: 2rem 1.5rem; }
             .admin-stats { grid-template-columns: 1fr 1fr; }
             .pricing-grid { grid-template-columns: 1fr; }
+            .section-header h1 { font-size: 1.5rem; }
         }
     </style>
 </head>
@@ -521,11 +524,11 @@
             <form id="registerForm" style="display:none;" onsubmit="return handleRegister(event)">
                 <div class="form-group">
                     <label><i class="fas fa-user"></i> Username</label>
-                    <input type="text" id="regUsername" placeholder="Pilih username (min 3 karakter)" required>
+                    <input type="text" id="regUsername" placeholder="Pilih username (min 3)" required>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-lock"></i> Password</label>
-                    <input type="password" id="regPassword" placeholder="Buat password (min 4 karakter)" required>
+                    <input type="password" id="regPassword" placeholder="Buat password (min 4)" required>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-check"></i> Konfirmasi Password</label>
@@ -552,12 +555,10 @@
                 </div>
                 <div class="nav-menu">
                     <a href="#" class="nav-link active" data-section="dashboard"><i class="fas fa-home"></i><span>Dashboard</span></a>
-                    <a href="#" class="nav-link" data-section="spam-otp"><i class="fas fa-bolt"></i><span>Spam OTP</span></a>
                     <a href="#" class="nav-link" data-section="suntik"><i class="fas fa-syringe"></i><span>Suntik</span></a>
                     <a href="#" class="nav-link" data-section="pricing"><i class="fas fa-tags"></i><span>Pricing</span></a>
                     <a href="#" class="nav-link" data-section="chat-public"><i class="fas fa-comments"></i><span>Chat</span></a>
                     <a href="#" class="nav-link" data-section="admin-panel" id="adminNavLink" style="display:none;"><i class="fas fa-user-shield"></i><span>Admin</span></a>
-                    <a href="#" class="nav-link" data-section="reseller-panel" id="resellerNavLink" style="display:none;"><i class="fas fa-store"></i><span>Reseller</span></a>
                     <a href="#" class="nav-link" data-section="profile"><i class="fas fa-user"></i><span>Profil</span></a>
                 </div>
                 <div class="nav-user">
@@ -574,69 +575,40 @@
                     <h1><i class="fas fa-chart-pie"></i> Dashboard</h1>
                     <p>Selamat datang <span id="dashUsername"></span>! Status: <span id="dashStatus"></span></p>
                 </div>
+                
+                <!-- Zefoy Status -->
+                <div class="status-bar" id="zefoyStatusBar">
+                    <div>🔌 Zefoy: <span id="zefoyStatus" style="color:#ff6b00;">Checking...</span></div>
+                    <div>⏳ Cooldown: <span id="cooldownStatus">Ready</span></div>
+                    <div>📊 Berhasil: <span id="totalSuccess">0</span> | Gagal: <span id="totalFailed">0</span></div>
+                </div>
+                
                 <div class="admin-stats">
-                    <div class="stat-card"><div class="number" id="statSpam">0</div><div class="label">Total Spam</div></div>
+                    <div class="stat-card"><div class="number" id="statSuntik">0</div><div class="label">Total Suntik</div></div>
                     <div class="stat-card"><div class="number" id="statLimit">15</div><div class="label">Sisa Limit</div></div>
                     <div class="stat-card"><div class="number" id="statUsers">0</div><div class="label">Online Users</div></div>
-                    <div class="stat-card"><div class="number" id="statSuntik">0</div><div class="label">Total Suntik</div></div>
+                    <div class="stat-card"><div class="number" id="statPlatforms">5</div><div class="label">Platform</div></div>
                 </div>
+                
                 <div class="card">
                     <div class="card-title"><i class="fas fa-info-circle"></i> Informasi Sistem</div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
                         <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
-                            <div style="font-size:0.8rem;color:#888;">API OTP</div>
-                            <div style="font-size:1.5rem;font-weight:700;color:#6c5ce7;">25+</div>
+                            <div style="font-size:0.8rem;color:#888;">Platform Support</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#6c5ce7;">5</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
-                            <div style="font-size:0.8rem;color:#888;">Platform Suntik</div>
-                            <div style="font-size:1.5rem;font-weight:700;color:#00d2d3;">5</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
-                            <div style="font-size:0.8rem;color:#888;">Layanan Suntik</div>
-                            <div style="font-size:1.5rem;font-weight:700;color:#f9ca24;">5</div>
+                            <div style="font-size:0.8rem;color:#888;">Cooldown</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#f9ca24;">2 Menit</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
                             <div style="font-size:0.8rem;color:#888;">Status</div>
-                            <div style="font-size:1rem;font-weight:700;color:#00d2d3;">✅ Online</div>
+                            <div style="font-size:1rem;font-weight:700;color:#00d2d3;" id="systemStatus">✅ Online</div>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ===== SPAM OTP ===== -->
-            <section id="spam-otp" class="section">
-                <div class="section-header">
-                    <h1><i class="fas fa-bolt"></i> Spam OTP</h1>
-                    <p>Kirim OTP ke nomor target menggunakan <span class="badge badge-success">25+ API</span></p>
-                </div>
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
-                    <div class="form-group">
-                        <label><i class="fas fa-bullseye"></i> Nomor Target</label>
-                        <input type="text" id="otpTarget" placeholder="6281234567890" inputmode="numeric" value="628">
-                        <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (awali dengan 628)</small>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah Pengiriman</label>
-                        <input type="number" id="otpCount" min="1" max="200" value="5">
-                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="otpConsole"><div class="log-normal">[✓] Sistem siap... 25+ API OTP</div></div>
-                    </div>
-                    <div id="otpProgress" style="display:none;" class="spam-progress">
-                        <div>Progress: <span id="otpProgressText">0/0</span></div>
-                        <div class="bar" id="otpProgressBar" style="width:0%"></div>
-                        <div style="margin-top:10px;font-size:0.8rem;color:#888;" id="otpDetailProgress"></div>
-                    </div>
-                    <div style="display:flex;gap:10px;">
-                        <button class="btn btn-primary btn-block" id="otpStartBtn" onclick="toggleOTP()">
-                            <i class="fas fa-play"></i> Start Spam OTP
-                        </button>
-                        <button class="btn btn-danger btn-block" id="otpStopBtn" onclick="stopOTP()" style="display:none;flex:1;">
-                            <i class="fas fa-stop"></i> STOP
-                        </button>
+                        <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
+                            <div style="font-size:0.8rem;color:#888;">Bypass</div>
+                            <div style="font-size:1rem;font-weight:700;color:#6c5ce7;" id="bypassStatus">⏳ Initializing...</div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -644,23 +616,24 @@
             <!-- ===== SUNTIK ===== -->
             <section id="suntik" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-syringe"></i> Suntik</h1>
-                    <p>Kirim followers, likes, views, dan lainnya ke berbagai platform sosial media</p>
+                    <h1><i class="fas fa-syringe"></i> Suntik Sosial Media</h1>
+                    <p>Kirim followers, likes, views ke platform pilihan</p>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-cogs"></i> Konfigurasi</div>
                     
                     <div class="form-group">
                         <label><i class="fas fa-globe"></i> Pilih Platform</label>
-                        <div id="platformOptions" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
-                            <!-- Akan diisi oleh JavaScript -->
+                        <div id="platformOptions" class="platform-grid">
+                            <!-- Akan diisi JavaScript -->
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label><i class="fas fa-bullseye"></i> Pilih Aksi</label>
-                        <div id="actionOptions" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
-                            <!-- Akan diisi oleh JavaScript -->
+                        <div id="actionOptions" class="action-grid">
+                            <!-- Akan diisi JavaScript -->
+                            <div style="color:#888;padding:1rem;text-align:center;">Pilih platform terlebih dahulu</div>
                         </div>
                     </div>
                     
@@ -673,12 +646,15 @@
                     <div class="form-group">
                         <label><i class="fas fa-sort-numeric-up"></i> Jumlah</label>
                         <input type="number" id="suntikCount" min="1" max="200" value="5">
-                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
+                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda. Cooldown 2 menit setiap sukses.</small>
                     </div>
                     
                     <div class="form-group">
                         <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="suntikConsole"><div class="log-normal">[✓] Sistem siap... Pilih platform dan aksi</div></div>
+                        <div class="console-log" id="suntikConsole">
+                            <div class="log-normal">[✓] Sistem siap... Pilih platform dan aksi</div>
+                            <div class="log-normal">[✓] Cooldown: 2 menit setelah setiap sukses</div>
+                        </div>
                     </div>
                     
                     <div id="suntikProgress" style="display:none;" class="spam-progress">
@@ -702,42 +678,39 @@
             <section id="pricing" class="section">
                 <div class="section-header">
                     <h1><i class="fas fa-tags"></i> Price List</h1>
-                    <p>Pilih paket yang sesuai dengan kebutuhan Anda</p>
+                    <p>Pilih paket untuk meningkatkan limit</p>
                 </div>
                 <div class="pricing-grid">
                     <div class="pricing-card" onclick="selectPricing('premium')">
                         <h3><span class="badge badge-premium">PREMIUM</span></h3>
-                        <div class="price">Rp 10.000 / Bulan</div>
+                        <div class="price">Rp 10.000</div>
                         <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit 80 Spam</li>
-                            <li><i class="fas fa-check"></i> Bebas jeda</li>
+                            <li><i class="fas fa-check"></i> Limit 80x</li>
                             <li><i class="fas fa-check"></i> Prioritas support</li>
                         </ul>
                     </div>
                     <div class="pricing-card" onclick="selectPricing('vip')">
                         <h3><span class="badge badge-vip">VIP</span></h3>
-                        <div class="price">Rp 20.000 / Bulan</div>
+                        <div class="price">Rp 20.000</div>
                         <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit 150 Spam</li>
-                            <li><i class="fas fa-check"></i> Tanpa jeda</li>
-                            <li><i class="fas fa-check"></i> Aman 100%</li>
+                            <li><i class="fas fa-check"></i> Limit 150x</li>
+                            <li><i class="fas fa-check"></i> Cooldown lebih cepat</li>
                             <li><i class="fas fa-check"></i> Prioritas utama</li>
                         </ul>
                     </div>
                     <div class="pricing-card" onclick="selectPricing('reseller')">
                         <h3><span class="badge badge-reseller">RESELLER</span></h3>
-                        <div class="price">Rp 30.000 / Bulan</div>
+                        <div class="price">Rp 30.000</div>
                         <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit 200 Spam</li>
+                            <li><i class="fas fa-check"></i> Limit 200x</li>
                             <li><i class="fas fa-check"></i> Bisa upgrade user</li>
                             <li><i class="fas fa-check"></i> Komisi 20%</li>
-                            <li><i class="fas fa-check"></i> Dashboard khusus</li>
                         </ul>
                     </div>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-shopping-cart"></i> Order</div>
-                    <div class="form-row">
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                         <div class="form-group">
                             <label>Paket Pilihan</label>
                             <input type="text" id="selectedPackage" value="Premium" readonly>
@@ -749,14 +722,14 @@
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-wallet"></i> Metode Pembayaran</label>
-                        <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-                            <div class="call-option" onclick="selectPayment('dana')" style="flex:1;min-width:100px;">
+                        <div class="call-options">
+                            <div class="call-option active" onclick="selectPayment('dana')">
                                 <i class="fas fa-circle" style="color:#3b82f6;"></i><span>Dana</span>
                             </div>
-                            <div class="call-option" onclick="selectPayment('ovo')" style="flex:1;min-width:100px;">
+                            <div class="call-option" onclick="selectPayment('ovo')">
                                 <i class="fas fa-circle" style="color:#6c5ce7;"></i><span>OVO</span>
                             </div>
-                            <div class="call-option" onclick="selectPayment('gopay')" style="flex:1;min-width:100px;">
+                            <div class="call-option" onclick="selectPayment('gopay')">
                                 <i class="fas fa-circle" style="color:#00d2d3;"></i><span>Gopay</span>
                             </div>
                         </div>
@@ -773,17 +746,16 @@
                         <label>Bukti Pembayaran</label>
                         <input type="file" id="paymentProof" accept="image/*">
                     </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="paymentConsole"><div class="log-normal">[✓] Siap menerima pembayaran...</div></div>
-                    </div>
                     <button class="btn btn-success btn-block" onclick="submitPayment()">
                         <i class="fas fa-paper-plane"></i> Kirim
                     </button>
+                    <div id="paymentConsole" class="console-log" style="margin-top:1rem;min-height:60px;">
+                        <div class="log-normal">[✓] Siap menerima pembayaran...</div>
+                    </div>
                 </div>
             </section>
 
-            <!-- ===== PUBLIC CHAT ===== -->
+            <!-- ===== CHAT ===== -->
             <section id="chat-public" class="section">
                 <div class="section-header">
                     <h1><i class="fas fa-comments"></i> Public Chat</h1>
@@ -800,29 +772,23 @@
                 </div>
             </section>
 
-            <!-- ===== ADMIN PANEL ===== -->
+            <!-- ===== ADMIN ===== -->
             <section id="admin-panel" class="section">
                 <div class="admin-panel">
                     <div class="section-header">
                         <h1><i class="fas fa-user-shield"></i> Admin Panel</h1>
                         <p id="adminAccessMessage">Kelola pengguna dan sistem</p>
                     </div>
-                    <div id="adminAccessDenied" style="display:none;text-align:center;padding:2rem;">
-                        <i class="fas fa-lock" style="font-size:4rem;color:#ff4757;"></i>
-                        <h2 style="color:#ff4757;margin-top:1rem;">Akses Ditolak!</h2>
-                        <p style="color:#888;">Hanya Developer yang bisa mengakses halaman ini.</p>
-                    </div>
                     <div id="adminContent">
-                        <div class="admin-tabs">
-                            <button class="admin-tab active" onclick="switchAdminTab('users')">Users</button>
-                            <button class="admin-tab" onclick="switchAdminTab('settings')">Settings</button>
-                            <button class="admin-tab" onclick="switchAdminTab('payments')">Payments</button>
+                        <div class="admin-tabs" style="display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
+                            <button class="admin-tab active" onclick="switchAdminTab('users')" style="padding:8px 20px;border:none;border-radius:10px;background:rgba(108,92,231,0.15);color:#fff;cursor:pointer;">Users</button>
+                            <button class="admin-tab" onclick="switchAdminTab('settings')" style="padding:8px 20px;border:none;border-radius:10px;background:transparent;color:#888;cursor:pointer;">Settings</button>
+                            <button class="admin-tab" onclick="switchAdminTab('payments')" style="padding:8px 20px;border:none;border-radius:10px;background:transparent;color:#888;cursor:pointer;">Payments</button>
                         </div>
                         <div id="adminUsersTab">
                             <div class="admin-stats">
                                 <div class="stat-card"><div class="number" id="totalUsers">0</div><div class="label">Total Users</div></div>
                                 <div class="stat-card"><div class="number" id="activeUsers">0</div><div class="label">Active Users</div></div>
-                                <div class="stat-card"><div class="number" id="totalSpams">0</div><div class="label">Total Spam</div></div>
                             </div>
                             <table class="admin-table">
                                 <thead><tr><th>Username</th><th>Status</th><th>Limit</th><th>Used</th><th>Actions</th></tr></thead>
@@ -839,7 +805,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Pesan Maintenance</label>
-                                <input type="text" id="maintenanceMessage" placeholder="Pesan saat maintenance" value="Server sedang dalam perbaikan. Silakan coba lagi nanti.">
+                                <input type="text" id="maintenanceMessage" placeholder="Pesan saat maintenance" value="Server sedang dalam perbaikan.">
                             </div>
                             <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Save</button>
                         </div>
@@ -849,28 +815,6 @@
                                 <tbody id="adminPaymentsBody"></tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ===== RESELLER PANEL ===== -->
-            <section id="reseller-panel" class="section">
-                <div class="admin-panel" style="border-color:rgba(0,210,211,0.3);">
-                    <div class="section-header">
-                        <h1><i class="fas fa-store"></i> Reseller Panel</h1>
-                        <p>Statistik dan manajemen untuk Reseller</p>
-                    </div>
-                    <div class="admin-stats">
-                        <div class="stat-card"><div class="number" id="resellerUsers">0</div><div class="label">Total Users</div></div>
-                        <div class="stat-card"><div class="number" id="resellerOnline">0</div><div class="label">Online Users</div></div>
-                        <div class="stat-card"><div class="number" id="resellerSpam">0</div><div class="label">Total Spam Hari Ini</div></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title"><i class="fas fa-users"></i> Daftar User</div>
-                        <table class="admin-table">
-                            <thead><tr><th>Username</th><th>Status</th><th>Limit</th><th>Used</th></tr></thead>
-                            <tbody id="resellerUsersBody"></tbody>
-                        </table>
                     </div>
                 </div>
             </section>
@@ -892,7 +836,7 @@
                     </div>
                     <div class="form-group">
                         <label>Ganti Password</label>
-                        <input type="password" id="newPassword" placeholder="Password baru (min 4 karakter)">
+                        <input type="password" id="newPassword" placeholder="Password baru (min 4)">
                     </div>
                     <div class="form-group">
                         <label>Konfirmasi Password</label>
@@ -911,18 +855,19 @@
     // ============================================
     let currentUser = null;
     let socket = null;
-    let selectedPkg = 'premium';
-    let selectedPayment = 'dana';
     let selectedPlatform = null;
     let selectedAction = null;
     let currentSuntikSession = null;
     let isSpamming = false;
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    let isCooldown = false;
 
     // ============================================
-    // DOM READY - INIT
+    // DOM READY
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔥 PrankMaster Pro - Spam OTP & Suntik');
+        console.log('🔥 PrankMaster Pro - Suntik Sosial Media');
         console.log('👑 Admin: Lynzka / Asiafone11');
 
         const session = localStorage.getItem('prankUser');
@@ -934,17 +879,14 @@
                     connectSocket();
                     loadUserData();
                     loadPlatforms();
+                    checkZefoyStatus();
                     if (currentUser.isAdmin || currentUser.isDeveloper) {
                         loadAdminData();
-                    }
-                    if (currentUser.isReseller) {
-                        loadResellerData();
                     }
                     return;
                 }
             } catch (e) {
                 localStorage.removeItem('prankUser');
-                console.log('❌ Session expired');
             }
         }
 
@@ -953,91 +895,51 @@
     });
 
     // ============================================
-    // SOCKET.IO CONNECTION
+    // SOCKET.IO
     // ============================================
     function connectSocket() {
         try {
             socket = io(window.location.origin, {
                 transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionAttempts: 10
+                reconnection: true
             });
 
             socket.on('connect', () => {
                 console.log('✅ Socket connected');
-                if (currentUser && currentUser.username) {
-                    socket.emit('userOnline', currentUser.username);
-                }
-            });
-
-            socket.on('connect_error', (err) => {
-                console.log('⚠️ Socket error:', err.message);
+                if (currentUser) socket.emit('userOnline', currentUser.username);
             });
 
             socket.on('usersOnline', (users) => {
-                const el = document.getElementById('statUsers');
-                if (el) el.textContent = users.length || 0;
-                const el2 = document.getElementById('resellerOnline');
-                if (el2) el2.textContent = users.length || 0;
+                document.getElementById('statUsers').textContent = users.length || 0;
             });
 
-            socket.on('newMessage', (data) => {
-                addChatMessage(data);
-            });
+            socket.on('newMessage', addChatMessage);
 
             socket.on('spamProgress', (data) => {
-                updateSpamProgress(data);
-            });
-
-            socket.on('paymentStatus', (data) => {
-                updateConsole('paymentConsole', `[${data.status}] ${data.message}`, data.status === 'success' ? 'log-success' : 'log-error');
-                if (data.status === 'success') {
-                    showToast('Pembayaran berhasil!', 'success');
-                    loadUserData();
-                }
+                updateSuntikProgress(data);
             });
 
             socket.on('userUpdated', (data) => {
-                if (data.username === currentUser?.username) {
-                    loadUserData();
-                }
-                if (currentUser?.isAdmin || currentUser?.isDeveloper) {
-                    loadAdminData();
-                }
-                if (currentUser?.isReseller) {
-                    loadResellerData();
-                }
+                if (data.username === currentUser?.username) loadUserData();
+                if (currentUser?.isAdmin || currentUser?.isDeveloper) loadAdminData();
             });
 
-            socket.on('settingsUpdated', (data) => {
-                showToast('Settings updated!', 'success');
-            });
-
-            socket.on('userStatusChanged', (data) => {
-                if (data.username === currentUser?.username) {
-                    loadUserData();
-                }
-            });
         } catch (err) {
             console.log('❌ Socket error:', err);
         }
     }
 
     // ============================================
-    // AUTHENTICATION
+    // AUTH
     // ============================================
-
     function handleLogin(e) {
         e.preventDefault();
-
         const username = document.getElementById('loginUsername').value.trim();
         const password = document.getElementById('loginPassword').value.trim();
         const errorEl = document.getElementById('loginError');
         const btn = document.getElementById('loginBtn');
 
         errorEl.classList.remove('show');
-        errorEl.textContent = '';
-
         if (!username || !password) {
             errorEl.textContent = 'Username dan password wajib diisi!';
             errorEl.classList.add('show');
@@ -1048,47 +950,40 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Login...';
 
         fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            })
-            .then(res => res.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-
-                if (data.success) {
-                    currentUser = data.user;
-                    localStorage.setItem('prankUser', JSON.stringify(currentUser));
-                    showMainApp();
-                    connectSocket();
-                    loadUserData();
-                    loadPlatforms();
-                    if (currentUser.isAdmin || currentUser.isDeveloper) {
-                        loadAdminData();
-                    }
-                    if (currentUser.isReseller) {
-                        loadResellerData();
-                    }
-                    showToast('Login berhasil! Selamat datang ' + currentUser.username, 'success');
-                } else {
-                    errorEl.textContent = data.message || 'Login gagal!';
-                    errorEl.classList.add('show');
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-                errorEl.textContent = 'Koneksi ke server gagal!';
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            if (data.success) {
+                currentUser = data.user;
+                localStorage.setItem('prankUser', JSON.stringify(currentUser));
+                showMainApp();
+                connectSocket();
+                loadUserData();
+                loadPlatforms();
+                checkZefoyStatus();
+                if (currentUser.isAdmin || currentUser.isDeveloper) loadAdminData();
+                showToast('Login berhasil!', 'success');
+            } else {
+                errorEl.textContent = data.message || 'Login gagal!';
                 errorEl.classList.add('show');
-            });
-
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            errorEl.textContent = 'Koneksi ke server gagal!';
+            errorEl.classList.add('show');
+        });
         return false;
     }
 
     function handleRegister(e) {
         e.preventDefault();
-
         const username = document.getElementById('regUsername').value.trim();
         const password = document.getElementById('regPassword').value;
         const confirm = document.getElementById('regConfirm').value;
@@ -1096,26 +991,21 @@
         const btn = document.getElementById('registerBtn');
 
         errorEl.classList.remove('show');
-        errorEl.textContent = '';
-
         if (!username || !password || !confirm) {
             errorEl.textContent = 'Semua field wajib diisi!';
             errorEl.classList.add('show');
             return false;
         }
-
         if (username.length < 3) {
             errorEl.textContent = 'Username minimal 3 karakter!';
             errorEl.classList.add('show');
             return false;
         }
-
         if (password.length < 4) {
             errorEl.textContent = 'Password minimal 4 karakter!';
             errorEl.classList.add('show');
             return false;
         }
-
         if (password !== confirm) {
             errorEl.textContent = 'Password tidak cocok!';
             errorEl.classList.add('show');
@@ -1126,49 +1016,40 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftar...';
 
         fetch('/api/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            })
-            .then(res => res.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
-
-                if (data.success) {
-                    showToast('Registrasi berhasil! Silakan login.', 'success');
-                    document.getElementById('regUsername').value = '';
-                    document.getElementById('regPassword').value = '';
-                    document.getElementById('regConfirm').value = '';
-                    showLogin();
-                    document.getElementById('loginUsername').value = username;
-                } else {
-                    errorEl.textContent = data.message || 'Registrasi gagal!';
-                    errorEl.classList.add('show');
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
-                errorEl.textContent = 'Koneksi ke server gagal!';
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
+            if (data.success) {
+                showToast('Registrasi berhasil! Silakan login.', 'success');
+                showLogin();
+                document.getElementById('loginUsername').value = username;
+            } else {
+                errorEl.textContent = data.message || 'Registrasi gagal!';
                 errorEl.classList.add('show');
-            });
-
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
+            errorEl.textContent = 'Koneksi ke server gagal!';
+            errorEl.classList.add('show');
+        });
         return false;
     }
 
     function showLogin() {
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('registerForm').style.display = 'none';
-        document.getElementById('loginError').classList.remove('show');
-        document.getElementById('registerError').classList.remove('show');
     }
 
     function showRegister() {
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'block';
-        document.getElementById('loginError').classList.remove('show');
-        document.getElementById('registerError').classList.remove('show');
     }
 
     function handleLogout() {
@@ -1181,56 +1062,24 @@
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('loginPage').style.display = 'flex';
         isSpamming = false;
-
-        ['otpStartBtn', 'suntikStartBtn'].forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) {
-                btn.innerHTML = '<i class="fas fa-play"></i> Start';
-                btn.disabled = false;
-                btn.className = 'btn btn-primary btn-block';
-            }
-        });
-
-        ['otpProgress', 'suntikProgress'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
-        });
-
         showToast('Logout berhasil!', 'info');
     }
 
     function showMainApp() {
         document.getElementById('loginPage').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
-
         if (currentUser) {
             document.getElementById('usernameDisplay').textContent = currentUser.username;
             document.getElementById('dashUsername').textContent = currentUser.username;
             document.getElementById('profileUsername').textContent = currentUser.username;
             document.getElementById('profileAvatar').textContent = currentUser.username.substring(0, 2).toUpperCase();
-
-            // Admin
+            
             if (currentUser.isDeveloper) {
                 document.getElementById('adminNavLink').style.display = 'inline-flex';
                 document.getElementById('adminContent').style.display = 'block';
-                document.getElementById('adminAccessDenied').style.display = 'none';
-                document.getElementById('adminAccessMessage').textContent = 'Kelola pengguna dan sistem';
-                document.querySelectorAll('.admin-tab').forEach(tab => tab.style.display = 'inline-block');
             } else {
                 document.getElementById('adminNavLink').style.display = 'none';
-                document.getElementById('adminContent').style.display = 'none';
-                document.getElementById('adminAccessDenied').style.display = 'block';
-                document.getElementById('adminAccessMessage').textContent = '⛔ Akses Ditolak! Hanya Developer';
-                document.querySelectorAll('.admin-tab').forEach(tab => tab.style.display = 'none');
             }
-
-            // Reseller
-            if (currentUser.isReseller || currentUser.isDeveloper) {
-                document.getElementById('resellerNavLink').style.display = 'inline-flex';
-            } else {
-                document.getElementById('resellerNavLink').style.display = 'none';
-            }
-
             updateStatusBadge();
         }
     }
@@ -1247,9 +1096,7 @@
         const status = currentUser.status || 'Free';
         const cls = statusMap[status] || 'free';
         const dashStatus = document.getElementById('dashStatus');
-        if (dashStatus) {
-            dashStatus.innerHTML = `<span class="badge badge-${cls}">${status}</span>`;
-        }
+        if (dashStatus) dashStatus.innerHTML = `<span class="badge badge-${cls}">${status}</span>`;
         const profileStatus = document.getElementById('profileStatus');
         if (profileStatus) {
             profileStatus.className = `badge badge-${cls}`;
@@ -1261,304 +1108,61 @@
     // LOAD DATA
     // ============================================
     function loadUserData() {
-        if (!currentUser || !currentUser.username) return;
-
+        if (!currentUser) return;
         fetch(`/api/user/${currentUser.username}`)
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     currentUser = data.user;
                     localStorage.setItem('prankUser', JSON.stringify(currentUser));
-
-                    const statSpam = document.getElementById('statSpam');
-                    if (statSpam) statSpam.textContent = currentUser.used || 0;
                     
                     const statSuntik = document.getElementById('statSuntik');
                     if (statSuntik) statSuntik.textContent = currentUser.used || 0;
 
                     const limit = currentUser.limit;
-                    let remaining;
-                    if (limit === Infinity || limit === '∞' || limit === null) {
-                        remaining = '∞';
-                    } else {
-                        remaining = limit - (currentUser.used || 0);
-                        remaining = remaining < 0 ? 0 : remaining;
-                    }
-
-                    const statLimit = document.getElementById('statLimit');
-                    if (statLimit) statLimit.textContent = remaining;
-
-                    const profileLimit = document.getElementById('profileLimit');
-                    if (profileLimit) profileLimit.textContent = limit === Infinity ? '∞' : limit;
-
-                    const profileUsed = document.getElementById('profileUsed');
-                    if (profileUsed) profileUsed.textContent = currentUser.used || 0;
-
+                    let remaining = limit === Infinity || limit === '∞' || limit === null ? '∞' : Math.max(0, limit - (currentUser.used || 0));
+                    document.getElementById('statLimit').textContent = remaining;
+                    document.getElementById('profileLimit').textContent = limit === Infinity ? '∞' : limit;
+                    document.getElementById('profileUsed').textContent = currentUser.used || 0;
                     updateStatusBadge();
+                }
+            });
+    }
 
-                    // Update reseller stats
-                    if (currentUser.isReseller) {
-                        const el = document.getElementById('resellerSpam');
-                        if (el) el.textContent = currentUser.used || 0;
-                    }
+    // ============================================
+    // ZEFOY STATUS
+    // ============================================
+    function checkZefoyStatus() {
+        fetch('/api/zefoy/status')
+            .then(res => res.json())
+            .then(data => {
+                const statusEl = document.getElementById('zefoyStatus');
+                const bypassEl = document.getElementById('bypassStatus');
+                if (data.success && data.ready) {
+                    statusEl.textContent = '✅ Ready';
+                    statusEl.style.color = '#00d2d3';
+                    bypassEl.textContent = '✅ Active';
+                    bypassEl.style.color = '#00d2d3';
+                } else {
+                    statusEl.textContent = '⚠️ Initializing...';
+                    statusEl.style.color = '#ff6b00';
+                    bypassEl.textContent = '⏳ Waiting...';
+                    bypassEl.style.color = '#f9ca24';
+                }
+                if (data.cooldown) {
+                    statusEl.textContent = '⏳ Cooldown';
+                    statusEl.style.color = '#f9ca24';
                 }
             })
-            .catch(err => console.log('❌ Load user error:', err));
+            .catch(() => {
+                document.getElementById('zefoyStatus').textContent = '❌ Error';
+                document.getElementById('zefoyStatus').style.color = '#ff4757';
+            });
     }
 
     // ============================================
-    // UPDATE SPAM PROGRESS
+    // PLATFORMS
     // ============================================
-    function updateSpamProgress(data) {
-        const progressMap = {
-            'otp': { container: 'otpProgress', text: 'otpProgressText', bar: 'otpProgressBar', console: 'otpConsole', detail: 'otpDetailProgress' },
-            'suntik': { container: 'suntikProgress', text: 'suntikProgressText', bar: 'suntikProgressBar', console: 'suntikConsole', detail: 'suntikDetailProgress' }
-        };
-
-        const p = progressMap[data.type];
-        if (!p) return;
-
-        const container = document.getElementById(p.container);
-        if (container) container.style.display = 'block';
-
-        const textEl = document.getElementById(p.text);
-        if (textEl) textEl.textContent = `${data.current}/${data.total}`;
-
-        const barEl = document.getElementById(p.bar);
-        if (barEl) barEl.style.width = `${(data.current/data.total)*100}%`;
-        
-        // Tampilkan detail
-        if (p.detail) {
-            const detailEl = document.getElementById(p.detail);
-            if (detailEl) {
-                if (data.type === 'suntik') {
-                    detailEl.innerHTML = `
-                        🛠️ Layanan: ${data.serviceUsed || 'Mencari...'} 
-                        ${data.serviceDown ? '⚠️ Layanan down, mencoba lain...' : ''}
-                        ${data.message || ''}
-                    `;
-                } else if (data.details) {
-                    const successList = data.details.filter(s => s.success).map(s => s.service).join(', ');
-                    const failedList = data.details.filter(s => !s.success).map(s => s.service).join(', ');
-                    detailEl.innerHTML = `
-                        ✅ Berhasil: ${successList || 'Tidak ada'} | 
-                        ❌ Gagal: ${failedList || 'Tidak ada'}
-                    `;
-                }
-            }
-        }
-
-        if (data.message) {
-            updateConsole(p.console, data.message, 'log-success');
-        }
-        if (data.error) {
-            updateConsole(p.console, `[✗] ${data.error}`, 'log-error');
-        }
-        
-        if (data.stopped) {
-            if (container) container.style.display = 'none';
-            if (data.type === 'otp') {
-                resetOTPButtons();
-            } else {
-                resetSuntikButtons();
-            }
-        }
-
-        if (data.current >= data.total) {
-            setTimeout(() => {
-                if (container) container.style.display = 'none';
-                if (data.type === 'otp') {
-                    resetOTPButtons();
-                } else {
-                    resetSuntikButtons();
-                }
-            }, 2000);
-        }
-    }
-
-    // ============================================
-    // NAVIGATION
-    // ============================================
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const section = this.dataset.section;
-
-            if (section === 'admin-panel') {
-                if (!currentUser || !currentUser.isDeveloper) {
-                    showToast('Akses ditolak! Hanya Developer!', 'error');
-                    return;
-                }
-            }
-
-            if (section === 'reseller-panel') {
-                if (!currentUser || !currentUser.isReseller) {
-                    showToast('Akses ditolak! Hanya Reseller!', 'error');
-                    return;
-                }
-            }
-
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            this.classList.add('active');
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            const target = document.getElementById(section);
-            if (target) target.classList.add('active');
-        });
-    });
-
-    // ============================================
-    // SPAM OTP
-    // ============================================
-    let currentOTPSession = null;
-
-    function toggleOTP() {
-        if (isSpamming) { 
-            stopOTP(); 
-            return; 
-        }
-
-        const target = document.getElementById('otpTarget')?.value.trim();
-        const count = parseInt(document.getElementById('otpCount')?.value) || 5;
-
-        if (!target) {
-            updateConsole('otpConsole', '[✗] Masukkan nomor target!', 'log-error');
-            return;
-        }
-        
-        if (!target.startsWith('628')) {
-            updateConsole('otpConsole', '[✗] Nomor harus diawali 628! Contoh: 6281234567890', 'log-error');
-            return;
-        }
-        
-        if (target.length < 11) {
-            updateConsole('otpConsole', '[✗] Nomor tidak valid! Minimal 11 digit setelah 628', 'log-error');
-            return;
-        }
-
-        if (count < 1) {
-            updateConsole('otpConsole', '[✗] Jumlah minimal 1!', 'log-error');
-            return;
-        }
-
-        const limit = currentUser?.limit;
-        if (limit !== Infinity && limit !== '∞' && limit !== null) {
-            const remaining = limit - (currentUser?.used || 0);
-            if (remaining <= 0) {
-                updateConsole('otpConsole', '[✗] Limit spam habis! Tunggu 1 jam.', 'log-error');
-                showToast('Limit spam habis! Tunggu 1 jam.', 'error');
-                return;
-            }
-            if (count > remaining) {
-                updateConsole('otpConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
-                showToast(`Sisa limit hanya ${remaining}!`, 'error');
-                return;
-            }
-        }
-
-        isSpamming = true;
-        currentOTPSession = `otp_${currentUser.username}_${Date.now()}`;
-        
-        const startBtn = document.getElementById('otpStartBtn');
-        const stopBtn = document.getElementById('otpStopBtn');
-        
-        if (startBtn) {
-            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim OTP...';
-            startBtn.disabled = true;
-            startBtn.style.display = 'none';
-        }
-        if (stopBtn) {
-            stopBtn.style.display = 'block';
-            stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
-        }
-
-        updateConsole('otpConsole', `[✓] Mengirim OTP ke ${target} ${count}x (25+ API)`, 'log-info');
-
-        fetch('/api/spam/otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: currentUser.username,
-                target: target,
-                count: count
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                updateConsole('otpConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
-                if (data.result.success > 0 && currentUser) {
-                    currentUser.used = (currentUser.used || 0) + data.result.success;
-                    loadUserData();
-                }
-                showToast(`Spam OTP selesai! Berhasil: ${data.result.success}`, 'success');
-            } else {
-                if (data.maintenance) {
-                    updateConsole('otpConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
-                    showToast('Server maintenance!', 'error');
-                } else {
-                    updateConsole('otpConsole', `[✗] ${data.message}`, 'log-error');
-                    showToast(data.message, 'error');
-                }
-            }
-            resetOTPButtons();
-        })
-        .catch(err => {
-            updateConsole('otpConsole', `[✗] Error: ${err.message}`, 'log-error');
-            resetOTPButtons();
-        });
-    }
-
-    function stopOTP() {
-        if (!currentOTPSession) {
-            resetOTPButtons();
-            return;
-        }
-        
-        updateConsole('otpConsole', '[⛔] Menghentikan spam OTP...', 'log-warning');
-        showToast('Menghentikan spam...', 'info');
-        
-        fetch('/api/spam/otp/stop', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: currentOTPSession })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                updateConsole('otpConsole', '[⛔] Spam dihentikan!', 'log-warning');
-                showToast('Spam dihentikan!', 'warning');
-            }
-            resetOTPButtons();
-        })
-        .catch(err => {
-            updateConsole('otpConsole', `[✗] Error stop: ${err.message}`, 'log-error');
-            resetOTPButtons();
-        });
-        
-        isSpamming = false;
-    }
-
-    function resetOTPButtons() {
-        isSpamming = false;
-        currentOTPSession = null;
-        
-        const startBtn = document.getElementById('otpStartBtn');
-        const stopBtn = document.getElementById('otpStopBtn');
-        
-        if (startBtn) {
-            startBtn.innerHTML = '<i class="fas fa-play"></i> Start Spam OTP';
-            startBtn.disabled = false;
-            startBtn.style.display = 'block';
-        }
-        if (stopBtn) {
-            stopBtn.style.display = 'none';
-        }
-    }
-
-    // ============================================
-    // SUNTIK FUNCTIONS
-    // ============================================
-
     function loadPlatforms() {
         fetch('/api/suntik/platforms')
             .then(res => res.json())
@@ -1566,15 +1170,13 @@
                 if (data.success) {
                     const container = document.getElementById('platformOptions');
                     container.innerHTML = data.platforms.map(p => `
-                        <div class="call-option platform-option" data-platform="${p.name}" onclick="selectPlatform('${p.name}')" style="flex:1;min-width:120px;max-width:150px;">
-                            <i class="${p.icon}" style="font-size:2.5rem;"></i>
+                        <div class="platform-option" data-platform="${p.name}" onclick="selectPlatform('${p.name}')">
+                            <i class="${p.icon}"></i>
                             <span>${p.name}</span>
-                            <div class="sub-text">${p.services.join(', ')}</div>
                         </div>
                     `).join('');
                 }
-            })
-            .catch(err => console.log('❌ Load platforms error:', err));
+            });
     }
 
     function selectPlatform(platform) {
@@ -1585,7 +1187,6 @@
         const target = document.querySelector(`.platform-option[data-platform="${platform}"]`);
         if (target) target.classList.add('active');
         
-        // Load actions untuk platform ini
         fetch('/api/suntik/platforms')
             .then(res => res.json())
             .then(data => {
@@ -1601,13 +1202,13 @@
                             'Subscribers': 'fa-user-plus',
                             'Retweets': 'fa-retweet'
                         };
-                        container.innerHTML = Object.keys(platformData.actions).map(action => `
-                            <div class="call-option action-option" data-action="${action}" onclick="selectAction('${action}')" style="flex:1;min-width:100px;max-width:150px;">
-                                <i class="fas ${actionIcons[action] || 'fa-star'}" style="font-size:1.8rem;"></i>
-                                <span>${action}</span>
+                        container.innerHTML = platformData.actions.map(action => `
+                            <div class="action-option" data-action="${action.name}" onclick="selectAction('${action.name}')">
+                                <i class="fas ${actionIcons[action.name] || 'fa-star'}"></i>
+                                <span>${action.name}</span>
                             </div>
                         `).join('');
-                        updateConsole('suntikConsole', `[✓] Platform ${platform} dipilih. Pilih aksi: ${Object.keys(platformData.actions).join(', ')}`, 'log-success');
+                        updateConsole('suntikConsole', `[✓] Platform ${platform} dipilih. Pilih aksi.`, 'log-success');
                     }
                 }
             });
@@ -1621,11 +1222,14 @@
         updateConsole('suntikConsole', `[✓] Aksi ${action} dipilih. Siap suntik!`, 'log-success');
     }
 
+    // ============================================
+    // SUNTIK
+    // ============================================
     function toggleSuntik() {
         if (isSpamming) { stopSuntik(); return; }
         
-        const target = document.getElementById('suntikTarget')?.value.trim();
-        const count = parseInt(document.getElementById('suntikCount')?.value) || 5;
+        const target = document.getElementById('suntikTarget').value.trim();
+        const count = parseInt(document.getElementById('suntikCount').value) || 5;
         
         if (!selectedPlatform) {
             updateConsole('suntikConsole', '[✗] Pilih platform terlebih dahulu!', 'log-error');
@@ -1648,8 +1252,8 @@
         if (limit !== Infinity && limit !== '∞' && limit !== null) {
             const remaining = limit - (currentUser?.used || 0);
             if (remaining <= 0) {
-                updateConsole('suntikConsole', '[✗] Limit suntik habis! Tunggu 1 jam.', 'log-error');
-                showToast('Limit suntik habis! Tunggu 1 jam.', 'error');
+                updateConsole('suntikConsole', '[✗] Limit habis! Tunggu 1 jam untuk reset.', 'log-error');
+                showToast('Limit habis! Tunggu 1 jam.', 'error');
                 return;
             }
             if (count > remaining) {
@@ -1664,18 +1268,14 @@
         
         const startBtn = document.getElementById('suntikStartBtn');
         const stopBtn = document.getElementById('suntikStopBtn');
-        
-        if (startBtn) {
-            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim Suntik...';
-            startBtn.disabled = true;
-            startBtn.style.display = 'none';
-        }
-        if (stopBtn) {
-            stopBtn.style.display = 'block';
-            stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
-        }
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+        startBtn.disabled = true;
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
         
         updateConsole('suntikConsole', `[✓] Mengirim ${selectedAction} ke ${target} (${selectedPlatform}) ${count}x`, 'log-info');
+        updateConsole('suntikConsole', `[⏳] Cooldown 2 menit setelah setiap sukses`, 'log-warning');
         
         fetch('/api/spam/suntik', {
             method: 'POST',
@@ -1691,12 +1291,21 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                updateConsole('suntikConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
-                if (data.result.success > 0 && currentUser) {
-                    currentUser.used = (currentUser.used || 0) + data.result.success;
-                    loadUserData();
+                const r = data.result;
+                updateConsole('suntikConsole', `[✓] Selesai! Berhasil: ${r.success}, Gagal: ${r.failed}`, 'log-success');
+                if (r.bypassFailed) {
+                    updateConsole('suntikConsole', '[⚠️] Bypass gagal! Coba lagi nanti.', 'log-warning');
+                    showToast('Bypass gagal! Coba lagi nanti.', 'warning');
                 }
-                showToast(`Suntik selesai! Berhasil: ${data.result.success}`, 'success');
+                if (r.success > 0) {
+                    currentUser.used = (currentUser.used || 0) + r.success;
+                    loadUserData();
+                    totalSuccess += r.success;
+                    totalFailed += r.failed || 0;
+                    document.getElementById('totalSuccess').textContent = totalSuccess;
+                    document.getElementById('totalFailed').textContent = totalFailed;
+                }
+                showToast(`Suntik selesai! Berhasil: ${r.success}`, r.success > 0 ? 'success' : 'warning');
             } else {
                 if (data.maintenance) {
                     updateConsole('suntikConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
@@ -1707,6 +1316,7 @@
                 }
             }
             resetSuntikButtons();
+            checkZefoyStatus();
         })
         .catch(err => {
             updateConsole('suntikConsole', `[✗] Error: ${err.message}`, 'log-error');
@@ -1715,13 +1325,8 @@
     }
 
     function stopSuntik() {
-        if (!currentSuntikSession) {
-            resetSuntikButtons();
-            return;
-        }
-        
+        if (!currentSuntikSession) { resetSuntikButtons(); return; }
         updateConsole('suntikConsole', '[⛔] Menghentikan suntik...', 'log-warning');
-        showToast('Menghentikan suntik...', 'info');
         
         fetch('/api/spam/suntik/stop', {
             method: 'POST',
@@ -1736,33 +1341,62 @@
             }
             resetSuntikButtons();
         })
-        .catch(err => {
-            updateConsole('suntikConsole', `[✗] Error stop: ${err.message}`, 'log-error');
-            resetSuntikButtons();
-        });
-        
+        .catch(() => resetSuntikButtons());
         isSpamming = false;
     }
 
     function resetSuntikButtons() {
         isSpamming = false;
         currentSuntikSession = null;
-        
         const startBtn = document.getElementById('suntikStartBtn');
         const stopBtn = document.getElementById('suntikStopBtn');
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Start Suntik';
+        startBtn.disabled = false;
+        startBtn.style.display = 'block';
+        stopBtn.style.display = 'none';
+    }
+
+    function updateSuntikProgress(data) {
+        if (data.type !== 'suntik') return;
         
-        if (startBtn) {
-            startBtn.innerHTML = '<i class="fas fa-play"></i> Start Suntik';
-            startBtn.disabled = false;
-            startBtn.style.display = 'block';
+        const container = document.getElementById('suntikProgress');
+        container.style.display = 'block';
+        document.getElementById('suntikProgressText').textContent = `${data.current || 0}/${data.total || 0}`;
+        document.getElementById('suntikProgressBar').style.width = `${((data.current || 0)/(data.total || 1))*100}%`;
+        
+        if (data.detail) {
+            document.getElementById('suntikDetailProgress').textContent = data.detail;
         }
-        if (stopBtn) {
-            stopBtn.style.display = 'none';
+        
+        if (data.message) {
+            const cls = data.status === 'error' ? 'log-error' : 
+                       data.status === 'cooldown' ? 'log-warning' : 
+                       data.status === 'success' ? 'log-success' : 'log-info';
+            updateConsole('suntikConsole', `[${data.current||0}/${data.total||0}] ${data.message}`, cls);
+        }
+        
+        // Cooldown display
+        if (data.cooldown && data.cooldownRemaining) {
+            document.getElementById('cooldownStatus').textContent = `${data.cooldownRemaining}s`;
+            document.getElementById('cooldownStatus').style.color = '#f9ca24';
+        }
+        
+        if (data.completed) {
+            setTimeout(() => {
+                container.style.display = 'none';
+                document.getElementById('cooldownStatus').textContent = 'Ready';
+                document.getElementById('cooldownStatus').style.color = '#00d2d3';
+            }, 3000);
+        }
+        
+        if (data.stopped) {
+            container.style.display = 'none';
+            resetSuntikButtons();
         }
     }
 
     // ============================================
-    // SELECT FUNCTIONS
+    // PAYMENT
     // ============================================
     function selectPricing(pkg) {
         selectedPkg = pkg;
@@ -1771,61 +1405,40 @@
         if (target) target.classList.add('selected');
 
         const packages = {
-            premium: { label: 'Premium', price: 'Rp 10.000', limit: '80x' },
-            vip: { label: 'VIP', price: 'Rp 20.000', limit: '150x' },
-            reseller: { label: 'Reseller', price: 'Rp 30.000', limit: '200x' }
+            premium: { label: 'Premium', price: 'Rp 10.000' },
+            vip: { label: 'VIP', price: 'Rp 20.000' },
+            reseller: { label: 'Reseller', price: 'Rp 30.000' }
         };
-        const selectedPackage = document.getElementById('selectedPackage');
-        const packagePrice = document.getElementById('packagePrice');
-        if (selectedPackage) selectedPackage.value = packages[pkg].label;
-        if (packagePrice) packagePrice.value = packages[pkg].price;
+        document.getElementById('selectedPackage').value = packages[pkg].label;
+        document.getElementById('packagePrice').value = packages[pkg].price;
     }
 
     function selectPayment(method) {
-        selectedPayment = method;
         document.querySelectorAll('.call-option[onclick*="selectPayment"]').forEach(el => el.classList.remove('active'));
         const target = document.querySelector(`.call-option[onclick*="${method}"]`);
         if (target) target.classList.add('active');
-
-        const numbers = {
-            dana: 'Dana : 082320884089',
-            ovo: 'OVO : 082320884089',
-            gopay: 'Gopay : 082320884089'
-        };
-        const paymentNumber = document.getElementById('paymentNumber');
-        if (paymentNumber) paymentNumber.value = numbers[method];
+        const numbers = { dana: 'Dana : 082320884089', ovo: 'OVO : 082320884089', gopay: 'Gopay : 082320884089' };
+        document.getElementById('paymentNumber').value = numbers[method];
     }
 
-    // ============================================
-    // PAYMENT
-    // ============================================
     function submitPayment() {
-        const pkg = document.getElementById('selectedPackage')?.value;
-        const name = document.getElementById('paymentName')?.value.trim();
-        const file = document.getElementById('paymentProof')?.files[0];
+        const pkg = document.getElementById('selectedPackage').value;
+        const name = document.getElementById('paymentName').value.trim();
+        const file = document.getElementById('paymentProof').files[0];
 
-        if (!name) {
-            updateConsole('paymentConsole', '[✗] Masukkan atas nama!', 'log-error');
-            return;
-        }
-        if (!file) {
-            updateConsole('paymentConsole', '[✗] Upload bukti pembayaran!', 'log-error');
-            return;
-        }
+        if (!name) { showToast('Masukkan atas nama!', 'error'); return; }
+        if (!file) { showToast('Upload bukti pembayaran!', 'error'); return; }
 
         const formData = new FormData();
         formData.append('username', currentUser.username);
         formData.append('package', pkg);
         formData.append('name', name);
-        formData.append('paymentMethod', selectedPayment);
+        formData.append('paymentMethod', selectedPayment || 'dana');
         formData.append('proof', file);
 
         updateConsole('paymentConsole', '[✓] Mengirim pembayaran...', 'log-info');
 
-        fetch('/api/payments/submit', {
-                method: 'POST',
-                body: formData
-            })
+        fetch('/api/payments/submit', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -1833,53 +1446,40 @@
                     showToast('Pembayaran terkirim!', 'success');
                     document.getElementById('paymentName').value = '';
                     document.getElementById('paymentProof').value = '';
-                    if (socket) socket.emit('paymentSubmitted', { username: currentUser.username });
                 } else {
                     updateConsole('paymentConsole', `[✗] ${data.message}`, 'log-error');
                 }
             })
-            .catch(err => {
-                updateConsole('paymentConsole', '[✗] Error mengirim pembayaran', 'log-error');
-            });
+            .catch(() => updateConsole('paymentConsole', '[✗] Error mengirim pembayaran', 'log-error'));
     }
 
     // ============================================
-    // PUBLIC CHAT
+    // CHAT
     // ============================================
     function sendMessage() {
         const input = document.getElementById('chatInput');
         const msg = input?.value.trim();
         if (!msg || !socket || !currentUser) return;
-
         socket.emit('sendMessage', {
             username: currentUser.username,
             status: currentUser.status || 'Free',
             message: msg,
             time: new Date().toISOString()
         });
-        if (input) input.value = '';
+        input.value = '';
     }
 
     function addChatMessage(data) {
         const container = document.getElementById('chatMessages');
         if (!container) return;
-
         const isOwn = data.username === currentUser?.username;
         const div = document.createElement('div');
         div.className = `chat-message${isOwn ? ' own' : ''}`;
-
-        const statusMap = {
-            'Developer': 'Dev',
-            'VIP': 'VIP',
-            'Reseller': 'RLR',
-            'Premium': 'Prem',
-            'Free': ''
-        };
+        const statusMap = { 'Developer': 'Dev', 'VIP': 'VIP', 'Reseller': 'RLR', 'Premium': 'Prem', 'Free': '' };
         const statusLabel = statusMap[data.status] || '';
         const statusColor = data.status?.toLowerCase() || 'free';
-
         div.innerHTML = `
-            <div class="sender">${data.username} ${statusLabel ? `<span class="status-badge ${statusColor}">${statusLabel}</span>` : ''}</div>
+            <div class="sender">${data.username} ${statusLabel ? `<span class="badge badge-${statusColor}">${statusLabel}</span>` : ''}</div>
             <div>${data.message}</div>
             <div class="time">${new Date(data.time).toLocaleTimeString()}</div>
         `;
@@ -1890,272 +1490,184 @@
     }
 
     // ============================================
-    // CHANGE PASSWORD
+    // PASSWORD
     // ============================================
     function changePassword() {
-        const newPass = document.getElementById('newPassword')?.value;
-        const confirm = document.getElementById('confirmPassword')?.value;
-
-        if (!newPass || newPass.length < 4) {
-            showToast('Password minimal 4 karakter!', 'error');
-            return;
-        }
-        if (newPass !== confirm) {
-            showToast('Password tidak cocok!', 'error');
-            return;
-        }
+        const newPass = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        if (!newPass || newPass.length < 4) { showToast('Password minimal 4 karakter!', 'error'); return; }
+        if (newPass !== confirm) { showToast('Password tidak cocok!', 'error'); return; }
 
         fetch('/api/change-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: currentUser.username, newPassword: newPass })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Password berhasil diubah!', 'success');
-                    document.getElementById('newPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
-                } else {
-                    showToast(data.message, 'error');
-                }
-            });
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser.username, newPassword: newPass })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Password berhasil diubah!', 'success');
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            } else {
+                showToast(data.message, 'error');
+            }
+        });
     }
 
     // ============================================
-    // ADMIN FUNCTIONS
+    // ADMIN
     // ============================================
     function loadAdminData() {
-        if (!currentUser || !currentUser.isDeveloper) return;
-
+        if (!currentUser?.isDeveloper) return;
         fetch('/api/admin/users')
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     document.getElementById('totalUsers').textContent = data.users.length;
                     document.getElementById('activeUsers').textContent = data.users.filter(u => u.online).length;
-                    document.getElementById('totalSpams').textContent = data.users.reduce((a, u) => a + (u.used || 0), 0);
-
                     const body = document.getElementById('adminUsersBody');
-                    if (body) {
-                        body.innerHTML = data.users.map(u => {
-                            const limitDisplay = (u.limit === Infinity || u.limit === '∞') ? '∞' : u.limit;
-                            return `
-                                <tr>
-                                    <td><strong>${u.username}</strong></td>
-                                    <td><span class="badge badge-${u.status?.toLowerCase() || 'free'}">${u.status || 'Free'}</span></td>
-                                    <td>${limitDisplay}</td>
-                                    <td>${u.used || 0}</td>
-                                    <td>
-                                        <select onchange="changeUserStatus('${u.username}', this.value)" class="btn-sm" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:4px;">
-                                            <option value="Free" ${u.status === 'Free' ? 'selected' : ''}>Free</option>
-                                            <option value="Premium" ${u.status === 'Premium' ? 'selected' : ''}>Premium</option>
-                                            <option value="VIP" ${u.status === 'VIP' ? 'selected' : ''}>VIP</option>
-                                            <option value="Reseller" ${u.status === 'Reseller' ? 'selected' : ''}>Reseller</option>
-                                            <option value="Developer" ${u.status === 'Developer' ? 'selected' : ''}>Developer</option>
-                                        </select>
-                                        <button class="btn-sm btn-delete" onclick="banUser('${u.username}')"><i class="fas fa-ban"></i></button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('');
-                    }
+                    body.innerHTML = data.users.map(u => `
+                        <tr>
+                            <td><strong>${u.username}</strong></td>
+                            <td><span class="badge badge-${u.status?.toLowerCase() || 'free'}">${u.status || 'Free'}</span></td>
+                            <td>${u.limit === '∞' ? '∞' : u.limit}</td>
+                            <td>${u.used || 0}</td>
+                            <td>
+                                <select onchange="changeUserStatus('${u.username}', this.value)" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:4px;">
+                                    <option value="Free" ${u.status === 'Free' ? 'selected' : ''}>Free</option>
+                                    <option value="Premium" ${u.status === 'Premium' ? 'selected' : ''}>Premium</option>
+                                    <option value="VIP" ${u.status === 'VIP' ? 'selected' : ''}>VIP</option>
+                                    <option value="Reseller" ${u.status === 'Reseller' ? 'selected' : ''}>Reseller</option>
+                                    <option value="Developer" ${u.status === 'Developer' ? 'selected' : ''}>Developer</option>
+                                </select>
+                                <button class="btn-sm btn-delete" onclick="banUser('${u.username}')"><i class="fas fa-ban"></i></button>
+                            </td>
+                        </tr>
+                    `).join('');
                 }
             });
     }
 
     function switchAdminTab(tab) {
-        if (!currentUser || !currentUser.isDeveloper) {
-            showToast('Akses ditolak! Hanya Developer!', 'error');
-            return;
-        }
-
-        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.admin-tab').forEach(t => t.style.background = 'transparent');
         const tabEl = document.querySelector(`.admin-tab[onclick*="${tab}"]`);
-        if (tabEl) tabEl.classList.add('active');
-
+        if (tabEl) { tabEl.style.background = 'rgba(108,92,231,0.15)'; tabEl.style.color = '#fff'; }
         ['adminUsersTab', 'adminSettingsTab', 'adminPaymentsTab'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
+            document.getElementById(id).style.display = 'none';
         });
-        const target = document.getElementById(`admin${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`);
-        if (target) target.style.display = 'block';
+        document.getElementById(`admin${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`).style.display = 'block';
         if (tab === 'payments') loadPayments();
     }
 
     function changeUserStatus(username, status) {
-        if (!currentUser || !currentUser.isDeveloper) {
-            showToast('Akses ditolak! Hanya Developer!', 'error');
-            return;
-        }
-
+        if (!currentUser?.isDeveloper) return;
         fetch('/api/admin/update-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, status, admin: currentUser.username })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(`Status ${username} diubah ke ${status}`, 'success');
-                    loadAdminData();
-                    if (socket) socket.emit('userUpdated');
-                } else {
-                    showToast(data.message, 'error');
-                }
-            });
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, status, admin: currentUser.username })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Status ${username} diubah ke ${status}`, 'success');
+                loadAdminData();
+            }
+        });
     }
 
     function banUser(username) {
-        if (!currentUser || !currentUser.isDeveloper) {
-            showToast('Akses ditolak! Hanya Developer!', 'error');
-            return;
-        }
-        if (!confirm(`Ban user ${username}?`)) return;
-
+        if (!currentUser?.isDeveloper || !confirm(`Ban user ${username}?`)) return;
         fetch('/api/admin/ban', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, admin: currentUser.username })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(`${username} di-ban!`, 'success');
-                    loadAdminData();
-                }
-            });
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, admin: currentUser.username })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`${username} di-ban!`, 'success');
+                loadAdminData();
+            }
+        });
     }
 
     function saveSettings() {
-        if (!currentUser || !currentUser.isDeveloper) {
-            showToast('Akses ditolak! Hanya Developer!', 'error');
-            return;
-        }
-
+        if (!currentUser?.isDeveloper) return;
         const settings = {
             maintenance: document.getElementById('maintenanceMode').value === 'true',
             maintenanceMessage: document.getElementById('maintenanceMessage').value
         };
-
         fetch('/api/admin/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings, admin: currentUser.username })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Settings saved!', 'success');
-                }
-            });
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ settings, admin: currentUser.username })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) showToast('Settings saved!', 'success');
+        });
     }
 
     function loadPayments() {
-        if (!currentUser || !currentUser.isDeveloper) return;
-
         fetch('/api/admin/payments')
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     const body = document.getElementById('adminPaymentsBody');
-                    if (body) {
-                        body.innerHTML = data.payments.map(p => `
-                            <tr>
-                                <td>${p.username}</td>
-                                <td>${p.package}</td>
-                                <td>Rp ${p.amount.toLocaleString()}</td>
-                                <td><span class="badge badge-${p.status === 'verified' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}">${p.status}</span></td>
-                                <td>
-                                    ${p.status === 'pending' ? `
-                                        <button class="btn-sm btn-edit" onclick="verifyPayment('${p.id}')">Verify</button>
-                                        <button class="btn-sm btn-delete" onclick="rejectPayment('${p.id}')">Reject</button>
-                                    ` : ''}
-                                </td>
-                            </tr>
-                        `).join('');
-                    }
+                    body.innerHTML = data.payments.map(p => `
+                        <tr>
+                            <td>${p.username}</td>
+                            <td>${p.package}</td>
+                            <td>Rp ${p.amount?.toLocaleString() || 0}</td>
+                            <td><span class="badge badge-${p.status === 'verified' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}">${p.status}</span></td>
+                            <td>${p.status === 'pending' ? `
+                                <button class="btn-sm btn-edit" onclick="verifyPayment('${p.id}')">Verify</button>
+                                <button class="btn-sm btn-delete" onclick="rejectPayment('${p.id}')">Reject</button>
+                            ` : ''}</td>
+                        </tr>
+                    `).join('');
                 }
             });
     }
 
     function verifyPayment(id) {
-        if (!currentUser || !currentUser.isDeveloper) {
-            showToast('Akses ditolak! Hanya Developer!', 'error');
-            return;
-        }
-
+        if (!currentUser?.isDeveloper) return;
         fetch('/api/admin/verify-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId: id, admin: currentUser.username })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Payment verified!', 'success');
-                    loadPayments();
-                    loadAdminData();
-                }
-            });
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: id, admin: currentUser.username })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Payment verified!', 'success');
+                loadPayments();
+                loadAdminData();
+            }
+        });
     }
 
     function rejectPayment(id) {
-        if (!currentUser || !currentUser.isDeveloper) {
-            showToast('Akses ditolak! Hanya Developer!', 'error');
-            return;
-        }
-
+        if (!currentUser?.isDeveloper) return;
         const reason = prompt('Alasan pembatalan:');
         if (!reason) return;
-
         fetch('/api/admin/reject-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId: id, reason, admin: currentUser.username })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Payment rejected!', 'error');
-                    loadPayments();
-                }
-            });
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: id, reason, admin: currentUser.username })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Payment rejected!', 'error');
+                loadPayments();
+            }
+        });
     }
 
     // ============================================
-    // RESELLER FUNCTIONS
-    // ============================================
-    function loadResellerData() {
-        if (!currentUser || !currentUser.isReseller) return;
-
-        fetch('/api/admin/users')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('resellerUsers').textContent = data.users.length;
-                    document.getElementById('resellerOnline').textContent = data.users.filter(u => u.online).length;
-
-                    const body = document.getElementById('resellerUsersBody');
-                    if (body) {
-                        body.innerHTML = data.users.map(u => {
-                            const limitDisplay = (u.limit === Infinity || u.limit === '∞') ? '∞' : u.limit;
-                            return `
-                                <tr>
-                                    <td><strong>${u.username}</strong></td>
-                                    <td><span class="badge badge-${u.status?.toLowerCase() || 'free'}">${u.status || 'Free'}</span></td>
-                                    <td>${limitDisplay}</td>
-                                    <td>${u.used || 0}</td>
-                                </tr>
-                            `;
-                        }).join('');
-                    }
-                }
-            });
-    }
-
-    // ============================================
-    // UTILITY FUNCTIONS
+    // UTILITY
     // ============================================
     function updateConsole(consoleId, message, className = 'log-normal') {
         const el = document.getElementById(consoleId);
@@ -2173,37 +1685,40 @@
         if (existing) existing.remove();
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        const iconMap = {
-            'success': 'check-circle',
-            'error': 'times-circle',
-            'info': 'info-circle',
-            'warning': 'exclamation-triangle'
-        };
-        const icon = iconMap[type] || 'info-circle';
-        toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+        const icons = { 'success': 'check-circle', 'error': 'times-circle', 'info': 'info-circle', 'warning': 'exclamation-triangle' };
+        toast.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> ${message}`;
         document.body.appendChild(toast);
-        setTimeout(() => { toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300); }, 3000);
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
     }
 
     // ============================================
-    // KEYBOARD SHORTCUTS
+    // NAVIGATION
     // ============================================
-    document.addEventListener('keydown', e => {
-        if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
             e.preventDefault();
-            handleLogout();
-        }
-        if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') {
-            e.preventDefault();
-            sendMessage();
-        }
+            const section = this.dataset.section;
+            if (section === 'admin-panel' && !currentUser?.isDeveloper) {
+                showToast('Akses ditolak! Hanya Developer!', 'error');
+                return;
+            }
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(section).classList.add('active');
+        });
     });
 
-    console.log('🔥 PrankMaster Pro - Spam OTP & Suntik');
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'L') { e.preventDefault(); handleLogout(); }
+        if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') sendMessage();
+    });
+
+    console.log('🔥 PrankMaster Pro - Suntik Sosial Media');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('📱 25+ API OTP Ready!');
-    console.log('💉 5 Platform Suntik Ready!');
+    console.log('💉 5 Platform Support');
+    console.log('⏳ Cooldown: 2 Menit');
     console.log('💡 Developer limit: ∞ (Unlimited)');
     </script>
 </body>
