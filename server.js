@@ -1,5 +1,5 @@
 // ============================================
-// PRANKMASTER PRO - FULL AUTO BYPASS
+// PRANKMASTER PRO V5 - MULTI PROVIDER
 // ============================================
 
 const express = require('express');
@@ -13,25 +13,13 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
-const Tesseract = require('tesseract.js');
-const sharp = require('sharp');
 const userAgent = require('user-agents');
-const fakeUa = require('fake-useragent');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
-const UserPreferencesPlugin = require('puppeteer-extra-plugin-user-preferences');
 
-// ===== PUPPETEER PLUGINS =====
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
-puppeteer.use(UserPreferencesPlugin({
-    userPrefs: {
-        'profile.default_content_setting_values.notifications': 2,
-        'profile.default_content_setting_values.geolocation': 2,
-        'profile.default_content_setting_values.media_stream': 2,
-    }
-}));
 
 const app = express();
 const server = http.createServer(app);
@@ -47,7 +35,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ===== SECURITY =====
 const helmet = require('helmet');
 app.use(helmet({
     contentSecurityPolicy: false,
@@ -57,7 +44,7 @@ app.use(helmet({
 const rateLimit = require('express-rate-limit');
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 200,
     message: { success: false, message: 'Terlalu banyak request!' }
 });
 app.use('/api/', limiter);
@@ -77,35 +64,82 @@ let db = {
     users: [],
     payments: [],
     messages: [],
-    settings: { 
+    settings: {
         maintenance: false,
         maintenanceMessage: 'Server sedang dalam perbaikan. Silakan coba lagi nanti.',
+        primaryProvider: 'tikfollowers', // tikfollowers | smmstone
+        fallbackEnabled: true,
+        providers: {
+            tikfollowers: {
+                enabled: true,
+                cooldown: 900, // 15 menit
+                maxPerDay: 50,
+                baseUrl: 'https://tikfollowers.com'
+            },
+            smmstone: {
+                enabled: true,
+                cooldown: 1800, // 30 menit
+                maxPerDay: 100,
+                baseUrl: 'https://smmstone.com/free'
+            }
+        },
         features: {
+            // TikTok
             tiktok_followers: true,
             tiktok_likes: true,
             tiktok_views: true,
             tiktok_shares: true,
+            // Instagram
             instagram_followers: true,
             instagram_likes: true,
             instagram_views: true,
+            // YouTube
             youtube_subscribers: true,
             youtube_views: true,
             youtube_likes: true,
+            // Facebook
             facebook_followers: true,
             facebook_likes: true,
             facebook_shares: true,
+            // Twitter
             twitter_followers: true,
             twitter_likes: true,
-            twitter_retweets: true
+            twitter_retweets: true,
+            // Telegram
+            telegram_members: true,
+            telegram_views: true,
+            telegram_reactions: true,
+            // Others
+            threads_followers: true,
+            threads_likes: true,
+            twitch_followers: true,
+            twitch_views: true,
+            spotify_followers: true,
+            spotify_plays: true,
+            discord_members: true,
+            vk_followers: true,
+            vk_likes: true,
+            kwai_followers: true,
+            kwai_likes: true,
+            soundcloud_plays: true,
+            clubhouse_followers: true
+        },
+        adminControls: {
+            disableAllSuntik: false,
+            disableTikTok: false,
+            disableInstagram: false,
+            disableYouTube: false,
+            disableFacebook: false,
+            disableTwitter: false,
+            disableTelegram: false,
+            disableOthers: false
         }
     },
     stats: {
         totalSuntikSent: 0,
+        dailyStats: {},
         lastReset: Date.now()
-    },
-    captchaSessions: {},
-    proxyList: [],
-    userAgents: []
+    }
 };
 
 function loadDB() {
@@ -154,18 +188,15 @@ function generateApiKey() {
 // ============================================
 
 function getRandomUserAgent() {
-    return new userAgent().toString();
+    try {
+        return new userAgent().toString();
+    } catch (e) {
+        return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    }
 }
 
 function getRandomDelay(min = 1000, max = 5000) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function getRandomProxy() {
-    if (db.proxyList && db.proxyList.length > 0) {
-        return db.proxyList[Math.floor(Math.random() * db.proxyList.length)];
-    }
-    return null;
 }
 
 function sleep(ms) {
@@ -177,7 +208,6 @@ function sleep(ms) {
 // ============================================
 
 let browserInstance = null;
-let pageInstance = null;
 
 async function getBrowser() {
     if (!browserInstance) {
@@ -192,50 +222,7 @@ async function getBrowser() {
                 '--window-size=1920,1080',
                 '--disable-blink-features=AutomationControlled',
                 '--disable-features=IsolateOrigins,site-per-process',
-                '--disable-web-security',
-                '--disable-features=BlockInsecurePrivateNetworkRequests',
-                '--disable-features=OutOfBlinkCors',
-                '--disable-features=SameSiteByDefaultCookies',
-                '--disable-features=EnableDoubleTapZoom',
-                '--disable-features=OverscrollHistoryNavigation',
-                '--disable-features=TranslateUI',
-                '--disable-features=BackForwardCache',
-                '--disable-features=GlobalMediaControls',
-                '--disable-features=PasswordImport',
-                '--disable-features=ImprovedCookieControls',
-                '--disable-features=PrivacySandboxSettings',
-                '--disable-features=PrivacySandboxSettings3',
-                '--disable-features=CookieDeprecationFacilitatedTesting',
-                '--disable-features=FedCm',
-                '--disable-features=WebAuthn',
-                '--disable-features=WebAuthentication',
-                '--disable-features=WebOTP',
-                '--disable-features=WebXR',
-                '--disable-features=WebPayments',
-                '--disable-features=WebBluetooth',
-                '--disable-features=WebUSB',
-                '--disable-features=WebHID',
-                '--disable-features=WebSerial',
-                '--disable-features=WebMidi',
-                '--disable-features=WebNfc',
-                '--disable-features=WebShare',
-                '--disable-features=WebLocks',
-                '--disable-features=WebSocketStream',
-                '--disable-features=WebTransport',
-                '--disable-features=WebCodecs',
-                '--disable-features=WebAssembly',
-                '--disable-features=WebGL',
-                '--disable-features=WebGPU',
-                '--disable-features=WebXr',
-                '--disable-features=WebXRIncubations',
-                '--disable-features=WebXRHandInput',
-                '--disable-features=WebXRHitTest',
-                '--disable-features=WebXRAnchors',
-                '--disable-features=WebXRPlaneDetection',
-                '--disable-features=WebXRImageTracking',
-                '--disable-features=WebXRDepthSensing',
-                '--disable-features=WebXRMedia',
-                '--disable-features=WebXRScreenCapture'
+                '--disable-web-security'
             ],
             ignoreDefaultArgs: ['--enable-automation'],
             defaultViewport: {
@@ -252,641 +239,47 @@ async function getBrowser() {
 }
 
 async function getPage() {
-    if (!pageInstance || pageInstance.isClosed()) {
-        const browser = await getBrowser();
-        pageInstance = await browser.newPage();
-        
-        // Randomize viewport
-        const viewports = [
-            { width: 1366, height: 768 },
-            { width: 1440, height: 900 },
-            { width: 1536, height: 864 },
-            { width: 1600, height: 900 },
-            { width: 1680, height: 1050 },
-            { width: 1920, height: 1080 }
-        ];
-        const vp = viewports[Math.floor(Math.random() * viewports.length)];
-        await pageInstance.setViewport(vp);
-        
-        // Set user agent
-        const ua = getRandomUserAgent();
-        await pageInstance.setUserAgent(ua);
-        
-        // Set extra HTTP headers
-        await pageInstance.setExtraHTTPHeaders({
-            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-        });
-        
-        // Simulate human mouse movements
-        await pageInstance.evaluateOnNewDocument(() => {
-            // Override navigator properties
-            Object.defineProperty(navigator, 'webdriver', { get: () => false });
-            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-            Object.defineProperty(navigator, 'languages', { get: () => ['id-ID', 'id', 'en-US', 'en'] });
-            
-            // Add random scroll behavior
-            window.addEventListener('load', () => {
-                setTimeout(() => {
-                    window.scrollTo({
-                        top: Math.random() * 500,
-                        behavior: 'smooth'
-                    });
-                }, Math.random() * 2000 + 1000);
-            });
-        });
-    }
-    return pageInstance;
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+
+    const viewports = [
+        { width: 1366, height: 768 },
+        { width: 1440, height: 900 },
+        { width: 1536, height: 864 },
+        { width: 1600, height: 900 },
+        { width: 1680, height: 1050 },
+        { width: 1920, height: 1080 }
+    ];
+    const vp = viewports[Math.floor(Math.random() * viewports.length)];
+    await page.setViewport(vp);
+
+    await page.setUserAgent(getRandomUserAgent());
+
+    await page.setExtraHTTPHeaders({
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+    });
+
+    await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+        Object.defineProperty(navigator, 'languages', { get: () => ['id-ID', 'id', 'en-US', 'en'] });
+    });
+
+    return page;
 }
 
 // ============================================
-// ZEFOY BYPASS DENGAN PUPPETEER + OCR
-// ============================================
-
-class ZefoyBypass {
-    constructor() {
-        this.cookies = '';
-        this.isConnected = false;
-        this.sessionData = null;
-        this.lastCaptchaWord = null;
-        this.captchaImage = null;
-        this.baseUrl = 'https://zefoy.com';
-        this.headers = {
-            'User-Agent': getRandomUserAgent(),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Cache-Control': 'max-age=0'
-        };
-        this.captchaCache = [];
-        this.isWaitingCaptcha = false;
-        this.captchaSessionId = null;
-        this.captchaAttempts = 0;
-    }
-
-    // ============================================
-    // GET CAPTCHA DENGAN PUPPETEER
-    // ============================================
-    async getCaptcha() {
-        try {
-            console.log('🔍 Getting captcha from Zefoy with Puppeteer...');
-            
-            const page = await getPage();
-            
-            // Navigate to Zefoy with random delay
-            await page.goto(this.baseUrl, {
-                waitUntil: 'networkidle2',
-                timeout: 30000
-            });
-            
-            // Random scroll
-            await page.evaluate(() => {
-                window.scrollBy(0, Math.random() * 300 + 100);
-            });
-            await sleep(1000 + Math.random() * 2000);
-            
-            // Get page content
-            const html = await page.content();
-            const $ = cheerio.load(html);
-            
-            // Get cookies
-            const cookies = await page.cookies();
-            this.cookies = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-            this.headers['Cookie'] = this.cookies;
-            
-            // Extract captcha word
-            let captchaWord = this.extractCaptchaWord($);
-            let captchaImageUrl = null;
-            
-            // Extract captcha image
-            const imgElement = $('img[src*="captcha"], img[src*="captcha.php"], img[alt*="captcha"]');
-            if (imgElement.length > 0) {
-                const src = imgElement.attr('src');
-                if (src) {
-                    captchaImageUrl = src.startsWith('http') ? src : `${this.baseUrl}${src}`;
-                }
-            }
-            
-            // Fallback: try to find in text
-            if (!captchaWord) {
-                const captchaText = $('.captcha-text, .captcha-word, .verification-text, .word-display');
-                captchaWord = captchaText.text().trim().replace(/[^A-Za-z0-9]/g, '');
-            }
-            
-            // Generate session ID
-            this.captchaSessionId = uuidv4();
-            this.isWaitingCaptcha = true;
-            
-            // Save to database
-            db.captchaSessions[this.captchaSessionId] = {
-                captchaWord: captchaWord,
-                captchaImage: captchaImageUrl,
-                createdAt: Date.now(),
-                solved: false,
-                cookies: this.cookies,
-                pageState: await page.evaluate(() => ({
-                    scrollY: window.scrollY,
-                    url: window.location.href
-                }))
-            };
-            saveDB();
-            
-            console.log('📝 Captcha session created:', this.captchaSessionId);
-            console.log('📝 Captcha word:', captchaWord);
-            
-            // Auto-solve if word found
-            if (captchaWord && captchaWord.length >= 3) {
-                console.log('🤖 Auto-solving captcha...');
-                const result = await this.submitCaptchaWithPage(page, this.captchaSessionId, captchaWord);
-                if (result.success) {
-                    this.isConnected = true;
-                    this.isWaitingCaptcha = false;
-                    return {
-                        success: true,
-                        sessionId: this.captchaSessionId,
-                        captchaWord: captchaWord,
-                        captchaImage: captchaImageUrl,
-                        autoSolved: true,
-                        message: '✅ Captcha auto-solved!'
-                    };
-                }
-            }
-            
-            return {
-                success: true,
-                sessionId: this.captchaSessionId,
-                captchaWord: captchaWord || '????',
-                captchaImage: captchaImageUrl,
-                autoSolved: false,
-                message: 'Masukkan kata captcha yang terlihat'
-            };
-        } catch (error) {
-            console.error('❌ Get captcha error:', error.message);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // ============================================
-    // SUBMIT CAPTCHA WITH PUPPETEER
-    // ============================================
-    async submitCaptchaWithPage(page, sessionId, word) {
-        try {
-            const session = db.captchaSessions[sessionId];
-            if (!session) {
-                return { success: false, error: 'Session tidak ditemukan!' };
-            }
-            
-            console.log('📤 Submitting captcha:', word);
-            
-            // Find and fill captcha input
-            await page.evaluate((word) => {
-                const inputs = document.querySelectorAll('input[type="text"]');
-                let captchaInput = null;
-                
-                for (const input of inputs) {
-                    const placeholder = input.placeholder || '';
-                    const name = input.name || '';
-                    const id = input.id || '';
-                    const className = input.className || '';
-                    
-                    if (placeholder.toLowerCase().includes('captcha') ||
-                        placeholder.toLowerCase().includes('verification') ||
-                        placeholder.toLowerCase().includes('text') ||
-                        name.toLowerCase().includes('captcha') ||
-                        id.toLowerCase().includes('captcha') ||
-                        className.toLowerCase().includes('captcha')) {
-                        captchaInput = input;
-                        break;
-                    }
-                }
-                
-                if (captchaInput) {
-                    captchaInput.value = word;
-                    captchaInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    captchaInput.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            }, word);
-            
-            await sleep(500 + Math.random() * 1000);
-            
-            // Find and click submit button
-            await page.evaluate(() => {
-                const buttons = document.querySelectorAll('button, input[type="submit"]');
-                let submitBtn = null;
-                
-                for (const btn of buttons) {
-                    const text = (btn.textContent || '').toLowerCase();
-                    const type = btn.type || '';
-                    const className = btn.className || '';
-                    
-                    if (text.includes('verif') || text.includes('submit') || 
-                        text.includes('kirim') || text.includes('confirm') ||
-                        type === 'submit' ||
-                        className.toLowerCase().includes('submit')) {
-                        submitBtn = btn;
-                        break;
-                    }
-                }
-                
-                if (submitBtn) {
-                    submitBtn.click();
-                }
-            });
-            
-            await sleep(2000 + Math.random() * 2000);
-            
-            // Check if captcha is solved
-            const html = await page.content();
-            const $ = cheerio.load(html);
-            
-            const hasCaptcha = $('.captcha-word, .captcha-text, [class*="captcha"]').length > 0;
-            const successMessage = $('.success, .alert-success, .result-success').text().trim();
-            
-            if (!hasCaptcha || successMessage) {
-                console.log('✅ Captcha bypass berhasil!');
-                this.isConnected = true;
-                this.isWaitingCaptcha = false;
-                session.solved = true;
-                session.solvedAt = Date.now();
-                saveDB();
-                
-                // Cleanup session after 5 minutes
-                setTimeout(() => {
-                    if (db.captchaSessions[sessionId]) {
-                        delete db.captchaSessions[sessionId];
-                        saveDB();
-                    }
-                }, 300000);
-                
-                return { success: true, message: 'Captcha berhasil! Zefoy siap digunakan.' };
-            } else {
-                console.log('❌ Captcha masih ada, mungkin salah input');
-                this.captchaAttempts++;
-                return { success: false, error: 'Kata captcha salah! Coba lagi.' };
-            }
-        } catch (error) {
-            console.error('❌ Submit captcha error:', error.message);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // ============================================
-    // EXTRACT CAPTCHA WORD
-    // ============================================
-    extractCaptchaWord($) {
-        const selectors = [
-            '.captcha-word',
-            '.captcha-text',
-            '#captcha-word',
-            '.captcha-container span',
-            '[class*="captcha"] span',
-            '.verification-text',
-            '.word-display',
-            '.captcha-box span',
-            '.captcha-code',
-            '.code-display'
-        ];
-
-        for (const selector of selectors) {
-            const text = $(selector).text().trim();
-            if (text) {
-                const clean = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-                if (clean.length >= 3) {
-                    return clean;
-                }
-            }
-        }
-
-        // Fallback: cari pola huruf/kapital di text
-        const bodyText = $('body').text();
-        const match = bodyText.match(/[A-Z]{3,8}/);
-        if (match) {
-            return match[0];
-        }
-
-        return null;
-    }
-
-    // ============================================
-    // AUTO SOLVE WITH OCR
-    // ============================================
-    async autoSolveWithOCR(sessionId) {
-        try {
-            const session = db.captchaSessions[sessionId];
-            if (!session) {
-                return { success: false, error: 'Session tidak ditemukan!' };
-            }
-
-            let captchaWord = session.captchaWord;
-            
-            // Try OCR if we have image
-            if (session.captchaImage && !captchaWord) {
-                console.log('📸 Downloading captcha image for OCR...');
-                
-                const response = await fetch(session.captchaImage, {
-                    headers: {
-                        'User-Agent': getRandomUserAgent(),
-                        'Cookie': session.cookies || this.cookies
-                    }
-                });
-                
-                const buffer = await response.buffer();
-                
-                // Process image for better OCR
-                const processedBuffer = await sharp(buffer)
-                    .grayscale()
-                    .normalize()
-                    .threshold(128)
-                    .toBuffer();
-                
-                console.log('🔍 Running OCR with Tesseract...');
-                
-                const result = await Tesseract.recognize(processedBuffer, 'eng', {
-                    logger: (m) => {
-                        if (m.status === 'recognizing text') {
-                            console.log(`📝 OCR progress: ${Math.round(m.progress * 100)}%`);
-                        }
-                    }
-                });
-                
-                captchaWord = result.data.text
-                    .replace(/[^A-Za-z0-9]/g, '')
-                    .toUpperCase()
-                    .trim();
-                
-                console.log('✅ OCR Result:', captchaWord);
-            }
-            
-            if (!captchaWord || captchaWord.length < 3) {
-                return { success: false, error: 'Gagal membaca captcha dengan OCR' };
-            }
-            
-            // Submit with Puppeteer
-            const page = await getPage();
-            if (session.pageState) {
-                await page.goto(session.pageState.url || this.baseUrl, {
-                    waitUntil: 'networkidle2'
-                });
-            }
-            
-            const result = await this.submitCaptchaWithPage(page, sessionId, captchaWord);
-            
-            return {
-                success: result.success,
-                word: captchaWord,
-                message: result.message,
-                error: result.error
-            };
-        } catch (error) {
-            console.error('❌ Auto OCR error:', error.message);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // ============================================
-    // USE SERVICE
-    // ============================================
-    async useService(platform, action, target) {
-        if (!this.isConnected) {
-            console.log('⚠️ Not connected, need captcha first');
-            return { success: false, error: 'Zefoy tidak terhubung! Selesaikan captcha terlebih dahulu.', needCaptcha: true };
-        }
-
-        // Check feature
-        const featureKey = `${platform.toLowerCase()}_${action.toLowerCase()}`.replace(/ /g, '_');
-        if (db.settings.features && db.settings.features[featureKey] === false) {
-            return { success: false, error: `Fitur ${platform} ${action} sedang dinonaktifkan oleh admin.` };
-        }
-
-        try {
-            const serviceMap = {
-                'TikTok': {
-                    'Followers': '/tiktok-followers',
-                    'Likes': '/tiktok-likes',
-                    'Views': '/tiktok-views',
-                    'Shares': '/tiktok-shares'
-                },
-                'Instagram': {
-                    'Followers': '/instagram-followers',
-                    'Likes': '/instagram-likes',
-                    'Views': '/instagram-views'
-                },
-                'YouTube': {
-                    'Subscribers': '/youtube-subscribers',
-                    'Views': '/youtube-views',
-                    'Likes': '/youtube-likes'
-                },
-                'Facebook': {
-                    'Followers': '/facebook-followers',
-                    'Likes': '/facebook-likes',
-                    'Shares': '/facebook-shares'
-                },
-                'Twitter': {
-                    'Followers': '/twitter-followers',
-                    'Likes': '/twitter-likes',
-                    'Retweets': '/twitter-retweets'
-                }
-            };
-
-            const path = serviceMap[platform]?.[action];
-            if (!path) {
-                return { success: false, error: 'Service not found' };
-            }
-
-            const url = `${this.baseUrl}${path}`;
-            console.log(`📤 Using service: ${url}`);
-
-            // Use Puppeteer for service
-            const page = await getPage();
-            
-            // Navigate with random delay
-            await page.goto(url, {
-                waitUntil: 'networkidle2',
-                timeout: 30000
-            });
-            
-            await sleep(1000 + Math.random() * 2000);
-            
-            // Random scroll
-            await page.evaluate(() => {
-                window.scrollBy(0, Math.random() * 400 + 100);
-            });
-            
-            // Check for captcha
-            const html = await page.content();
-            const $ = cheerio.load(html);
-            const hasCaptcha = $('.captcha-word, .captcha-text, [class*="captcha"]').length > 0;
-            
-            if (hasCaptcha) {
-                this.isConnected = false;
-                return { success: false, error: 'Captcha muncul lagi! Perlu bypass ulang.', needCaptcha: true };
-            }
-
-            // Find and fill target input
-            await page.evaluate((target) => {
-                const inputs = document.querySelectorAll('input[type="text"]');
-                let targetInput = null;
-                
-                for (const input of inputs) {
-                    const placeholder = input.placeholder || '';
-                    const name = input.name || '';
-                    const id = input.id || '';
-                    
-                    if (placeholder.toLowerCase().includes('username') ||
-                        placeholder.toLowerCase().includes('link') ||
-                        placeholder.toLowerCase().includes('user') ||
-                        placeholder.toLowerCase().includes('target') ||
-                        name.toLowerCase().includes('username') ||
-                        name.toLowerCase().includes('link') ||
-                        name.toLowerCase().includes('user') ||
-                        id.toLowerCase().includes('username') ||
-                        id.toLowerCase().includes('link') ||
-                        id.toLowerCase().includes('user')) {
-                        targetInput = input;
-                        break;
-                    }
-                }
-                
-                if (targetInput) {
-                    targetInput.value = target;
-                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            }, target);
-            
-            await sleep(500 + Math.random() * 1000);
-            
-            // Find and click submit button
-            await page.evaluate(() => {
-                const buttons = document.querySelectorAll('button, input[type="submit"]');
-                let submitBtn = null;
-                
-                for (const btn of buttons) {
-                    const text = (btn.textContent || '').toLowerCase();
-                    const type = btn.type || '';
-                    
-                    if (text.includes('submit') || text.includes('kirim') || 
-                        text.includes('send') || text.includes('go') ||
-                        type === 'submit') {
-                        submitBtn = btn;
-                        break;
-                    }
-                }
-                
-                if (submitBtn) {
-                    submitBtn.click();
-                }
-            });
-            
-            await sleep(3000 + Math.random() * 2000);
-            
-            // Get result
-            const resultHtml = await page.content();
-            const result$ = cheerio.load(resultHtml);
-            
-            const statusEl = result$('.status, .result, .message, .alert, .success, .error');
-            const statusText = statusEl.text().trim() || 'Success';
-            
-            if (statusText.toLowerCase().includes('error') || statusText.toLowerCase().includes('failed')) {
-                return { success: false, error: statusText };
-            }
-
-            return {
-                success: true,
-                message: statusText || 'Berhasil!',
-                platform: platform,
-                action: action,
-                target: target
-            };
-        } catch (error) {
-            console.error('❌ Service error:', error.message);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // ============================================
-    // KEEP ALIVE
-    // ============================================
-    async keepAlive() {
-        try {
-            const page = await getPage();
-            await page.goto(this.baseUrl, {
-                waitUntil: 'networkidle2',
-                timeout: 10000
-            });
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
-
-    // ============================================
-    // GET STATUS
-    // ============================================
-    getStatus() {
-        return {
-            connected: this.isConnected,
-            cookies: this.cookies ? '✅' : '❌',
-            waitingCaptcha: this.isWaitingCaptcha,
-            captchaSessionId: this.captchaSessionId,
-            captchaAttempts: this.captchaAttempts
-        };
-    }
-}
-
-// ============================================
-// GLOBAL INSTANCE
-// ============================================
-
-let zefoyInstance = null;
-let isZefoyReady = false;
-let zefoyCooldown = false;
-
-async function initZefoy() {
-    try {
-        console.log('🔄 Initializing Zefoy with Puppeteer...');
-        zefoyInstance = new ZefoyBypass();
-        const result = await zefoyInstance.getCaptcha();
-        if (result.success) {
-            if (result.autoSolved) {
-                isZefoyReady = true;
-                console.log('✅ Zefoy auto-ready!');
-            } else {
-                isZefoyReady = false;
-                console.log('📝 Menunggu captcha diisi...');
-            }
-        } else {
-            isZefoyReady = false;
-            console.log('❌ Init Zefoy gagal:', result.error);
-        }
-        return result;
-    } catch (error) {
-        console.error('❌ Init Zefoy error:', error.message);
-        isZefoyReady = false;
-        return { success: false, error: error.message };
-    }
-}
-
-// ============================================
-// PLATFORM CONFIG
+// PLATFORM CONFIG - SEMUA PLATFORM
 // ============================================
 
 const platformConfigs = {
     'TikTok': {
         icon: 'fab fa-tiktok',
         color: '#000000',
+        provider: 'tikfollowers',
         actions: ['Followers', 'Likes', 'Views', 'Shares'],
         actionIcons: {
             'Followers': 'fa-users',
@@ -898,6 +291,7 @@ const platformConfigs = {
     'Instagram': {
         icon: 'fab fa-instagram',
         color: '#E4405F',
+        provider: 'smmstone',
         actions: ['Followers', 'Likes', 'Views'],
         actionIcons: {
             'Followers': 'fa-users',
@@ -908,6 +302,7 @@ const platformConfigs = {
     'YouTube': {
         icon: 'fab fa-youtube',
         color: '#FF0000',
+        provider: 'smmstone',
         actions: ['Subscribers', 'Views', 'Likes'],
         actionIcons: {
             'Subscribers': 'fa-user-plus',
@@ -918,6 +313,7 @@ const platformConfigs = {
     'Facebook': {
         icon: 'fab fa-facebook',
         color: '#1877F2',
+        provider: 'smmstone',
         actions: ['Followers', 'Likes', 'Shares'],
         actionIcons: {
             'Followers': 'fa-users',
@@ -928,39 +324,693 @@ const platformConfigs = {
     'Twitter': {
         icon: 'fab fa-twitter',
         color: '#1DA1F2',
+        provider: 'smmstone',
         actions: ['Followers', 'Likes', 'Retweets'],
         actionIcons: {
             'Followers': 'fa-users',
             'Likes': 'fa-heart',
             'Retweets': 'fa-retweet'
         }
+    },
+    'Telegram': {
+        icon: 'fab fa-telegram',
+        color: '#0088cc',
+        provider: 'smmstone',
+        actions: ['Members', 'Views', 'Reactions'],
+        actionIcons: {
+            'Members': 'fa-users',
+            'Views': 'fa-eye',
+            'Reactions': 'fa-smile'
+        }
+    },
+    'Threads': {
+        icon: 'fab fa-threads',
+        color: '#000000',
+        provider: 'smmstone',
+        actions: ['Followers', 'Likes'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Likes': 'fa-heart'
+        }
+    },
+    'Twitch': {
+        icon: 'fab fa-twitch',
+        color: '#9146FF',
+        provider: 'smmstone',
+        actions: ['Followers', 'Views'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Views': 'fa-eye'
+        }
+    },
+    'Spotify': {
+        icon: 'fab fa-spotify',
+        color: '#1DB954',
+        provider: 'smmstone',
+        actions: ['Followers', 'Plays'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Plays': 'fa-play'
+        }
+    },
+    'Discord': {
+        icon: 'fab fa-discord',
+        color: '#5865F2',
+        provider: 'smmstone',
+        actions: ['Members'],
+        actionIcons: {
+            'Members': 'fa-users'
+        }
+    },
+    'VK': {
+        icon: 'fab fa-vk',
+        color: '#0077FF',
+        provider: 'smmstone',
+        actions: ['Followers', 'Likes', 'Views'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Likes': 'fa-heart',
+            'Views': 'fa-eye'
+        }
+    },
+    'Kwai': {
+        icon: 'fas fa-video',
+        color: '#FF6B00',
+        provider: 'smmstone',
+        actions: ['Followers', 'Likes', 'Views'],
+        actionIcons: {
+            'Followers': 'fa-users',
+            'Likes': 'fa-heart',
+            'Views': 'fa-eye'
+        }
+    },
+    'SoundCloud': {
+        icon: 'fab fa-soundcloud',
+        color: '#FF3300',
+        provider: 'smmstone',
+        actions: ['Plays'],
+        actionIcons: {
+            'Plays': 'fa-play'
+        }
+    },
+    'Clubhouse': {
+        icon: 'fas fa-users',
+        color: '#6515DD',
+        provider: 'smmstone',
+        actions: ['Followers'],
+        actionIcons: {
+            'Followers': 'fa-users'
+        }
     }
 };
 
 // ============================================
-// SUNTIK FUNCTIONS
+// PROVIDER: TIKFOLLOWERS.COM
+// ============================================
+
+class TikFollowersProvider {
+    constructor(sessionId) {
+        this.sessionId = sessionId || uuidv4();
+        this.baseUrl = 'https://tikfollowers.com';
+        this.cookies = '';
+        this.lastUsed = Date.now();
+        this.cooldownUntil = 0;
+        this.dailyCount = 0;
+        this.dailyReset = Date.now();
+        this.headers = {
+            'User-Agent': getRandomUserAgent(),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'
+        };
+    }
+
+    checkDailyLimit() {
+        const now = Date.now();
+        if (now - this.dailyReset > 24 * 60 * 60 * 1000) {
+            this.dailyCount = 0;
+            this.dailyReset = now;
+        }
+        const maxPerDay = db.settings.providers.tikfollowers?.maxPerDay || 50;
+        return this.dailyCount < maxPerDay;
+    }
+
+    async useService(platform, action, target) {
+        if (platform !== 'TikTok') {
+            return {
+                success: false,
+                error: 'TikFollowers hanya support TikTok!',
+                fallback: true
+            };
+        }
+
+        if (!this.checkDailyLimit()) {
+            return {
+                success: false,
+                error: 'Daily limit reached!',
+                fallback: true
+            };
+        }
+
+        const now = Date.now();
+        if (this.cooldownUntil > now) {
+            const remaining = Math.ceil((this.cooldownUntil - now) / 1000);
+            return {
+                success: false,
+                error: `Cooldown ${Math.ceil(remaining/60)} menit!`,
+                cooldown: true,
+                cooldownRemaining: remaining,
+                fallback: true
+            };
+        }
+
+        const serviceMap = {
+            'Followers': '/free-tiktok-followers',
+            'Likes': '/free-tiktok-like',
+            'Views': '/free-tiktok-video-views',
+            'Shares': '/free-tiktok-shares'
+        };
+
+        const path = serviceMap[action];
+        if (!path) return { success: false, error: 'Service tidak ditemukan!', fallback: true };
+
+        try {
+            console.log(`📤 TikFollowers: ${action} for ${target}`);
+
+            const page = await getPage();
+            const url = `${this.baseUrl}${path}`;
+
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+            await sleep(1000 + Math.random() * 2000);
+            await page.evaluate(() => {
+                window.scrollBy(0, Math.random() * 300 + 100);
+            });
+            await sleep(500 + Math.random() * 1000);
+
+            const cookies = await page.cookies();
+            this.cookies = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+            this.headers['Cookie'] = this.cookies;
+
+            // Fill username
+            const inputFilled = await page.evaluate((target) => {
+                const inputs = document.querySelectorAll('input[type="text"]');
+                for (const input of inputs) {
+                    const placeholder = (input.placeholder || '').toLowerCase();
+                    const name = (input.name || '').toLowerCase();
+                    if (placeholder.includes('username') || placeholder.includes('user') ||
+                        name.includes('username') || name.includes('user')) {
+                        input.value = target;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        return true;
+                    }
+                }
+                return false;
+            }, target);
+
+            if (!inputFilled) {
+                return { success: false, error: 'Tidak dapat menemukan input username!', fallback: true };
+            }
+
+            await sleep(500 + Math.random() * 1000);
+
+            // Click submit
+            await page.evaluate(() => {
+                const buttons = document.querySelectorAll('button, input[type="submit"]');
+                for (const btn of buttons) {
+                    const text = (btn.textContent || '').toLowerCase();
+                    if (text.includes('submit') || text.includes('get') || text.includes('start')) {
+                        btn.click();
+                        break;
+                    }
+                }
+            });
+
+            await sleep(5000 + Math.random() * 3000);
+
+            // Check result
+            const resultHtml = await page.content();
+            const $ = cheerio.load(resultHtml);
+
+            const successMsg = $('.success, .alert-success, .result-success').text().trim();
+            const errorMsg = $('.error, .alert-danger, .result-error').text().trim();
+
+            const cooldownSeconds = db.settings.providers.tikfollowers?.cooldown || 900;
+            this.cooldownUntil = Date.now() + cooldownSeconds * 1000;
+            this.dailyCount++;
+
+            if (successMsg || !errorMsg) {
+                return {
+                    success: true,
+                    message: successMsg || '✅ Berhasil!',
+                    platform,
+                    action,
+                    target,
+                    provider: 'tikfollowers',
+                    dailyRemaining: (db.settings.providers.tikfollowers?.maxPerDay || 50) - this.dailyCount
+                };
+            }
+
+            return {
+                success: false,
+                error: errorMsg || 'Gagal, coba lagi nanti',
+                fallback: true
+            };
+
+        } catch (error) {
+            console.error('❌ TikFollowers error:', error.message);
+            return {
+                success: false,
+                error: error.message,
+                fallback: true
+            };
+        }
+    }
+
+    getStatus() {
+        const now = Date.now();
+        const cooldownRemaining = Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000));
+        const maxPerDay = db.settings.providers.tikfollowers?.maxPerDay || 50;
+
+        return {
+            sessionId: this.sessionId,
+            provider: 'tikfollowers',
+            cooldownRemaining: cooldownRemaining,
+            dailyCount: this.dailyCount,
+            dailyLimit: maxPerDay,
+            dailyRemaining: maxPerDay - this.dailyCount,
+            isReady: cooldownRemaining === 0 && this.dailyCount < maxPerDay,
+            enabled: db.settings.providers.tikfollowers?.enabled !== false
+        };
+    }
+}
+
+// ============================================
+// PROVIDER: SMMSTONE.COM
+// ============================================
+
+class SMMStoneProvider {
+    constructor(sessionId) {
+        this.sessionId = sessionId || uuidv4();
+        this.baseUrl = 'https://smmstone.com/free';
+        this.cookies = '';
+        this.lastUsed = Date.now();
+        this.cooldownUntil = 0;
+        this.dailyCount = 0;
+        this.dailyReset = Date.now();
+        this.headers = {
+            'User-Agent': getRandomUserAgent(),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'
+        };
+    }
+
+    checkDailyLimit() {
+        const now = Date.now();
+        if (now - this.dailyReset > 24 * 60 * 60 * 1000) {
+            this.dailyCount = 0;
+            this.dailyReset = now;
+        }
+        const maxPerDay = db.settings.providers.smmstone?.maxPerDay || 100;
+        return this.dailyCount < maxPerDay;
+    }
+
+    async useService(platform, action, target) {
+        if (!this.checkDailyLimit()) {
+            return {
+                success: false,
+                error: 'Daily limit reached!'
+            };
+        }
+
+        const now = Date.now();
+        if (this.cooldownUntil > now) {
+            const remaining = Math.ceil((this.cooldownUntil - now) / 1000);
+            return {
+                success: false,
+                error: `Cooldown ${Math.ceil(remaining/60)} menit!`,
+                cooldown: true,
+                cooldownRemaining: remaining
+            };
+        }
+
+        // Map platform + action to SMMStone path
+        const serviceMap = {
+            'Instagram': {
+                'Followers': '/free-instagram-follower',
+                'Likes': '/free-instagram-likes',
+                'Views': '/free-instagram-view'
+            },
+            'Telegram': {
+                'Members': '/free-telegram-members',
+                'Views': '/free-telegram-view',
+                'Reactions': '/free-telegram-reaction'
+            },
+            'Twitter': {
+                'Followers': '/free-twitter-follower',
+                'Likes': '/free-twitter-like',
+                'Retweets': '/free-twitter-tweet-view'
+            },
+            'YouTube': {
+                'Subscribers': '/free-youtube-subscribers',
+                'Views': '/free-youtube-view',
+                'Likes': '/free-youtube-like'
+            },
+            'Facebook': {
+                'Followers': '/free-facebook-follower',
+                'Likes': '/free-facebook-post-like',
+                'Shares': '/free-facebook-profile-follower'
+            },
+            'Threads': {
+                'Followers': '/free-threads-follower',
+                'Likes': '/free-threads-post-like'
+            },
+            'Twitch': {
+                'Followers': '/free-twitch-follower',
+                'Views': '/free-twitch-video-view'
+            },
+            'Spotify': {
+                'Followers': '/free-spotify-follower',
+                'Plays': '/free-spotify-play'
+            },
+            'Discord': {
+                'Members': '/free-discoid-server-member'
+            },
+            'VK': {
+                'Followers': '/free-vk-follower',
+                'Likes': '/free-vk-like',
+                'Views': '/free-vk-video-view'
+            },
+            'Kwai': {
+                'Followers': '/free-kwai-follower',
+                'Likes': '/free-kwai-like',
+                'Views': '/free-kwai-view'
+            },
+            'SoundCloud': {
+                'Plays': '/free-soundcloud-play'
+            },
+            'Clubhouse': {
+                'Followers': '/free-clubhous-follower'
+            },
+            'TikTok': {
+                'Followers': '/free-tiktok-follower',
+                'Views': '/free-tiktok-view',
+                'Likes': '/free-tiktok-like'
+            }
+        };
+
+        const path = serviceMap[platform]?.[action];
+        if (!path) {
+            return { success: false, error: 'Service tidak ditemukan di SMMStone!' };
+        }
+
+        try {
+            console.log(`📤 SMMStone: ${platform} ${action} for ${target}`);
+
+            const page = await getPage();
+            const url = `${this.baseUrl}${path}`;
+
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+            await sleep(1000 + Math.random() * 2000);
+            await page.evaluate(() => {
+                window.scrollBy(0, Math.random() * 300 + 100);
+            });
+            await sleep(500 + Math.random() * 1000);
+
+            const cookies = await page.cookies();
+            this.cookies = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+            this.headers['Cookie'] = this.cookies;
+
+            // Check if need login
+            const html = await page.content();
+            const $ = cheerio.load(html);
+            const needLogin = $('input[name="username"], input[name="password"], .login-form').length > 0;
+
+            if (needLogin) {
+                // Try to find and fill input without login
+                const inputFilled = await page.evaluate((target) => {
+                    const inputs = document.querySelectorAll('input[type="text"]');
+                    for (const input of inputs) {
+                        const placeholder = (input.placeholder || '').toLowerCase();
+                        const name = (input.name || '').toLowerCase();
+                        if (placeholder.includes('username') || placeholder.includes('link') ||
+                            placeholder.includes('target') || name.includes('username') ||
+                            name.includes('link') || name.includes('target')) {
+                            input.value = target;
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                            return true;
+                        }
+                    }
+                    return false;
+                }, target);
+
+                if (!inputFilled) {
+                    return { success: false, error: 'Tidak dapat menemukan input target!' };
+                }
+
+                await sleep(500 + Math.random() * 1000);
+
+                // Click submit/get button
+                await page.evaluate(() => {
+                    const buttons = document.querySelectorAll('button, input[type="submit"]');
+                    for (const btn of buttons) {
+                        const text = (btn.textContent || '').toLowerCase();
+                        if (text.includes('get') || text.includes('submit') || text.includes('start') ||
+                            text.includes('kirim') || text.includes('send')) {
+                            btn.click();
+                            break;
+                        }
+                    }
+                });
+
+                await sleep(5000 + Math.random() * 3000);
+
+                // Check result
+                const resultHtml = await page.content();
+                const result$ = cheerio.load(resultHtml);
+
+                const successMsg = result$('.success, .alert-success, .result-success').text().trim();
+                const errorMsg = result$('.error, .alert-danger, .result-error').text().trim();
+
+                const cooldownSeconds = db.settings.providers.smmstone?.cooldown || 1800;
+                this.cooldownUntil = Date.now() + cooldownSeconds * 1000;
+                this.dailyCount++;
+
+                if (successMsg || !errorMsg) {
+                    return {
+                        success: true,
+                        message: successMsg || '✅ Berhasil!',
+                        platform,
+                        action,
+                        target,
+                        provider: 'smmstone',
+                        dailyRemaining: (db.settings.providers.smmstone?.maxPerDay || 100) - this.dailyCount
+                    };
+                }
+
+                return {
+                    success: false,
+                    error: errorMsg || 'Gagal, coba lagi nanti'
+                };
+            }
+
+            // If login required, return error
+            return {
+                success: false,
+                error: 'SMMStone membutuhkan login. Gunakan TikFollowers untuk TikTok.'
+            };
+
+        } catch (error) {
+            console.error('❌ SMMStone error:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    getStatus() {
+        const now = Date.now();
+        const cooldownRemaining = Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000));
+        const maxPerDay = db.settings.providers.smmstone?.maxPerDay || 100;
+
+        return {
+            sessionId: this.sessionId,
+            provider: 'smmstone',
+            cooldownRemaining: cooldownRemaining,
+            dailyCount: this.dailyCount,
+            dailyLimit: maxPerDay,
+            dailyRemaining: maxPerDay - this.dailyCount,
+            isReady: cooldownRemaining === 0 && this.dailyCount < maxPerDay,
+            enabled: db.settings.providers.smmstone?.enabled !== false
+        };
+    }
+}
+
+// ============================================
+// SESSION MANAGER
+// ============================================
+
+class SessionManager {
+    constructor() {
+        this.sessions = [];
+        this.maxSessions = db.settings.maxConcurrent || 5;
+        this.providerSessions = {
+            tikfollowers: [],
+            smmstone: []
+        };
+    }
+
+    createSession(provider) {
+        const sessionId = uuidv4();
+        let session;
+
+        if (provider === 'tikfollowers') {
+            session = new TikFollowersProvider(sessionId);
+        } else if (provider === 'smmstone') {
+            session = new SMMStoneProvider(sessionId);
+        } else {
+            return null;
+        }
+
+        this.sessions.push(session);
+        if (!this.providerSessions[provider]) this.providerSessions[provider] = [];
+        this.providerSessions[provider].push(session);
+
+        this.cleanup();
+        return session;
+    }
+
+    getAvailableSession(provider) {
+        const sessions = this.providerSessions[provider] || [];
+        const now = Date.now();
+
+        for (const session of sessions) {
+            const status = session.getStatus ? session.getStatus() : {};
+            if (status.isReady !== false && status.enabled !== false) {
+                return session;
+            }
+        }
+
+        if (sessions.length < this.maxSessions) {
+            return this.createSession(provider);
+        }
+
+        let bestSession = null;
+        let bestCooldown = Infinity;
+        for (const session of sessions) {
+            const status = session.getStatus ? session.getStatus() : {};
+            const cooldown = status.cooldownRemaining || 0;
+            if (cooldown < bestCooldown && status.enabled !== false) {
+                bestCooldown = cooldown;
+                bestSession = session;
+            }
+        }
+
+        return bestSession;
+    }
+
+    cleanup() {
+        const now = Date.now();
+        for (const provider of ['tikfollowers', 'smmstone']) {
+            this.providerSessions[provider] = this.providerSessions[provider].filter(s => {
+                const lastUsed = s.lastUsed || 0;
+                return now - lastUsed < 30 * 60 * 1000;
+            });
+        }
+    }
+
+    getStats() {
+        const tikSessions = this.providerSessions.tikfollowers || [];
+        const smmSessions = this.providerSessions.smmstone || [];
+
+        return {
+            totalSessions: this.sessions.length,
+            tikfollowers: {
+                count: tikSessions.length,
+                ready: tikSessions.filter(s => {
+                    const status = s.getStatus ? s.getStatus() : {};
+                    return status.isReady !== false && status.enabled !== false;
+                }).length,
+                enabled: db.settings.providers.tikfollowers?.enabled !== false
+            },
+            smmstone: {
+                count: smmSessions.length,
+                ready: smmSessions.filter(s => {
+                    const status = s.getStatus ? s.getStatus() : {};
+                    return status.isReady !== false && status.enabled !== false;
+                }).length,
+                enabled: db.settings.providers.smmstone?.enabled !== false
+            },
+            maxSessions: this.maxSessions
+        };
+    }
+}
+
+const sessionManager = new SessionManager();
+
+// ============================================
+// SUNTIK FUNCTION
 // ============================================
 
 async function spamSuntik(target, platform, action, count, username, sessionId) {
     const results = { success: 0, failed: 0, total: 0, attempts: 0 };
     let isStopped = false;
+    let providerUsed = '';
 
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
 
-    // Check Zefoy
-    if (!zefoyInstance || !isZefoyReady) {
+    // Determine primary provider for this platform
+    const platformConfig = platformConfigs[platform];
+    const primaryProvider = platformConfig?.provider || 'tikfollowers';
+    const fallbackProvider = primaryProvider === 'tikfollowers' ? 'smmstone' : 'tikfollowers';
+
+    // Check if primary provider is enabled
+    const primaryEnabled = db.settings.providers[primaryProvider]?.enabled !== false;
+
+    // Try primary provider first
+    let provider = primaryEnabled ? primaryProvider : null;
+
+    if (!provider) {
+        // Try fallback if primary is disabled
+        const fallbackEnabled = db.settings.providers[fallbackProvider]?.enabled !== false;
+        if (fallbackEnabled && db.settings.fallbackEnabled) {
+            provider = fallbackProvider;
+        } else {
+            io.emit('spamProgress', {
+                sessionId, type: 'suntik',
+                target, platform, action,
+                current: 0, total: count,
+                success: 0, failed: 0,
+                message: '❌ Semua provider dinonaktifkan!',
+                status: 'error'
+            });
+            return { success: 0, failed: count, total: count, attempts: 0 };
+        }
+    }
+
+    // Get session
+    let session = sessionManager.getAvailableSession(provider);
+    if (!session) {
+        session = sessionManager.createSession(provider);
+    }
+
+    if (!session) {
         io.emit('spamProgress', {
             sessionId, type: 'suntik',
             target, platform, action,
             current: 0, total: count,
             success: 0, failed: 0,
-            message: '🔑 Harap selesaikan captcha Zefoy terlebih dahulu!',
-            status: 'need_captcha',
-            needCaptcha: true
+            message: `❌ Gagal membuat session ${provider}!`,
+            status: 'error'
         });
-        return { success: 0, failed: count, total: count, attempts: 0, needCaptcha: true };
+        return { success: 0, failed: count, total: count, attempts: 0 };
     }
+
+    providerUsed = provider;
 
     for (let i = 0; i < count; i++) {
         if (isStopped) {
@@ -976,48 +1026,58 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             break;
         }
 
-        // Cooldown
-        if (zefoyCooldown) {
-            io.emit('spamProgress', {
-                sessionId, type: 'suntik',
-                target, platform, action,
-                current: i, total: count,
-                success: results.success, failed: results.failed,
-                message: '⏳ Cooldown 2 minutes... Please wait',
-                status: 'cooldown',
-                cooldown: true
-            });
-            
-            let cooldownRemaining = 120;
-            while (cooldownRemaining > 0 && !isStopped) {
-                await sleep(1000);
-                cooldownRemaining--;
-                if (cooldownRemaining % 10 === 0) {
+        // Check if session is ready
+        let currentSession = session;
+        const status = currentSession.getStatus ? currentSession.getStatus() : {};
+
+        if (status.isReady === false) {
+            // Try fallback if available and enabled
+            const fallbackEnabled = db.settings.providers[fallbackProvider]?.enabled !== false;
+            if (fallbackEnabled && db.settings.fallbackEnabled && provider !== fallbackProvider) {
+                const altSession = sessionManager.getAvailableSession(fallbackProvider);
+                if (altSession) {
+                    currentSession = altSession;
+                    providerUsed = fallbackProvider;
                     io.emit('spamProgress', {
                         sessionId, type: 'suntik',
                         target, platform, action,
-                        current: i, total: count,
+                        current: i + 1, total: count,
                         success: results.success, failed: results.failed,
-                        message: `⏳ Cooldown: ${cooldownRemaining}s remaining`,
+                        message: `🔄 Switch to ${fallbackProvider}...`,
+                        status: 'info'
+                    });
+                } else {
+                    // Wait and retry
+                    await sleep(5000);
+                    i--;
+                    continue;
+                }
+            } else {
+                // Show cooldown
+                const cooldownRemaining = status.cooldownRemaining || 0;
+                if (cooldownRemaining > 0) {
+                    io.emit('spamProgress', {
+                        sessionId, type: 'suntik',
+                        target, platform, action,
+                        current: i + 1, total: count,
+                        success: results.success, failed: results.failed,
+                        message: `⏳ Cooldown: ${Math.ceil(cooldownRemaining/60)} menit (${providerUsed})`,
                         status: 'cooldown',
                         cooldown: true,
                         cooldownRemaining: cooldownRemaining
                     });
+
+                    await sleep(5000);
+                    i--;
+                    continue;
                 }
             }
-            
-            zefoyCooldown = false;
-        }
-
-        // Keep alive every 3 attempts
-        if (i > 0 && i % 3 === 0 && zefoyInstance) {
-            await zefoyInstance.keepAlive();
         }
 
         // Execute
         try {
-            const result = await zefoyInstance.useService(platform, action, target);
-            
+            const result = await currentSession.useService(platform, action, target);
+
             if (result.success) {
                 results.success++;
                 io.emit('spamProgress', {
@@ -1025,27 +1085,53 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                     target, platform, action,
                     current: i + 1, total: count,
                     success: results.success, failed: results.failed,
-                    message: `✅ ${i+1}/${count} Success! ${platform} ${action}`,
+                    message: `✅ ${i+1}/${count} Success! ${platform} ${action} (${providerUsed})`,
                     status: 'success',
-                    serviceUsed: 'Zefoy'
+                    provider: providerUsed
                 });
-                // Cooldown after success
-                if (i < count - 1) {
-                    zefoyCooldown = true;
+            } else if (result.fallback && provider !== fallbackProvider) {
+                // Try fallback
+                const fallbackEnabled = db.settings.providers[fallbackProvider]?.enabled !== false;
+                if (fallbackEnabled && db.settings.fallbackEnabled) {
+                    const altSession = sessionManager.getAvailableSession(fallbackProvider);
+                    if (altSession) {
+                        currentSession = altSession;
+                        providerUsed = fallbackProvider;
+                        i--; // Retry with fallback
+                        io.emit('spamProgress', {
+                            sessionId, type: 'suntik',
+                            target, platform, action,
+                            current: i + 1, total: count,
+                            success: results.success, failed: results.failed,
+                            message: `🔄 Switching to ${fallbackProvider}...`,
+                            status: 'info'
+                        });
+                        continue;
+                    }
                 }
-            } else if (result.needCaptcha) {
-                // Need captcha again
+                results.failed++;
                 io.emit('spamProgress', {
                     sessionId, type: 'suntik',
                     target, platform, action,
                     current: i + 1, total: count,
                     success: results.success, failed: results.failed,
-                    message: '🔑 Captcha diperlukan! Selesaikan captcha di halaman Zefoy.',
-                    status: 'need_captcha',
-                    needCaptcha: true
+                    message: `❌ ${i+1}/${count} Failed: ${result.error || 'Unknown'}`,
+                    status: 'error',
+                    error: result.error
                 });
-                isZefoyReady = false;
-                break;
+            } else if (result.cooldown) {
+                io.emit('spamProgress', {
+                    sessionId, type: 'suntik',
+                    target, platform, action,
+                    current: i + 1, total: count,
+                    success: results.success, failed: results.failed,
+                    message: `⏳ ${result.error}`,
+                    status: 'cooldown',
+                    cooldown: true
+                });
+                await sleep(5000);
+                i--;
+                continue;
             } else {
                 results.failed++;
                 io.emit('spamProgress', {
@@ -1074,8 +1160,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         results.total = results.success + results.failed;
         results.attempts = i + 1;
 
-        // Human-like delay between attempts
-        if (i < count - 1 && !isStopped && !zefoyCooldown) {
+        if (i < count - 1 && !isStopped) {
             await sleep(getRandomDelay(3000, 7000));
         }
     }
@@ -1090,7 +1175,8 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         completed: true,
         totalSuccess: results.success,
         totalFailed: results.failed,
-        totalAttempts: results.attempts
+        totalAttempts: results.attempts,
+        provider: providerUsed
     });
 
     if (global.spamSessions && global.spamSessions[sessionId]) {
@@ -1107,112 +1193,58 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
 // ===== GET PLATFORMS =====
 app.get('/api/suntik/platforms', (req, res) => {
     try {
-        const platforms = Object.keys(platformConfigs).map(key => ({
-            name: key,
-            icon: platformConfigs[key].icon,
-            color: platformConfigs[key].color,
-            actions: platformConfigs[key].actions.map(action => ({
-                name: action,
-                icon: platformConfigs[key].actionIcons?.[action] || 'fa-circle',
-                enabled: db.settings.features?.[`${key.toLowerCase()}_${action.toLowerCase().replace(/ /g, '_')}`] !== false
-            }))
-        }));
+        const platforms = Object.keys(platformConfigs).map(key => {
+            const config = platformConfigs[key];
+            const isDisabled = db.settings.adminControls?.[`disable${key}`] || false;
+            const isAllDisabled = db.settings.adminControls?.disableAllSuntik || false;
+
+            return {
+                name: key,
+                icon: config.icon,
+                color: config.color,
+                provider: config.provider,
+                disabled: isDisabled || isAllDisabled,
+                actions: config.actions.map(action => ({
+                    name: action,
+                    icon: config.actionIcons?.[action] || 'fa-circle',
+                    enabled: db.settings.features?.[`${key.toLowerCase()}_${action.toLowerCase().replace(/ /g, '_')}`] !== false
+                }))
+            };
+        });
         res.json({ success: true, platforms });
     } catch (err) {
         res.json({ success: false, platforms: [] });
     }
 });
 
-// ===== ZEFOY CAPTCHA =====
-app.get('/api/zefoy/captcha', async (req, res) => {
+// ===== PROVIDER STATUS =====
+app.get('/api/providers/status', (req, res) => {
     try {
-        if (!zefoyInstance) {
-            zefoyInstance = new ZefoyBypass();
-        }
-        const result = await zefoyInstance.getCaptcha();
-        res.json(result);
-    } catch (err) {
-        res.json({ success: false, error: err.message });
-    }
-});
+        const stats = sessionManager.getStats();
+        const tikSessions = sessionManager.providerSessions.tikfollowers || [];
+        const smmSessions = sessionManager.providerSessions.smmstone || [];
 
-app.post('/api/zefoy/captcha/submit', async (req, res) => {
-    try {
-        const { sessionId, word } = req.body;
-        if (!sessionId || !word) {
-            return res.json({ success: false, error: 'Session ID dan kata captcha wajib diisi!' });
-        }
-        
-        const page = await getPage();
-        const result = await zefoyInstance.submitCaptchaWithPage(page, sessionId, word);
-        if (result.success) {
-            isZefoyReady = true;
-        }
-        res.json(result);
-    } catch (err) {
-        res.json({ success: false, error: err.message });
-    }
-});
-
-app.get('/api/zefoy/captcha/status', (req, res) => {
-    try {
-        const sessions = Object.keys(db.captchaSessions || {}).map(key => ({
-            id: key,
-            ...db.captchaSessions[key]
-        }));
         res.json({
             success: true,
-            sessions,
-            isReady: isZefoyReady,
-            isConnected: zefoyInstance ? zefoyInstance.isConnected : false,
-            waitingCaptcha: zefoyInstance ? zefoyInstance.isWaitingCaptcha : false
+            stats: stats,
+            providers: {
+                tikfollowers: {
+                    enabled: db.settings.providers.tikfollowers?.enabled !== false,
+                    cooldown: db.settings.providers.tikfollowers?.cooldown || 900,
+                    maxPerDay: db.settings.providers.tikfollowers?.maxPerDay || 50,
+                    sessions: tikSessions.map(s => s.getStatus ? s.getStatus() : {}),
+                    isPrimary: db.settings.primaryProvider === 'tikfollowers'
+                },
+                smmstone: {
+                    enabled: db.settings.providers.smmstone?.enabled !== false,
+                    cooldown: db.settings.providers.smmstone?.cooldown || 1800,
+                    maxPerDay: db.settings.providers.smmstone?.maxPerDay || 100,
+                    sessions: smmSessions.map(s => s.getStatus ? s.getStatus() : {}),
+                    isPrimary: db.settings.primaryProvider === 'smmstone'
+                }
+            },
+            fallbackEnabled: db.settings.fallbackEnabled !== false
         });
-    } catch (err) {
-        res.json({ success: false, error: err.message });
-    }
-});
-
-// ===== AUTO SOLVE CAPTCHA =====
-app.post('/api/zefoy/captcha/auto-solve', async (req, res) => {
-    try {
-        const { sessionId } = req.body;
-        if (!sessionId) {
-            return res.json({ success: false, error: 'Session ID wajib diisi!' });
-        }
-
-        const result = await zefoyInstance.autoSolveWithOCR(sessionId);
-        if (result.success) {
-            isZefoyReady = true;
-            console.log('✅ Auto captcha solved!');
-        }
-        res.json(result);
-    } catch (err) {
-        res.json({ success: false, error: err.message });
-    }
-});
-
-// ===== ZEFOY STATUS =====
-app.get('/api/zefoy/status', async (req, res) => {
-    try {
-        const status = zefoyInstance ? zefoyInstance.getStatus() : { connected: false };
-        res.json({
-            success: true,
-            ready: isZefoyReady,
-            cooldown: zefoyCooldown,
-            connected: status.connected,
-            waitingCaptcha: status.waitingCaptcha || false,
-            captchaSessionId: status.captchaSessionId || null
-        });
-    } catch (err) {
-        res.json({ success: false, error: err.message });
-    }
-});
-
-// ===== INIT ZEFOY =====
-app.post('/api/zefoy/init', async (req, res) => {
-    try {
-        const result = await initZefoy();
-        res.json(result);
     } catch (err) {
         res.json({ success: false, error: err.message });
     }
@@ -1222,45 +1254,59 @@ app.post('/api/zefoy/init', async (req, res) => {
 app.post('/api/spam/suntik', async (req, res) => {
     try {
         const { username, target, platform, action, count } = req.body;
-        
+
+        // Admin controls
+        if (db.settings.adminControls?.disableAllSuntik) {
+            return res.json({
+                success: false,
+                message: '⚠️ Semua fitur suntik sedang dinonaktifkan oleh admin!'
+            });
+        }
+
+        if (db.settings.adminControls?.[`disable${platform}`]) {
+            return res.json({
+                success: false,
+                message: `⚠️ Platform ${platform} sedang dinonaktifkan oleh admin!`
+            });
+        }
+
         if (!username) {
             return res.json({ success: false, message: 'Username tidak ditemukan!' });
         }
-        
+
         const user = db.users.find(u => u.username === username);
         if (!user) {
-            return res.json({ success: false, message: 'User tidak ditemukan! Silakan login ulang.' });
+            return res.json({ success: false, message: 'User tidak ditemukan!' });
         }
-        
+
         if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP') {
-            return res.json({ 
-                success: false, 
+            return res.json({
+                success: false,
                 message: db.settings.maintenanceMessage || 'Server sedang dalam perbaikan.',
                 maintenance: true
             });
         }
-        
+
         if (!target) {
             return res.json({ success: false, message: 'Link/Username target wajib diisi!' });
         }
-        
+
         if (!platform || !action) {
             return res.json({ success: false, message: 'Pilih platform dan aksi!' });
         }
-        
-        // Check feature
+
         const featureKey = `${platform.toLowerCase()}_${action.toLowerCase().replace(/ /g, '_')}`;
         if (db.settings.features && db.settings.features[featureKey] === false) {
-            return res.json({ 
-                success: false, 
-                message: `Fitur ${platform} ${action} sedang dinonaktifkan oleh admin.` 
+            return res.json({
+                success: false,
+                message: `Fitur ${platform} ${action} sedang dinonaktifkan oleh admin.`
             });
         }
-        
+
         if (!count || count < 1) {
             return res.json({ success: false, message: 'Jumlah minimal 1!' });
         }
-        
+
         const limits = {
             'Free': 15,
             'Premium': 80,
@@ -1268,35 +1314,37 @@ app.post('/api/spam/suntik', async (req, res) => {
             'Reseller': 200,
             'Developer': Infinity
         };
-        
+
         const maxLimit = limits[user.status] || 15;
-        
+
         if (user.limit !== Infinity && user.limit !== '∞' && user.limit !== null) {
             if (count > maxLimit) {
                 return res.json({ success: false, message: `Maksimal suntik untuk ${user.status} adalah ${maxLimit}x!` });
             }
-            
+
             const remaining = user.limit - (user.used || 0);
             if (remaining <= 0) {
-                return res.json({ success: false, message: 'Limit suntik habis! Tunggu 1 jam untuk reset.' });
+                return res.json({ success: false, message: 'Limit habis! Tunggu 1 jam untuk reset.' });
             }
             if (count > remaining) {
                 return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
             }
         }
 
-        // Check Zefoy
-        if (!isZefoyReady) {
-            return res.json({ 
-                success: false, 
-                message: 'Zefoy belum siap! Selesaikan captcha terlebih dahulu.',
-                needCaptcha: true
+        // Check if any provider is enabled
+        const tikEnabled = db.settings.providers.tikfollowers?.enabled !== false;
+        const smmEnabled = db.settings.providers.smmstone?.enabled !== false;
+
+        if (!tikEnabled && !smmEnabled) {
+            return res.json({
+                success: false,
+                message: '⚠️ Semua provider sedang dinonaktifkan oleh admin!'
             });
         }
 
         const sessionId = `suntik_${username}_${Date.now()}`;
         const result = await spamSuntik(target, platform, action, count, username, sessionId);
-        
+
         if (result.success > 0) {
             user.used = (user.used || 0) + result.success;
             if (!db.stats) db.stats = { totalSuntikSent: 0 };
@@ -1304,9 +1352,9 @@ app.post('/api/spam/suntik', async (req, res) => {
             saveDB();
             io.emit('userUpdated', { username: user.username });
         }
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             result: {
                 success: result.success,
                 failed: result.failed,
@@ -1336,11 +1384,9 @@ app.post('/api/spam/suntik/stop', (req, res) => {
 });
 
 // ===== AUTH ROUTES =====
-
 app.post('/api/register', (req, res) => {
     try {
         const { username, password } = req.body;
-        
         if (!username || !password) {
             return res.json({ success: false, message: 'Username dan password wajib diisi!' });
         }
@@ -1350,11 +1396,9 @@ app.post('/api/register', (req, res) => {
         if (password.length < 4) {
             return res.json({ success: false, message: 'Password minimal 4 karakter!' });
         }
-        
         if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
             return res.json({ success: false, message: 'Username sudah digunakan!' });
         }
-        
         db.users.push({
             id: uuidv4(),
             username: username,
@@ -1371,7 +1415,6 @@ app.post('/api/register', (req, res) => {
             apiKey: generateApiKey()
         });
         saveDB();
-        
         io.emit('userUpdated', { username, action: 'register' });
         res.json({ success: true, message: 'Registrasi berhasil! Silakan login.' });
     } catch (err) {
@@ -1382,24 +1425,19 @@ app.post('/api/register', (req, res) => {
 app.post('/api/login', (req, res) => {
     try {
         const { username, password } = req.body;
-        
         if (!username || !password) {
             return res.json({ success: false, message: 'Username dan password wajib diisi!' });
         }
-        
         const user = db.users.find(u => u.username === username);
         if (!user) {
             return res.json({ success: false, message: 'Username tidak ditemukan!' });
         }
-        
         if (!bcrypt.compareSync(password, user.password)) {
             return res.json({ success: false, message: 'Password salah!' });
         }
-        
         user.online = true;
         saveDB();
         io.emit('userStatusChanged', { username, online: true });
-        
         res.json({
             success: true,
             user: {
@@ -1456,10 +1494,7 @@ app.post('/api/change-password', (req, res) => {
     }
 });
 
-// ============================================
-// ADMIN API
-// ============================================
-
+// ===== ADMIN ROUTES =====
 app.get('/api/admin/users', (req, res) => {
     try {
         res.json({
@@ -1490,15 +1525,7 @@ app.post('/api/admin/update-status', (req, res) => {
         }
         const user = db.users.find(u => u.username === username);
         if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-        
-        const limits = { 
-            'Free': 15, 
-            'Premium': 80, 
-            'VIP': 150, 
-            'Reseller': 200, 
-            'Developer': Infinity 
-        };
-        
+        const limits = { 'Free': 15, 'Premium': 80, 'VIP': 150, 'Reseller': 200, 'Developer': Infinity };
         user.status = status;
         user.limit = limits[status] || 15;
         user.used = 0;
@@ -1565,6 +1592,76 @@ app.post('/api/admin/features/toggle', (req, res) => {
         }
         if (!db.settings.features) db.settings.features = {};
         db.settings.features[featureKey] = enabled;
+        saveDB();
+        io.emit('settingsUpdated', { settings: db.settings });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/control/toggle', (req, res) => {
+    try {
+        const { controlKey, enabled, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        if (!db.settings.adminControls) db.settings.adminControls = {};
+        db.settings.adminControls[controlKey] = enabled;
+        saveDB();
+        io.emit('settingsUpdated', { settings: db.settings });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/provider/toggle', (req, res) => {
+    try {
+        const { provider, enabled, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        if (!db.settings.providers) db.settings.providers = {};
+        if (!db.settings.providers[provider]) db.settings.providers[provider] = {};
+        db.settings.providers[provider].enabled = enabled;
+        saveDB();
+        io.emit('settingsUpdated', { settings: db.settings });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/primary-provider', (req, res) => {
+    try {
+        const { provider, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        if (provider !== 'tikfollowers' && provider !== 'smmstone') {
+            return res.json({ success: false, message: 'Provider tidak valid!' });
+        }
+        db.settings.primaryProvider = provider;
+        saveDB();
+        io.emit('settingsUpdated', { settings: db.settings });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/fallback-toggle', (req, res) => {
+    try {
+        const { enabled, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        db.settings.fallbackEnabled = enabled;
         saveDB();
         io.emit('settingsUpdated', { settings: db.settings });
         res.json({ success: true });
@@ -1715,19 +1812,6 @@ setInterval(() => {
     }
 }, 60000);
 
-// ===== KEEP ZEFOY ALIVE =====
-setInterval(async () => {
-    if (zefoyInstance && isZefoyReady) {
-        try {
-            await zefoyInstance.keepAlive();
-            console.log('💓 Zefoy heartbeat');
-        } catch (error) {
-            console.log('⚠️ Zefoy heartbeat failed, reconnecting...');
-            isZefoyReady = false;
-        }
-    }
-}, 30000);
-
 // ============================================
 // STATS
 // ============================================
@@ -1740,7 +1824,8 @@ app.get('/api/stats', (req, res) => {
                 totalUsers: db.users.length,
                 totalSuntikSent: db.stats.totalSuntikSent || 0,
                 totalPayments: db.payments?.length || 0,
-                onlineUsers: onlineUsers.size
+                onlineUsers: onlineUsers.size,
+                providers: sessionManager.getStats()
             }
         });
     } catch (err) {
@@ -1756,16 +1841,32 @@ server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log('========================================');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('💉 SUNTIK SOSIAL MEDIA + CAPTCHA BYPASS');
+    console.log('💉 PRANKMASTER PRO V5');
     console.log('========================================');
-    console.log('🔥 Platform: TikTok, Instagram, YouTube, Facebook, Twitter');
+    console.log('📌 Providers:');
+    console.log('  🔵 TikFollowers.com (Primary - TikTok)');
+    console.log('  🟢 SMMStone.com (Fallback - All Platforms)');
     console.log('========================================');
-    console.log('✅ Server siap!');
+    console.log('🔥 Supported Platforms:');
+    console.log('  TikTok, Instagram, YouTube, Facebook, Twitter');
+    console.log('  Telegram, Threads, Twitch, Spotify, Discord');
+    console.log('  VK, Kwai, SoundCloud, Clubhouse');
     console.log('========================================');
 
-    // Init Zefoy
-    console.log('🔄 Initializing Zefoy...');
-    setTimeout(async () => {
-        await initZefoy();
-    }, 3000);
+    // Init sessions
+    console.log('🔄 Initializing providers...');
+    sessionManager.createSession('tikfollowers');
+    sessionManager.createSession('smmstone');
+    console.log('✅ All providers ready!');
+});
+
+// ============================================
+// GRACEFUL SHUTDOWN
+// ============================================
+process.on('SIGINT', async () => {
+    console.log('🛑 Shutting down gracefully...');
+    if (browserInstance) {
+        await browserInstance.close();
+    }
+    process.exit(0);
 });

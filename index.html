@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrankMaster Pro - Suntik Sosial Media</title>
+    <title>PrankMaster Pro V5 - Multi Provider</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
@@ -18,7 +18,8 @@
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1a1a2e; }
         ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #6c5ce7, #a29bfe); border-radius: 10px; }
-        
+
+        /* ===== NAVBAR ===== */
         .navbar {
             background: rgba(16, 16, 30, 0.95);
             backdrop-filter: blur(20px);
@@ -94,11 +95,14 @@
             font-size: 0.9rem;
         }
         .btn-logout:hover { background: rgba(255, 71, 87, 0.25); }
+
+        /* ===== MAIN ===== */
         .main-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
         .section { display: none; animation: fadeIn 0.4s ease; }
         .section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
+
+        /* ===== CARDS ===== */
         .card {
             background: rgba(20, 20, 40, 0.8);
             backdrop-filter: blur(10px);
@@ -118,7 +122,8 @@
             gap: 10px;
         }
         .card-title i { color: #6c5ce7; }
-        
+
+        /* ===== FORMS ===== */
         .form-group { margin-bottom: 1.2rem; }
         .form-group label {
             display: block;
@@ -127,8 +132,7 @@
             color: #b0b0c8;
             margin-bottom: 6px;
         }
-        .form-group input,
-        .form-group select {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 12px 16px;
             background: rgba(255, 255, 255, 0.05);
@@ -139,14 +143,14 @@
             transition: all 0.3s ease;
             outline: none;
         }
-        .form-group input:focus,
-        .form-group select:focus {
+        .form-group input:focus, .form-group select:focus {
             border-color: #6c5ce7;
             background: rgba(108, 92, 231, 0.05);
             box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
         }
         .form-group input::placeholder { color: #666688; }
-        
+
+        /* ===== BUTTONS ===== */
         .btn {
             padding: 12px 32px;
             border: none;
@@ -160,26 +164,16 @@
             gap: 10px;
             font-family: 'Inter', sans-serif;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            color: #fff;
-        }
+        .btn-primary { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108, 92, 231, 0.3); }
-        .btn-danger {
-            background: linear-gradient(135deg, #ff4757, #ff6b81);
-            color: #fff;
-        }
+        .btn-danger { background: linear-gradient(135deg, #ff4757, #ff6b81); color: #fff; }
         .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255, 71, 87, 0.3); }
-        .btn-success {
-            background: linear-gradient(135deg, #00d2d3, #01a3a4);
-            color: #fff;
-        }
+        .btn-success { background: linear-gradient(135deg, #00d2d3, #01a3a4); color: #fff; }
         .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 210, 211, 0.3); }
-        .btn-warning {
-            background: linear-gradient(135deg, #f9ca24, #f0932b);
-            color: #fff;
-        }
+        .btn-warning { background: linear-gradient(135deg, #f9ca24, #f0932b); color: #fff; }
         .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(249, 202, 36, 0.3); }
+        .btn-info { background: linear-gradient(135deg, #0984e3, #74b9ff); color: #fff; }
+        .btn-info:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(9, 132, 227, 0.3); }
         .btn-block { width: 100%; justify-content: center; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
         .btn-sm {
@@ -191,46 +185,8 @@
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        .btn-sm.btn-edit { background: rgba(108, 92, 231, 0.2); color: #6c5ce7; }
-        .btn-sm.btn-delete { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
-        .btn-sm.btn-toggle-on { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
-        .btn-sm.btn-toggle-off { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
-        
-        .console-log {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 1rem;
-            min-height: 150px;
-            max-height: 250px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            color: #a0e8a0;
-            margin-top: 1rem;
-        }
-        .console-log .log-success { color: #00d2d3; }
-        .console-log .log-error { color: #ff4757; }
-        .console-log .log-info { color: #f9ca24; }
-        .console-log .log-warning { color: #ff9ff3; }
-        .console-log .log-normal { color: #b0b0c8; }
-        .console-log .log-captcha { color: #ff6b6b; font-weight: bold; }
-        
-        .spam-progress {
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            margin: 0.5rem 0;
-            font-size: 0.85rem;
-        }
-        .spam-progress .bar {
-            height: 4px;
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            border-radius: 4px;
-            transition: width 0.5s ease;
-            margin-top: 4px;
-        }
-        
+
+        /* ===== BADGES ===== */
         .badge {
             display: inline-block;
             padding: 2px 12px;
@@ -246,62 +202,32 @@
         .badge-reseller { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
         .badge-developer { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         .badge-free { background: rgba(45, 52, 54, 0.5); color: #b2bec3; }
-        .badge-off { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         .badge-on { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
-        
-        .login-page {
-            min-height: 100vh;
+        .badge-off { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+
+        /* ===== PROVIDER STATUS ===== */
+        .provider-status {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(ellipse at center, #141428, #0a0a0f);
-            padding: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
         }
-        .login-box {
-            background: rgba(20, 20, 40, 0.9);
-            backdrop-filter: blur(20px);
+        .provider-card {
+            flex: 1;
+            min-width: 200px;
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 24px;
-            padding: 3rem;
-            width: 100%;
-            max-width: 420px;
-            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-        }
-        .login-box .logo { text-align: center; margin-bottom: 2rem; }
-        .login-box .logo i { font-size: 3rem; color: #6c5ce7; }
-        .login-box .logo h1 { font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 8px; }
-        .login-box .logo p { color: #8888aa; font-size: 0.9rem; }
-        .login-error {
-            color: #ff4757;
-            font-size: 0.85rem;
-            text-align: center;
-            margin-top: 1rem;
-            display: none;
-        }
-        .login-error.show { display: block; }
-        
-        .toast {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            padding: 1rem 1.5rem;
             border-radius: 12px;
-            background: rgba(20, 20, 40, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
-            font-weight: 500;
-            z-index: 9999;
-            animation: slideUp 0.3s ease;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            max-width: 90%;
+            padding: 1rem;
+            text-align: center;
         }
-        .toast-success { border-color: rgba(0, 210, 211, 0.3); }
-        .toast-error { border-color: rgba(255, 71, 87, 0.3); }
-        .toast-info { border-color: rgba(108, 92, 231, 0.3); }
-        .toast-warning { border-color: rgba(249, 202, 36, 0.3); }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
+        .provider-card .name { font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; }
+        .provider-card .status { font-size: 0.85rem; }
+        .provider-card .status.online { color: #00d2d3; }
+        .provider-card .status.offline { color: #ff4757; }
+        .provider-card .status.cooldown { color: #f9ca24; }
+
+        /* ===== PLATFORM GRID ===== */
         .platform-grid, .action-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -340,7 +266,15 @@
             font-weight: 500;
             display: block;
         }
-        .platform-option .disabled-badge, .action-option .disabled-badge {
+        .platform-option .provider-tag {
+            font-size: 0.6rem;
+            background: rgba(108, 92, 231, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 4px;
+            display: inline-block;
+        }
+        .platform-option .disabled-badge {
             position: absolute;
             top: -8px;
             right: -8px;
@@ -350,7 +284,123 @@
             padding: 2px 8px;
             border-radius: 10px;
         }
-        
+
+        /* ===== CONSOLE ===== */
+        .console-log {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 150px;
+            max-height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #a0e8a0;
+            margin-top: 1rem;
+        }
+        .console-log .log-success { color: #00d2d3; }
+        .console-log .log-error { color: #ff4757; }
+        .console-log .log-info { color: #f9ca24; }
+        .console-log .log-warning { color: #ff9ff3; }
+        .console-log .log-normal { color: #b0b0c8; }
+
+        /* ===== PROGRESS ===== */
+        .spam-progress {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem 0;
+            font-size: 0.85rem;
+        }
+        .spam-progress .bar {
+            height: 4px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            margin-top: 4px;
+        }
+
+        /* ===== STATS ===== */
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .stat-card .number { font-size: 2rem; font-weight: 800; color: #6c5ce7; }
+        .stat-card .label { font-size: 0.8rem; color: #8888aa; margin-top: 4px; }
+
+        /* ===== STATUS BAR ===== */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(20, 20, 40, 0.6);
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* ===== LOGIN ===== */
+        .login-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(ellipse at center, #141428, #0a0a0f);
+            padding: 2rem;
+        }
+        .login-box {
+            background: rgba(20, 20, 40, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+        }
+        .login-box .logo { text-align: center; margin-bottom: 2rem; }
+        .login-box .logo i { font-size: 3rem; color: #6c5ce7; }
+        .login-box .logo h1 { font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 8px; }
+        .login-box .logo p { color: #8888aa; font-size: 0.9rem; }
+        .login-error { color: #ff4757; font-size: 0.85rem; text-align: center; margin-top: 1rem; display: none; }
+        .login-error.show { display: block; }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            background: rgba(20, 20, 40, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-width: 90%;
+        }
+        .toast-success { border-color: rgba(0, 210, 211, 0.3); }
+        .toast-error { border-color: rgba(255, 71, 87, 0.3); }
+        .toast-info { border-color: rgba(108, 92, 231, 0.3); }
+        .toast-warning { border-color: rgba(249, 202, 36, 0.3); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ===== ADMIN ===== */
         .admin-panel {
             background: rgba(20, 20, 40, 0.9);
             border: 1px solid rgba(255, 71, 87, 0.2);
@@ -370,199 +420,7 @@
         }
         .admin-table th { color: #8888aa; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
         .admin-table td { color: #e0e0e0; }
-        .admin-table .btn-sm {
-            padding: 4px 12px;
-            font-size: 0.75rem;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .admin-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin: 1.5rem 0;
-        }
-        .stat-card {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            padding: 1.2rem;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .stat-card .number { font-size: 2rem; font-weight: 800; color: #6c5ce7; }
-        .stat-card .label { font-size: 0.8rem; color: #8888aa; margin-top: 4px; }
-        
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            background: rgba(20, 20, 40, 0.6);
-            padding: 12px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .captcha-container {
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid rgba(108, 92, 231, 0.3);
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            margin: 1rem 0;
-        }
-        .captcha-container .captcha-word {
-            font-size: 3rem;
-            font-weight: 800;
-            color: #6c5ce7;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 8px;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            display: inline-block;
-            margin: 1rem 0;
-        }
-        .captcha-container .captcha-image {
-            max-width: 300px;
-            border-radius: 12px;
-            margin: 1rem auto;
-            display: block;
-        }
-        .captcha-container .captcha-input {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin: 1rem 0;
-        }
-        .captcha-container .captcha-input input {
-            padding: 12px 20px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-            font-size: 1.2rem;
-            text-align: center;
-            letter-spacing: 4px;
-            width: 200px;
-            outline: none;
-        }
-        .captcha-container .captcha-input input:focus {
-            border-color: #6c5ce7;
-        }
-        
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 400px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .chat-message {
-            max-width: 70%;
-            padding: 0.8rem 1.2rem;
-            border-radius: 12px;
-            background: rgba(108, 92, 231, 0.1);
-            border: 1px solid rgba(108, 92, 231, 0.1);
-            align-self: flex-start;
-        }
-        .chat-message.own { align-self: flex-end; background: rgba(0, 210, 211, 0.1); border-color: rgba(0, 210, 211, 0.2); }
-        .chat-message .sender { font-size: 0.8rem; font-weight: 600; color: #6c5ce7; margin-bottom: 4px; }
-        .chat-message .time { font-size: 0.65rem; color: #666; margin-top: 4px; }
-        .chat-input {
-            display: flex;
-            gap: 0.5rem;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.3);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .chat-input input {
-            flex: 1;
-            padding: 0.8rem 1rem;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-        }
-        .chat-input button {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            background: #6c5ce7;
-            color: #fff;
-            cursor: pointer;
-        }
-        
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-        .pricing-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .pricing-card:hover { transform: translateY(-5px); border-color: rgba(108, 92, 231, 0.3); }
-        .pricing-card.selected { border-color: #6c5ce7; background: rgba(108, 92, 231, 0.05); }
-        .pricing-card .price { font-size: 2rem; font-weight: 800; color: #6c5ce7; margin: 1rem 0; }
-        .pricing-card .features { list-style: none; text-align: left; margin: 1rem 0; }
-        .pricing-card .features li { padding: 0.5rem 0; color: #b0b0c8; display: flex; align-items: center; gap: 8px; }
-        .pricing-card .features li i { color: #00d2d3; }
-        
-        .call-options {
-            display: flex;
-            gap: 1rem;
-            margin: 0.5rem 0;
-            flex-wrap: wrap;
-        }
-        .call-option {
-            flex: 1;
-            min-width: 80px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 2px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .call-option:hover { background: rgba(108, 92, 231, 0.05); border-color: rgba(108, 92, 231, 0.2); }
-        .call-option.active { border-color: #6c5ce7; background: rgba(108, 92, 231, 0.1); }
-        .call-option i { font-size: 2rem; display: block; margin-bottom: 4px; }
-        .call-option span { font-size: 0.8rem; font-weight: 500; display: block; }
-        
-        .section-header h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .section-header h1 i { color: #6c5ce7; }
-        .section-header p { color: #8888aa; margin-top: 6px; font-size: 0.95rem; }
-        
+
         .admin-features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -578,11 +436,28 @@
             border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
-        .feature-item .feature-name {
-            font-weight: 500;
-            font-size: 0.9rem;
+
+        .admin-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
         }
-        
+        .admin-tab {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .admin-tab.active {
+            background: rgba(108, 92, 231, 0.15);
+            color: #fff;
+        }
+
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .navbar { padding: 0 1rem; height: 60px; }
             .nav-logo { font-size: 1.2rem; }
@@ -594,16 +469,14 @@
             .platform-grid, .action-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
             .login-box { padding: 2rem 1.5rem; }
             .admin-stats { grid-template-columns: 1fr 1fr; }
-            .pricing-grid { grid-template-columns: 1fr; }
-            .section-header h1 { font-size: 1.5rem; }
-            .captcha-container .captcha-word { font-size: 2rem; letter-spacing: 4px; }
+            .provider-status { flex-direction: column; }
             .status-bar { flex-direction: column; gap: 4px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ===== LOGIN PAGE ===== -->
+    <!-- ===== LOGIN ===== -->
     <div id="loginPage" class="login-page">
         <div class="login-box">
             <div class="logo">
@@ -658,14 +531,14 @@
             <div class="nav-container">
                 <div class="nav-logo">
                     <i class="fas fa-skull"></i>
-                    <span>PrankMaster</span>
+                    <span>PrankMaster V5</span>
                 </div>
                 <div class="nav-menu">
                     <a href="#" class="nav-link active" data-section="dashboard"><i class="fas fa-home"></i><span>Dashboard</span></a>
                     <a href="#" class="nav-link" data-section="suntik"><i class="fas fa-syringe"></i><span>Suntik</span></a>
                     <a href="#" class="nav-link" data-section="pricing"><i class="fas fa-tags"></i><span>Pricing</span></a>
-                    <a href="#" class="nav-link" data-section="chat-public"><i class="fas fa-comments"></i><span>Chat</span></a>
-                    <a href="#" class="nav-link" data-section="admin-panel" id="adminNavLink" style="display:none;"><i class="fas fa-user-shield"></i><span>Admin</span></a>
+                    <a href="#" class="nav-link" data-section="chat"><i class="fas fa-comments"></i><span>Chat</span></a>
+                    <a href="#" class="nav-link" data-section="admin" id="adminNavLink" style="display:none;"><i class="fas fa-user-shield"></i><span>Admin</span></a>
                     <a href="#" class="nav-link" data-section="profile"><i class="fas fa-user"></i><span>Profil</span></a>
                 </div>
                 <div class="nav-user">
@@ -679,60 +552,48 @@
             <!-- ===== DASHBOARD ===== -->
             <section id="dashboard" class="section active">
                 <div class="section-header">
-                    <h1><i class="fas fa-chart-pie"></i> Dashboard</h1>
-                    <p>Selamat datang <span id="dashUsername"></span>! Status: <span id="dashStatus"></span></p>
+                    <h1 style="font-size:2rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:12px;">
+                        <i class="fas fa-chart-pie" style="color:#6c5ce7;"></i> Dashboard
+                    </h1>
+                    <p style="color:#8888aa;margin-top:6px;">Selamat datang <span id="dashUsername"></span>! Status: <span id="dashStatus"></span></p>
                 </div>
-                
-                <!-- Zefoy Status -->
-                <div class="status-bar" id="zefoyStatusBar">
-                    <div>🤖 Zefoy: <span id="zefoyStatus" style="color:#ff6b00;">Initializing...</span></div>
-                    <div>⏳ Cooldown: <span id="cooldownStatus">Ready</span></div>
-                    <div>📊 Berhasil: <span id="totalSuccess">0</span> | Gagal: <span id="totalFailed">0</span></div>
-                    <div>🔑 Captcha: <span id="captchaStatus">Menunggu...</span></div>
-                </div>
-                
-                <!-- Captcha Container -->
-                <div id="captchaContainer" style="display:none;" class="captcha-container">
-                    <h3 style="color:#ff6b6b;margin-bottom:0.5rem;">🔑 Verifikasi Captcha Zefoy</h3>
-                    <p style="color:#888;margin-bottom:1rem;">Masukkan kata yang terlihat di bawah untuk melanjutkan</p>
-                    <div id="captchaWordDisplay" class="captcha-word">????</div>
-                    <div id="captchaImageDisplay" style="display:none;">
-                        <img id="captchaImage" class="captcha-image" src="" alt="Captcha Image">
+
+                <!-- Provider Status -->
+                <div class="provider-status" id="providerStatus">
+                    <div class="provider-card">
+                        <div class="name">🔵 TikFollowers</div>
+                        <div class="status" id="tikfollowersStatus">Loading...</div>
+                        <div style="font-size:0.75rem;color:#888;margin-top:4px;" id="tikfollowersDetail">Cooldown: 0s | Daily: 0/50</div>
                     </div>
-                    <div class="captcha-input">
-                        <input type="text" id="captchaInput" placeholder="Ketik kata..." maxlength="8" style="text-transform:uppercase;">
-                        <button class="btn btn-primary" onclick="submitCaptcha()"><i class="fas fa-check"></i> Verifikasi</button>
-                        <button class="btn btn-success" onclick="autoSolveCaptcha()"><i class="fas fa-robot"></i> Auto Solve</button>
-                        <button class="btn btn-warning" onclick="refreshCaptcha()"><i class="fas fa-sync"></i> Refresh</button>
+                    <div class="provider-card">
+                        <div class="name">🟢 SMMStone</div>
+                        <div class="status" id="smmstoneStatus">Loading...</div>
+                        <div style="font-size:0.75rem;color:#888;margin-top:4px;" id="smmstoneDetail">Cooldown: 0s | Daily: 0/100</div>
                     </div>
-                    <div id="captchaMessage" style="color:#ff6b6b;margin-top:0.5rem;"></div>
                 </div>
-                
+
+                <!-- Stats -->
                 <div class="admin-stats">
                     <div class="stat-card"><div class="number" id="statSuntik">0</div><div class="label">Total Suntik</div></div>
                     <div class="stat-card"><div class="number" id="statLimit">15</div><div class="label">Sisa Limit</div></div>
                     <div class="stat-card"><div class="number" id="statUsers">0</div><div class="label">Online Users</div></div>
-                    <div class="stat-card"><div class="number" id="statPlatforms">5</div><div class="label">Platform</div></div>
+                    <div class="stat-card"><div class="number" id="statPlatforms">14</div><div class="label">Platform</div></div>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-title"><i class="fas fa-info-circle"></i> Informasi Sistem</div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
                         <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
-                            <div style="font-size:0.8rem;color:#888;">Platform Support</div>
-                            <div style="font-size:1.5rem;font-weight:700;color:#6c5ce7;">5</div>
+                            <div style="font-size:0.8rem;color:#888;">Primary Provider</div>
+                            <div style="font-size:1.2rem;font-weight:700;color:#6c5ce7;" id="primaryProvider">TikFollowers</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
-                            <div style="font-size:0.8rem;color:#888;">Cooldown</div>
-                            <div style="font-size:1.5rem;font-weight:700;color:#f9ca24;">2 Menit</div>
+                            <div style="font-size:0.8rem;color:#888;">Fallback</div>
+                            <div style="font-size:1.2rem;font-weight:700;color:#00d2d3;" id="fallbackStatus">✅ Enabled</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
                             <div style="font-size:0.8rem;color:#888;">Status</div>
                             <div style="font-size:1rem;font-weight:700;color:#00d2d3;" id="systemStatus">✅ Online</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
-                            <div style="font-size:0.8rem;color:#888;">Bypass</div>
-                            <div style="font-size:1rem;font-weight:700;color:#ff6b00;" id="bypassStatus">⏳ Menunggu Captcha</div>
                         </div>
                     </div>
                 </div>
@@ -741,54 +602,54 @@
             <!-- ===== SUNTIK ===== -->
             <section id="suntik" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-syringe"></i> Suntik Sosial Media</h1>
-                    <p>Kirim followers, likes, views ke platform pilihan</p>
+                    <h1 style="font-size:2rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:12px;">
+                        <i class="fas fa-syringe" style="color:#6c5ce7;"></i> Suntik Sosial Media
+                    </h1>
+                    <p style="color:#8888aa;margin-top:6px;">Kirim followers, likes, views ke berbagai platform</p>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-cogs"></i> Konfigurasi</div>
-                    
+
                     <div class="form-group">
                         <label><i class="fas fa-globe"></i> Pilih Platform</label>
                         <div id="platformOptions" class="platform-grid">
                             <!-- Akan diisi JavaScript -->
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><i class="fas fa-bullseye"></i> Pilih Aksi</label>
                         <div id="actionOptions" class="action-grid">
-                            <!-- Akan diisi JavaScript -->
                             <div style="color:#888;padding:1rem;text-align:center;">Pilih platform terlebih dahulu</div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><i class="fas fa-link"></i> Link/Username Target</label>
                         <input type="text" id="suntikTarget" placeholder="https://www.tiktok.com/@username atau username">
                         <small style="color:#888;font-size:0.75rem;">Masukkan link profil atau username target</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><i class="fas fa-sort-numeric-up"></i> Jumlah</label>
                         <input type="number" id="suntikCount" min="1" max="200" value="5">
-                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda. Cooldown 2 menit setiap sukses.</small>
+                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><i class="fas fa-terminal"></i> Console Log</label>
                         <div class="console-log" id="suntikConsole">
-                            <div class="log-normal">[✓] Sistem siap... Selesaikan captcha Zefoy terlebih dahulu</div>
-                            <div class="log-normal">[✓] Cooldown: 2 menit setelah setiap sukses</div>
-                            <div class="log-normal">[✓] Auto-solve: Gunakan tombol Auto Solve untuk bypass otomatis</div>
+                            <div class="log-normal">[✓] Sistem siap...</div>
+                            <div class="log-normal">[✓] Provider: TikFollowers (Primary) + SMMStone (Fallback)</div>
                         </div>
                     </div>
-                    
+
                     <div id="suntikProgress" style="display:none;" class="spam-progress">
                         <div>Progress: <span id="suntikProgressText">0/0</span></div>
                         <div class="bar" id="suntikProgressBar" style="width:0%"></div>
                         <div style="margin-top:10px;font-size:0.8rem;color:#888;" id="suntikDetailProgress"></div>
                     </div>
-                    
+
                     <div style="display:flex;gap:10px;">
                         <button class="btn btn-primary btn-block" id="suntikStartBtn" onclick="toggleSuntik()">
                             <i class="fas fa-play"></i> Start Suntik
@@ -803,40 +664,42 @@
             <!-- ===== PRICING ===== -->
             <section id="pricing" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-tags"></i> Price List</h1>
-                    <p>Pilih paket untuk meningkatkan limit</p>
+                    <h1 style="font-size:2rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:12px;">
+                        <i class="fas fa-tags" style="color:#6c5ce7;"></i> Price List
+                    </h1>
+                    <p style="color:#8888aa;margin-top:6px;">Pilih paket untuk meningkatkan limit</p>
                 </div>
-                <div class="pricing-grid">
-                    <div class="pricing-card" onclick="selectPricing('premium')">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin:2rem 0;">
+                    <div class="pricing-card" onclick="selectPricing('premium')" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem;text-align:center;cursor:pointer;transition:all 0.3s ease;">
                         <h3><span class="badge badge-premium">PREMIUM</span></h3>
-                        <div class="price">Rp 10.000</div>
-                        <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit 80x</li>
-                            <li><i class="fas fa-check"></i> Prioritas support</li>
+                        <div style="font-size:2rem;font-weight:800;color:#6c5ce7;margin:1rem 0;">Rp 10.000</div>
+                        <ul style="list-style:none;text-align:left;margin:1rem 0;color:#b0b0c8;">
+                            <li style="padding:0.5rem 0;">✅ Limit 80x</li>
+                            <li style="padding:0.5rem 0;">✅ Prioritas support</li>
                         </ul>
                     </div>
-                    <div class="pricing-card" onclick="selectPricing('vip')">
+                    <div class="pricing-card" onclick="selectPricing('vip')" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem;text-align:center;cursor:pointer;transition:all 0.3s ease;">
                         <h3><span class="badge badge-vip">VIP</span></h3>
-                        <div class="price">Rp 20.000</div>
-                        <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit 150x</li>
-                            <li><i class="fas fa-check"></i> Cooldown lebih cepat</li>
-                            <li><i class="fas fa-check"></i> Prioritas utama</li>
+                        <div style="font-size:2rem;font-weight:800;color:#6c5ce7;margin:1rem 0;">Rp 20.000</div>
+                        <ul style="list-style:none;text-align:left;margin:1rem 0;color:#b0b0c8;">
+                            <li style="padding:0.5rem 0;">✅ Limit 150x</li>
+                            <li style="padding:0.5rem 0;">✅ Cooldown lebih cepat</li>
+                            <li style="padding:0.5rem 0;">✅ Prioritas utama</li>
                         </ul>
                     </div>
-                    <div class="pricing-card" onclick="selectPricing('reseller')">
+                    <div class="pricing-card" onclick="selectPricing('reseller')" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem;text-align:center;cursor:pointer;transition:all 0.3s ease;">
                         <h3><span class="badge badge-reseller">RESELLER</span></h3>
-                        <div class="price">Rp 30.000</div>
-                        <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit 200x</li>
-                            <li><i class="fas fa-check"></i> Bisa upgrade user</li>
-                            <li><i class="fas fa-check"></i> Komisi 20%</li>
+                        <div style="font-size:2rem;font-weight:800;color:#6c5ce7;margin:1rem 0;">Rp 30.000</div>
+                        <ul style="list-style:none;text-align:left;margin:1rem 0;color:#b0b0c8;">
+                            <li style="padding:0.5rem 0;">✅ Limit 200x</li>
+                            <li style="padding:0.5rem 0;">✅ Bisa upgrade user</li>
+                            <li style="padding:0.5rem 0;">✅ Komisi 20%</li>
                         </ul>
                     </div>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-shopping-cart"></i> Order</div>
-                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                         <div class="form-group">
                             <label>Paket Pilihan</label>
                             <input type="text" id="selectedPackage" value="Premium" readonly>
@@ -848,15 +711,18 @@
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-wallet"></i> Metode Pembayaran</label>
-                        <div class="call-options">
-                            <div class="call-option active" onclick="selectPayment('dana')">
-                                <i class="fas fa-circle" style="color:#3b82f6;"></i><span>Dana</span>
+                        <div style="display:flex;gap:1rem;margin:0.5rem 0;flex-wrap:wrap;">
+                            <div class="payment-option" onclick="selectPayment('dana')" style="flex:1;min-width:80px;padding:12px;background:rgba(255,255,255,0.03);border:2px solid rgba(255,255,255,0.06);border-radius:12px;text-align:center;cursor:pointer;transition:all 0.3s ease;">
+                                <i class="fas fa-circle" style="color:#3b82f6;font-size:2rem;display:block;margin-bottom:4px;"></i>
+                                <span style="font-size:0.8rem;font-weight:500;display:block;">Dana</span>
                             </div>
-                            <div class="call-option" onclick="selectPayment('ovo')">
-                                <i class="fas fa-circle" style="color:#6c5ce7;"></i><span>OVO</span>
+                            <div class="payment-option" onclick="selectPayment('ovo')" style="flex:1;min-width:80px;padding:12px;background:rgba(255,255,255,0.03);border:2px solid rgba(255,255,255,0.06);border-radius:12px;text-align:center;cursor:pointer;transition:all 0.3s ease;">
+                                <i class="fas fa-circle" style="color:#6c5ce7;font-size:2rem;display:block;margin-bottom:4px;"></i>
+                                <span style="font-size:0.8rem;font-weight:500;display:block;">OVO</span>
                             </div>
-                            <div class="call-option" onclick="selectPayment('gopay')">
-                                <i class="fas fa-circle" style="color:#00d2d3;"></i><span>Gopay</span>
+                            <div class="payment-option" onclick="selectPayment('gopay')" style="flex:1;min-width:80px;padding:12px;background:rgba(255,255,255,0.03);border:2px solid rgba(255,255,255,0.06);border-radius:12px;text-align:center;cursor:pointer;transition:all 0.3s ease;">
+                                <i class="fas fa-circle" style="color:#00d2d3;font-size:2rem;display:block;margin-bottom:4px;"></i>
+                                <span style="font-size:0.8rem;font-weight:500;display:block;">Gopay</span>
                             </div>
                         </div>
                     </div>
@@ -882,36 +748,44 @@
             </section>
 
             <!-- ===== CHAT ===== -->
-            <section id="chat-public" class="section">
+            <section id="chat" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-comments"></i> Public Chat</h1>
-                    <p>Chat real-time dengan pengguna lain</p>
+                    <h1 style="font-size:2rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:12px;">
+                        <i class="fas fa-comments" style="color:#6c5ce7;"></i> Public Chat
+                    </h1>
+                    <p style="color:#8888aa;margin-top:6px;">Chat real-time dengan pengguna lain</p>
                 </div>
                 <div class="card">
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages"><div class="log-normal">[✓] Chat siap...</div></div>
-                        <div class="chat-input">
-                            <input type="text" id="chatInput" placeholder="Ketik pesan..." onkeypress="if(event.key==='Enter') sendMessage()">
-                            <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                    <div style="display:flex;flex-direction:column;height:400px;background:rgba(0,0,0,0.3);border-radius:12px;overflow:hidden;">
+                        <div class="chat-messages" id="chatMessages" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:0.5rem;">
+                            <div class="log-normal">[✓] Chat siap...</div>
+                        </div>
+                        <div class="chat-input" style="display:flex;gap:0.5rem;padding:1rem;background:rgba(0,0,0,0.3);border-top:1px solid rgba(255,255,255,0.05);">
+                            <input type="text" id="chatInput" placeholder="Ketik pesan..." style="flex:1;padding:0.8rem 1rem;border:none;border-radius:8px;background:rgba(255,255,255,0.05);color:#fff;" onkeypress="if(event.key==='Enter') sendMessage()">
+                            <button onclick="sendMessage()" style="padding:0.8rem 1.5rem;border:none;border-radius:8px;background:#6c5ce7;color:#fff;cursor:pointer;"><i class="fas fa-paper-plane"></i></button>
                         </div>
                     </div>
                 </div>
             </section>
 
             <!-- ===== ADMIN ===== -->
-            <section id="admin-panel" class="section">
+            <section id="admin" class="section">
                 <div class="admin-panel">
                     <div class="section-header">
-                        <h1><i class="fas fa-user-shield"></i> Admin Panel</h1>
-                        <p id="adminAccessMessage">Kelola pengguna, fitur, dan sistem</p>
+                        <h1 style="font-size:2rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:12px;">
+                            <i class="fas fa-user-shield" style="color:#6c5ce7;"></i> Admin Panel
+                        </h1>
+                        <p style="color:#8888aa;margin-top:6px;" id="adminAccessMessage">Kelola pengguna, provider, dan sistem</p>
                     </div>
                     <div id="adminContent">
-                        <div class="admin-tabs" style="display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
-                            <button class="admin-tab active" onclick="switchAdminTab('users')" style="padding:8px 20px;border:none;border-radius:10px;background:rgba(108,92,231,0.15);color:#fff;cursor:pointer;">Users</button>
-                            <button class="admin-tab" onclick="switchAdminTab('features')" style="padding:8px 20px;border:none;border-radius:10px;background:transparent;color:#888;cursor:pointer;">Features</button>
-                            <button class="admin-tab" onclick="switchAdminTab('settings')" style="padding:8px 20px;border:none;border-radius:10px;background:transparent;color:#888;cursor:pointer;">Settings</button>
-                            <button class="admin-tab" onclick="switchAdminTab('payments')" style="padding:8px 20px;border:none;border-radius:10px;background:transparent;color:#888;cursor:pointer;">Payments</button>
+                        <div class="admin-tabs">
+                            <button class="admin-tab active" onclick="switchAdminTab('users')">Users</button>
+                            <button class="admin-tab" onclick="switchAdminTab('features')">Features</button>
+                            <button class="admin-tab" onclick="switchAdminTab('providers')">Providers</button>
+                            <button class="admin-tab" onclick="switchAdminTab('controls')">Controls</button>
+                            <button class="admin-tab" onclick="switchAdminTab('payments')">Payments</button>
                         </div>
+                        <!-- Users Tab -->
                         <div id="adminUsersTab">
                             <div class="admin-stats">
                                 <div class="stat-card"><div class="number" id="totalUsers">0</div><div class="label">Total Users</div></div>
@@ -922,6 +796,7 @@
                                 <tbody id="adminUsersBody"></tbody>
                             </table>
                         </div>
+                        <!-- Features Tab -->
                         <div id="adminFeaturesTab" style="display:none;">
                             <div class="admin-stats">
                                 <div class="stat-card"><div class="number" id="totalFeatures">0</div><div class="label">Total Features</div></div>
@@ -929,20 +804,25 @@
                             </div>
                             <div id="featuresGrid" class="admin-features-grid"></div>
                         </div>
-                        <div id="adminSettingsTab" style="display:none;">
-                            <div class="form-group">
-                                <label>Maintenance Mode</label>
-                                <select id="maintenanceMode">
-                                    <option value="false">Off</option>
-                                    <option value="true">On</option>
-                                </select>
+                        <!-- Providers Tab -->
+                        <div id="adminProvidersTab" style="display:none;">
+                            <div class="card">
+                                <div class="card-title"><i class="fas fa-server"></i> Provider Settings</div>
+                                <div id="providerControls">
+                                    <!-- Akan diisi JavaScript -->
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Pesan Maintenance</label>
-                                <input type="text" id="maintenanceMessage" placeholder="Pesan saat maintenance" value="Server sedang dalam perbaikan.">
-                            </div>
-                            <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Save</button>
                         </div>
+                        <!-- Controls Tab -->
+                        <div id="adminControlsTab" style="display:none;">
+                            <div class="card">
+                                <div class="card-title"><i class="fas fa-toggle-on"></i> Platform Controls</div>
+                                <div id="platformControls">
+                                    <!-- Akan diisi JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Payments Tab -->
                         <div id="adminPaymentsTab" style="display:none;">
                             <table class="admin-table">
                                 <thead><tr><th>User</th><th>Package</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
@@ -956,8 +836,10 @@
             <!-- ===== PROFILE ===== -->
             <section id="profile" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-user-circle"></i> Profil Saya</h1>
-                    <p>Kelola akun Anda</p>
+                    <h1 style="font-size:2rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:12px;">
+                        <i class="fas fa-user-circle" style="color:#6c5ce7;"></i> Profil Saya
+                    </h1>
+                    <p style="color:#8888aa;margin-top:6px;">Kelola akun Anda</p>
                 </div>
                 <div class="card">
                     <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
@@ -984,1166 +866,1177 @@
     </div>
 
     <script>
-    // ============================================
-    // GLOBAL VARIABLES
-    // ============================================
-    let currentUser = null;
-    let socket = null;
-    let selectedPlatform = null;
-    let selectedAction = null;
-    let currentSuntikSession = null;
-    let isSpamming = false;
-    let totalSuccess = 0;
-    let totalFailed = 0;
-    let isCooldown = false;
-    let currentCaptchaSessionId = null;
-    let captchaAttempts = 0;
-    let isAutoSolving = false;
+        // ============================================
+        // GLOBAL VARIABLES
+        // ============================================
+        let currentUser = null;
+        let socket = null;
+        let selectedPlatform = null;
+        let selectedAction = null;
+        let currentSuntikSession = null;
+        let isSpamming = false;
+        let totalSuccess = 0;
+        let totalFailed = 0;
 
-    // ============================================
-    // DOM READY
-    // ============================================
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔥 PrankMaster Pro - Suntik Sosial Media');
-        console.log('👑 Admin: Lynzka / Asiafone11');
-        console.log('🤖 Auto Bypass Captcha dengan OCR');
+        // ============================================
+        // DOM READY
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔥 PrankMaster Pro V5 - Multi Provider');
+            console.log('👑 Admin: Lynzka / Asiafone11');
 
-        const session = localStorage.getItem('prankUser');
-        if (session) {
+            const session = localStorage.getItem('prankUser');
+            if (session) {
+                try {
+                    currentUser = JSON.parse(session);
+                    if (currentUser && currentUser.username) {
+                        showMainApp();
+                        connectSocket();
+                        loadUserData();
+                        loadPlatforms();
+                        loadProviderStatus();
+                        if (currentUser.isAdmin || currentUser.isDeveloper) {
+                            loadAdminData();
+                            loadFeatures();
+                            loadProviderControls();
+                            loadPlatformControls();
+                        }
+                        return;
+                    }
+                } catch (e) {
+                    localStorage.removeItem('prankUser');
+                }
+            }
+
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+        });
+
+        // ============================================
+        // SOCKET.IO
+        // ============================================
+        function connectSocket() {
             try {
-                currentUser = JSON.parse(session);
-                if (currentUser && currentUser.username) {
+                socket = io(window.location.origin, {
+                    transports: ['websocket', 'polling'],
+                    reconnection: true
+                });
+
+                socket.on('connect', () => {
+                    console.log('✅ Socket connected');
+                    if (currentUser) socket.emit('userOnline', currentUser.username);
+                });
+
+                socket.on('usersOnline', (users) => {
+                    document.getElementById('statUsers').textContent = users.length || 0;
+                });
+
+                socket.on('newMessage', addChatMessage);
+
+                socket.on('spamProgress', (data) => {
+                    updateSuntikProgress(data);
+                });
+
+                socket.on('userUpdated', (data) => {
+                    if (data.username === currentUser?.username) loadUserData();
+                    if (currentUser?.isAdmin || currentUser?.isDeveloper) loadAdminData();
+                });
+
+                socket.on('settingsUpdated', (data) => {
+                    if (currentUser?.isAdmin || currentUser?.isDeveloper) {
+                        loadFeatures();
+                        loadProviderControls();
+                        loadPlatformControls();
+                        loadProviderStatus();
+                    }
+                });
+
+            } catch (err) {
+                console.log('❌ Socket error:', err);
+            }
+        }
+
+        // ============================================
+        // AUTH
+        // ============================================
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const errorEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            errorEl.classList.remove('show');
+            if (!username || !password) {
+                errorEl.textContent = 'Username dan password wajib diisi!';
+                errorEl.classList.add('show');
+                return false;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Login...';
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('prankUser', JSON.stringify(currentUser));
                     showMainApp();
                     connectSocket();
                     loadUserData();
                     loadPlatforms();
-                    checkZefoyStatus();
+                    loadProviderStatus();
                     if (currentUser.isAdmin || currentUser.isDeveloper) {
                         loadAdminData();
                         loadFeatures();
+                        loadProviderControls();
+                        loadPlatformControls();
                     }
-                    return;
-                }
-            } catch (e) {
-                localStorage.removeItem('prankUser');
-            }
-        }
-
-        document.getElementById('loginPage').style.display = 'flex';
-        document.getElementById('mainApp').style.display = 'none';
-    });
-
-    // ============================================
-    // SOCKET.IO
-    // ============================================
-    function connectSocket() {
-        try {
-            socket = io(window.location.origin, {
-                transports: ['websocket', 'polling'],
-                reconnection: true
-            });
-
-            socket.on('connect', () => {
-                console.log('✅ Socket connected');
-                if (currentUser) socket.emit('userOnline', currentUser.username);
-            });
-
-            socket.on('usersOnline', (users) => {
-                document.getElementById('statUsers').textContent = users.length || 0;
-            });
-
-            socket.on('newMessage', addChatMessage);
-
-            socket.on('spamProgress', (data) => {
-                updateSuntikProgress(data);
-            });
-
-            socket.on('userUpdated', (data) => {
-                if (data.username === currentUser?.username) loadUserData();
-                if (currentUser?.isAdmin || currentUser?.isDeveloper) loadAdminData();
-            });
-
-            socket.on('settingsUpdated', (data) => {
-                if (currentUser?.isAdmin || currentUser?.isDeveloper) {
-                    loadFeatures();
-                }
-            });
-
-        } catch (err) {
-            console.log('❌ Socket error:', err);
-        }
-    }
-
-    // ============================================
-    // AUTH
-    // ============================================
-    function handleLogin(e) {
-        e.preventDefault();
-        const username = document.getElementById('loginUsername').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        const errorEl = document.getElementById('loginError');
-        const btn = document.getElementById('loginBtn');
-
-        errorEl.classList.remove('show');
-        if (!username || !password) {
-            errorEl.textContent = 'Username dan password wajib diisi!';
-            errorEl.classList.add('show');
-            return false;
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Login...';
-
-        fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        })
-        .then(res => res.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-            if (data.success) {
-                currentUser = data.user;
-                localStorage.setItem('prankUser', JSON.stringify(currentUser));
-                showMainApp();
-                connectSocket();
-                loadUserData();
-                loadPlatforms();
-                checkZefoyStatus();
-                if (currentUser.isAdmin || currentUser.isDeveloper) {
-                    loadAdminData();
-                    loadFeatures();
-                }
-                showToast('Login berhasil!', 'success');
-            } else {
-                errorEl.textContent = data.message || 'Login gagal!';
-                errorEl.classList.add('show');
-            }
-        })
-        .catch(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-            errorEl.textContent = 'Koneksi ke server gagal!';
-            errorEl.classList.add('show');
-        });
-        return false;
-    }
-
-    function handleRegister(e) {
-        e.preventDefault();
-        const username = document.getElementById('regUsername').value.trim();
-        const password = document.getElementById('regPassword').value;
-        const confirm = document.getElementById('regConfirm').value;
-        const errorEl = document.getElementById('registerError');
-        const btn = document.getElementById('registerBtn');
-
-        errorEl.classList.remove('show');
-        if (!username || !password || !confirm) {
-            errorEl.textContent = 'Semua field wajib diisi!';
-            errorEl.classList.add('show');
-            return false;
-        }
-        if (username.length < 3) {
-            errorEl.textContent = 'Username minimal 3 karakter!';
-            errorEl.classList.add('show');
-            return false;
-        }
-        if (password.length < 4) {
-            errorEl.textContent = 'Password minimal 4 karakter!';
-            errorEl.classList.add('show');
-            return false;
-        }
-        if (password !== confirm) {
-            errorEl.textContent = 'Password tidak cocok!';
-            errorEl.classList.add('show');
-            return false;
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftar...';
-
-        fetch('/api/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        })
-        .then(res => res.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
-            if (data.success) {
-                showToast('Registrasi berhasil! Silakan login.', 'success');
-                showLogin();
-                document.getElementById('loginUsername').value = username;
-            } else {
-                errorEl.textContent = data.message || 'Registrasi gagal!';
-                errorEl.classList.add('show');
-            }
-        })
-        .catch(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
-            errorEl.textContent = 'Koneksi ke server gagal!';
-            errorEl.classList.add('show');
-        });
-        return false;
-    }
-
-    function showLogin() {
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('registerForm').style.display = 'none';
-    }
-
-    function showRegister() {
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('registerForm').style.display = 'block';
-    }
-
-    function handleLogout() {
-        if (currentUser && socket) {
-            socket.emit('userOffline', currentUser.username);
-            socket.disconnect();
-        }
-        localStorage.removeItem('prankUser');
-        currentUser = null;
-        document.getElementById('mainApp').style.display = 'none';
-        document.getElementById('loginPage').style.display = 'flex';
-        isSpamming = false;
-        showToast('Logout berhasil!', 'info');
-    }
-
-    function showMainApp() {
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        if (currentUser) {
-            document.getElementById('usernameDisplay').textContent = currentUser.username;
-            document.getElementById('dashUsername').textContent = currentUser.username;
-            document.getElementById('profileUsername').textContent = currentUser.username;
-            document.getElementById('profileAvatar').textContent = currentUser.username.substring(0, 2).toUpperCase();
-            
-            if (currentUser.isDeveloper) {
-                document.getElementById('adminNavLink').style.display = 'inline-flex';
-                document.getElementById('adminContent').style.display = 'block';
-            } else {
-                document.getElementById('adminNavLink').style.display = 'none';
-            }
-            updateStatusBadge();
-        }
-    }
-
-    function updateStatusBadge() {
-        if (!currentUser) return;
-        const statusMap = {
-            'Developer': 'developer',
-            'VIP': 'vip',
-            'Reseller': 'reseller',
-            'Premium': 'premium',
-            'Free': 'free'
-        };
-        const status = currentUser.status || 'Free';
-        const cls = statusMap[status] || 'free';
-        const dashStatus = document.getElementById('dashStatus');
-        if (dashStatus) dashStatus.innerHTML = `<span class="badge badge-${cls}">${status}</span>`;
-        const profileStatus = document.getElementById('profileStatus');
-        if (profileStatus) {
-            profileStatus.className = `badge badge-${cls}`;
-            profileStatus.textContent = status;
-        }
-    }
-
-    // ============================================
-    // LOAD DATA
-    // ============================================
-    function loadUserData() {
-        if (!currentUser) return;
-        fetch(`/api/user/${currentUser.username}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    currentUser = data.user;
-                    localStorage.setItem('prankUser', JSON.stringify(currentUser));
-                    
-                    const statSuntik = document.getElementById('statSuntik');
-                    if (statSuntik) statSuntik.textContent = currentUser.used || 0;
-
-                    const limit = currentUser.limit;
-                    let remaining = limit === Infinity || limit === '∞' || limit === null ? '∞' : Math.max(0, limit - (currentUser.used || 0));
-                    document.getElementById('statLimit').textContent = remaining;
-                    document.getElementById('profileLimit').textContent = limit === Infinity ? '∞' : limit;
-                    document.getElementById('profileUsed').textContent = currentUser.used || 0;
-                    updateStatusBadge();
-                }
-            });
-    }
-
-    // ============================================
-    // ZEFOY CAPTCHA
-    // ============================================
-    function checkZefoyStatus() {
-        fetch('/api/zefoy/status')
-            .then(res => res.json())
-            .then(data => {
-                const statusEl = document.getElementById('zefoyStatus');
-                const bypassEl = document.getElementById('bypassStatus');
-                const captchaEl = document.getElementById('captchaStatus');
-                
-                if (data.success && data.ready) {
-                    statusEl.textContent = '✅ Ready';
-                    statusEl.style.color = '#00d2d3';
-                    bypassEl.textContent = '✅ Active';
-                    bypassEl.style.color = '#00d2d3';
-                    captchaEl.textContent = '✅ Terverifikasi';
-                    captchaEl.style.color = '#00d2d3';
-                    document.getElementById('captchaContainer').style.display = 'none';
-                } else if (data.waitingCaptcha) {
-                    statusEl.textContent = '🔑 Waiting Captcha';
-                    statusEl.style.color = '#ff6b00';
-                    bypassEl.textContent = '🔑 Butuh Verifikasi';
-                    bypassEl.style.color = '#ff6b00';
-                    captchaEl.textContent = '⏳ Belum diverifikasi';
-                    captchaEl.style.color = '#ff6b00';
-                    document.getElementById('captchaContainer').style.display = 'block';
-                    // Hanya ambil captcha jika belum ada session
-                    if (!currentCaptchaSessionId) {
-                        getCaptcha();
-                    }
+                    showToast('Login berhasil!', 'success');
                 } else {
-                    statusEl.textContent = '⚠️ Initializing...';
-                    statusEl.style.color = '#ff6b00';
-                    bypassEl.textContent = '⏳ Menunggu...';
-                    bypassEl.style.color = '#f9ca24';
-                    captchaEl.textContent = '⏳ Menunggu...';
-                    captchaEl.style.color = '#f9ca24';
-                }
-                if (data.cooldown) {
-                    statusEl.textContent = '⏳ Cooldown';
-                    statusEl.style.color = '#f9ca24';
+                    errorEl.textContent = data.message || 'Login gagal!';
+                    errorEl.classList.add('show');
                 }
             })
             .catch(() => {
-                document.getElementById('zefoyStatus').textContent = '❌ Error';
-                document.getElementById('zefoyStatus').style.color = '#ff4757';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                errorEl.textContent = 'Koneksi ke server gagal!';
+                errorEl.classList.add('show');
             });
-    }
+            return false;
+        }
 
-    function getCaptcha() {
-        fetch('/api/zefoy/captcha')
+        function handleRegister(e) {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirm').value;
+            const errorEl = document.getElementById('registerError');
+            const btn = document.getElementById('registerBtn');
+
+            errorEl.classList.remove('show');
+            if (!username || !password || !confirm) {
+                errorEl.textContent = 'Semua field wajib diisi!';
+                errorEl.classList.add('show');
+                return false;
+            }
+            if (username.length < 3) {
+                errorEl.textContent = 'Username minimal 3 karakter!';
+                errorEl.classList.add('show');
+                return false;
+            }
+            if (password.length < 4) {
+                errorEl.textContent = 'Password minimal 4 karakter!';
+                errorEl.classList.add('show');
+                return false;
+            }
+            if (password !== confirm) {
+                errorEl.textContent = 'Password tidak cocok!';
+                errorEl.classList.add('show');
+                return false;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftar...';
+
+            fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
             .then(res => res.json())
             .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
                 if (data.success) {
-                    currentCaptchaSessionId = data.sessionId;
-                    document.getElementById('captchaWordDisplay').textContent = data.captchaWord || '????';
-                    if (data.captchaImage) {
-                        document.getElementById('captchaImage').src = data.captchaImage;
-                        document.getElementById('captchaImageDisplay').style.display = 'block';
-                    } else {
-                        document.getElementById('captchaImageDisplay').style.display = 'none';
-                    }
-                    document.getElementById('captchaInput').value = '';
-                    document.getElementById('captchaMessage').textContent = 'Masukkan kata captcha di atas atau klik Auto Solve';
-                    document.getElementById('captchaMessage').style.color = '#f9ca24';
-                    document.getElementById('captchaContainer').style.display = 'block';
-                    updateConsole('suntikConsole', '🔑 Captcha diperlukan! Gunakan Auto Solve atau input manual.', 'log-captcha');
-                    showToast('Captcha Zefoy diperlukan!', 'warning');
-                    
-                    // Try auto-solve if word is already visible
-                    if (data.captchaWord && data.captchaWord.length >= 3) {
-                        setTimeout(() => {
-                            autoSolveCaptcha();
-                        }, 2000);
-                    }
+                    showToast('Registrasi berhasil! Silakan login.', 'success');
+                    showLogin();
+                    document.getElementById('loginUsername').value = username;
                 } else {
-                    document.getElementById('captchaMessage').textContent = 'Gagal mendapatkan captcha: ' + (data.error || 'Unknown');
-                    document.getElementById('captchaMessage').style.color = '#ff4757';
+                    errorEl.textContent = data.message || 'Registrasi gagal!';
+                    errorEl.classList.add('show');
                 }
             })
-            .catch(err => {
-                document.getElementById('captchaMessage').textContent = 'Error: ' + err.message;
-                document.getElementById('captchaMessage').style.color = '#ff4757';
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
+                errorEl.textContent = 'Koneksi ke server gagal!';
+                errorEl.classList.add('show');
             });
-    }
-
-    function refreshCaptcha() {
-        document.getElementById('captchaMessage').textContent = 'Mengambil captcha baru...';
-        document.getElementById('captchaMessage').style.color = '#f9ca24';
-        currentCaptchaSessionId = null;
-        getCaptcha();
-    }
-
-    function submitCaptcha() {
-        const word = document.getElementById('captchaInput').value.trim().toUpperCase();
-        if (!word || word.length < 3) {
-            document.getElementById('captchaMessage').textContent = 'Masukkan kata yang valid (min 3 karakter)!';
-            document.getElementById('captchaMessage').style.color = '#ff4757';
-            return;
-        }
-        if (!currentCaptchaSessionId) {
-            document.getElementById('captchaMessage').textContent = 'Session captcha tidak valid! Refresh captcha.';
-            document.getElementById('captchaMessage').style.color = '#ff4757';
-            return;
+            return false;
         }
 
-        document.getElementById('captchaMessage').textContent = '⏳ Memverifikasi...';
-        document.getElementById('captchaMessage').style.color = '#f9ca24';
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
 
-        fetch('/api/zefoy/captcha/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: currentCaptchaSessionId, word: word })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('captchaMessage').textContent = '✅ Captcha berhasil! Zefoy siap digunakan.';
-                document.getElementById('captchaMessage').style.color = '#00d2d3';
-                document.getElementById('captchaContainer').style.display = 'none';
-                updateConsole('suntikConsole', '✅ Captcha berhasil! Siap suntik.', 'log-success');
-                showToast('Captcha berhasil!', 'success');
-                checkZefoyStatus();
-                setTimeout(() => checkZefoyStatus(), 1000);
-            } else {
-                document.getElementById('captchaMessage').textContent = '❌ ' + (data.error || 'Captcha salah! Coba lagi.');
-                document.getElementById('captchaMessage').style.color = '#ff4757';
-                captchaAttempts++;
-                if (captchaAttempts >= 3) {
-                    document.getElementById('captchaMessage').textContent = '⚠️ Terlalu banyak percobaan! Refresh captcha.';
-                    refreshCaptcha();
-                    captchaAttempts = 0;
-                }
-                document.getElementById('captchaInput').value = '';
-                document.getElementById('captchaInput').focus();
+        function showRegister() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        function handleLogout() {
+            if (currentUser && socket) {
+                socket.emit('userOffline', currentUser.username);
+                socket.disconnect();
             }
-        })
-        .catch(err => {
-            document.getElementById('captchaMessage').textContent = 'Error: ' + err.message;
-            document.getElementById('captchaMessage').style.color = '#ff4757';
-        });
-    }
+            localStorage.removeItem('prankUser');
+            currentUser = null;
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'flex';
+            isSpamming = false;
+            showToast('Logout berhasil!', 'info');
+        }
 
-    // ============================================
-    // AUTO SOLVE CAPTCHA
-    // ============================================
-    function autoSolveCaptcha() {
-        if (isAutoSolving) {
-            showToast('Proses auto-solve sedang berjalan...', 'warning');
-            return;
-        }
-        
-        if (!currentCaptchaSessionId) {
-            showToast('Refresh captcha terlebih dahulu!', 'error');
-            refreshCaptcha();
-            setTimeout(() => {
-                if (currentCaptchaSessionId) autoSolveCaptcha();
-            }, 3000);
-            return;
-        }
-        
-        isAutoSolving = true;
-        document.getElementById('captchaMessage').textContent = '🤖 Memproses captcha dengan OCR...';
-        document.getElementById('captchaMessage').style.color = '#f9ca24';
-        updateConsole('suntikConsole', '🤖 Auto-solving captcha dengan OCR...', 'log-info');
-        
-        fetch('/api/zefoy/captcha/auto-solve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: currentCaptchaSessionId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            isAutoSolving = false;
-            if (data.success) {
-                document.getElementById('captchaMessage').textContent = `✅ Captcha solved! Word: ${data.word}`;
-                document.getElementById('captchaMessage').style.color = '#00d2d3';
-                document.getElementById('captchaInput').value = data.word || '';
-                document.getElementById('captchaContainer').style.display = 'none';
-                updateConsole('suntikConsole', `✅ Auto-solve berhasil! Word: ${data.word}`, 'log-success');
-                checkZefoyStatus();
-                showToast('Captcha auto-solved! 🎉', 'success');
-                // Refresh status after 1 second
-                setTimeout(() => checkZefoyStatus(), 1000);
-            } else {
-                document.getElementById('captchaMessage').textContent = '❌ ' + (data.error || 'Gagal auto-solve! Silakan input manual.');
-                document.getElementById('captchaMessage').style.color = '#ff4757';
-                updateConsole('suntikConsole', `❌ Auto-solve gagal: ${data.error || 'Unknown'}`, 'log-error');
-                showToast('Auto-solve gagal, silakan input manual', 'warning');
-                // Coba lagi dengan refresh
-                if (captchaAttempts < 2) {
-                    captchaAttempts++;
-                    setTimeout(() => {
-                        refreshCaptcha();
-                        setTimeout(() => autoSolveCaptcha(), 3000);
-                    }, 2000);
+        function showMainApp() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            if (currentUser) {
+                document.getElementById('usernameDisplay').textContent = currentUser.username;
+                document.getElementById('dashUsername').textContent = currentUser.username;
+                document.getElementById('profileUsername').textContent = currentUser.username;
+                document.getElementById('profileAvatar').textContent = currentUser.username.substring(0, 2).toUpperCase();
+
+                if (currentUser.isDeveloper) {
+                    document.getElementById('adminNavLink').style.display = 'inline-flex';
+                } else {
+                    document.getElementById('adminNavLink').style.display = 'none';
                 }
+                updateStatusBadge();
             }
-        })
-        .catch(err => {
-            isAutoSolving = false;
-            document.getElementById('captchaMessage').textContent = 'Error: ' + err.message;
-            document.getElementById('captchaMessage').style.color = '#ff4757';
-            updateConsole('suntikConsole', `❌ Auto-solve error: ${err.message}`, 'log-error');
-            showToast('Error auto-solve, coba manual', 'error');
-        });
-    }
+        }
 
-    // ============================================
-    // PLATFORMS
-    // ============================================
-    function loadPlatforms() {
-        fetch('/api/suntik/platforms')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    const container = document.getElementById('platformOptions');
-                    container.innerHTML = data.platforms.map(p => `
-                        <div class="platform-option" data-platform="${p.name}" onclick="selectPlatform('${p.name}')">
-                            <i class="${p.icon}"></i>
-                            <span>${p.name}</span>
-                            ${p.actions.some(a => !a.enabled) ? '<span class="disabled-badge">⚠️</span>' : ''}
-                        </div>
-                    `).join('');
-                }
-            });
-    }
+        function updateStatusBadge() {
+            if (!currentUser) return;
+            const statusMap = {
+                'Developer': 'developer',
+                'VIP': 'vip',
+                'Reseller': 'reseller',
+                'Premium': 'premium',
+                'Free': 'free'
+            };
+            const status = currentUser.status || 'Free';
+            const cls = statusMap[status] || 'free';
+            const dashStatus = document.getElementById('dashStatus');
+            if (dashStatus) dashStatus.innerHTML = `<span class="badge badge-${cls}">${status}</span>`;
+            const profileStatus = document.getElementById('profileStatus');
+            if (profileStatus) {
+                profileStatus.className = `badge badge-${cls}`;
+                profileStatus.textContent = status;
+            }
+        }
 
-    function selectPlatform(platform) {
-        selectedPlatform = platform;
-        selectedAction = null;
-        
-        document.querySelectorAll('.platform-option').forEach(el => el.classList.remove('active'));
-        const target = document.querySelector(`.platform-option[data-platform="${platform}"]`);
-        if (target) target.classList.add('active');
-        
-        fetch('/api/suntik/platforms')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    const platformData = data.platforms.find(p => p.name === platform);
-                    if (platformData && platformData.actions) {
-                        const container = document.getElementById('actionOptions');
-                        const actionIcons = {
-                            'Followers': 'fa-users',
-                            'Likes': 'fa-heart',
-                            'Views': 'fa-eye',
-                            'Shares': 'fa-share',
-                            'Subscribers': 'fa-user-plus',
-                            'Retweets': 'fa-retweet'
-                        };
-                        container.innerHTML = platformData.actions.map(action => `
-                            <div class="action-option ${action.enabled ? '' : 'disabled'}" 
-                                 data-action="${action.name}" 
-                                 onclick="${action.enabled ? `selectAction('${action.name}')` : ''}"
-                                 style="${action.enabled ? '' : 'opacity:0.4;cursor:not-allowed;'}">
-                                <i class="fas ${actionIcons[action.name] || 'fa-star'}"></i>
-                                <span>${action.name}</span>
-                                ${!action.enabled ? '<span class="disabled-badge">OFF</span>' : ''}
+        // ============================================
+        // LOAD DATA
+        // ============================================
+        function loadUserData() {
+            if (!currentUser) return;
+            fetch(`/api/user/${currentUser.username}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        currentUser = data.user;
+                        localStorage.setItem('prankUser', JSON.stringify(currentUser));
+
+                        const statSuntik = document.getElementById('statSuntik');
+                        if (statSuntik) statSuntik.textContent = currentUser.used || 0;
+
+                        const limit = currentUser.limit;
+                        let remaining = limit === Infinity || limit === '∞' || limit === null ? '∞' : Math.max(0, limit - (currentUser.used || 0));
+                        document.getElementById('statLimit').textContent = remaining;
+                        document.getElementById('profileLimit').textContent = limit === Infinity ? '∞' : limit;
+                        document.getElementById('profileUsed').textContent = currentUser.used || 0;
+                        updateStatusBadge();
+                    }
+                });
+        }
+
+        // ============================================
+        // LOAD PROVIDER STATUS
+        // ============================================
+        function loadProviderStatus() {
+            fetch('/api/providers/status')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const tik = data.providers.tikfollowers;
+                        const smm = data.providers.smmstone;
+
+                        // TikFollowers
+                        const tikStatus = document.getElementById('tikfollowersStatus');
+                        const tikDetail = document.getElementById('tikfollowersDetail');
+                        if (tik.enabled) {
+                            const ready = tik.sessions.some(s => s.isReady);
+                            tikStatus.textContent = ready ? '✅ Online' : '⏳ Cooldown';
+                            tikStatus.className = `status ${ready ? 'online' : 'cooldown'}`;
+                            const session = tik.sessions[0] || {};
+                            tikDetail.textContent = `Cooldown: ${session.cooldownRemaining || 0}s | Daily: ${session.dailyCount || 0}/${tik.maxPerDay}`;
+                        } else {
+                            tikStatus.textContent = '❌ Disabled';
+                            tikStatus.className = 'status offline';
+                            tikDetail.textContent = 'Disabled by admin';
+                        }
+
+                        // SMMStone
+                        const smmStatus = document.getElementById('smmstoneStatus');
+                        const smmDetail = document.getElementById('smmstoneDetail');
+                        if (smm.enabled) {
+                            const ready = smm.sessions.some(s => s.isReady);
+                            smmStatus.textContent = ready ? '✅ Online' : '⏳ Cooldown';
+                            smmStatus.className = `status ${ready ? 'online' : 'cooldown'}`;
+                            const session = smm.sessions[0] || {};
+                            smmDetail.textContent = `Cooldown: ${session.cooldownRemaining || 0}s | Daily: ${session.dailyCount || 0}/${smm.maxPerDay}`;
+                        } else {
+                            smmStatus.textContent = '❌ Disabled';
+                            smmStatus.className = 'status offline';
+                            smmDetail.textContent = 'Disabled by admin';
+                        }
+
+                        // Primary provider
+                        document.getElementById('primaryProvider').textContent = data.providers.tikfollowers.isPrimary ? 'TikFollowers' : 'SMMStone';
+                        document.getElementById('fallbackStatus').textContent = data.fallbackEnabled ? '✅ Enabled' : '❌ Disabled';
+                        document.getElementById('fallbackStatus').style.color = data.fallbackEnabled ? '#00d2d3' : '#ff4757';
+                    }
+                });
+        }
+
+        // ============================================
+        // LOAD PLATFORMS
+        // ============================================
+        function loadPlatforms() {
+            fetch('/api/suntik/platforms')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.getElementById('platformOptions');
+                        container.innerHTML = data.platforms.map(p => `
+                            <div class="platform-option ${p.disabled ? 'disabled' : ''}" 
+                                 data-platform="${p.name}" 
+                                 onclick="${p.disabled ? '' : `selectPlatform('${p.name}')`}">
+                                <i class="${p.icon}" style="color:${p.color};"></i>
+                                <span>${p.name}</span>
+                                <span class="provider-tag">${p.provider}</span>
+                                ${p.disabled ? '<span class="disabled-badge">OFF</span>' : ''}
                             </div>
                         `).join('');
-                        updateConsole('suntikConsole', `[✓] Platform ${platform} dipilih. Pilih aksi.`, 'log-success');
+                    }
+                });
+        }
+
+        function selectPlatform(platform) {
+            selectedPlatform = platform;
+            selectedAction = null;
+
+            document.querySelectorAll('.platform-option').forEach(el => el.classList.remove('active'));
+            const target = document.querySelector(`.platform-option[data-platform="${platform}"]`);
+            if (target) target.classList.add('active');
+
+            fetch('/api/suntik/platforms')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const platformData = data.platforms.find(p => p.name === platform);
+                        if (platformData && platformData.actions) {
+                            const container = document.getElementById('actionOptions');
+                            const actionIcons = {
+                                'Followers': 'fa-users',
+                                'Likes': 'fa-heart',
+                                'Views': 'fa-eye',
+                                'Shares': 'fa-share',
+                                'Subscribers': 'fa-user-plus',
+                                'Retweets': 'fa-retweet',
+                                'Members': 'fa-users',
+                                'Reactions': 'fa-smile',
+                                'Plays': 'fa-play'
+                            };
+                            container.innerHTML = platformData.actions.map(action => `
+                                <div class="action-option ${action.enabled ? '' : 'disabled'}" 
+                                     data-action="${action.name}" 
+                                     onclick="${action.enabled ? `selectAction('${action.name}')` : ''}"
+                                     style="${action.enabled ? '' : 'opacity:0.4;cursor:not-allowed;'}">
+                                    <i class="fas ${actionIcons[action.name] || 'fa-star'}"></i>
+                                    <span>${action.name}</span>
+                                    ${!action.enabled ? '<span class="disabled-badge">OFF</span>' : ''}
+                                </div>
+                            `).join('');
+                            updateConsole('suntikConsole', `[✓] Platform ${platform} dipilih. Pilih aksi.`, 'log-success');
+                        }
+                    }
+                });
+        }
+
+        function selectAction(action) {
+            selectedAction = action;
+            document.querySelectorAll('.action-option').forEach(el => el.classList.remove('active'));
+            const target = document.querySelector(`.action-option[data-action="${action}"]`);
+            if (target) target.classList.add('active');
+            updateConsole('suntikConsole', `[✓] Aksi ${action} dipilih. Siap suntik!`, 'log-success');
+        }
+
+        // ============================================
+        // SUNTIK
+        // ============================================
+        function toggleSuntik() {
+            if (isSpamming) { stopSuntik(); return; }
+
+            const target = document.getElementById('suntikTarget').value.trim();
+            const count = parseInt(document.getElementById('suntikCount').value) || 5;
+
+            if (!selectedPlatform) {
+                updateConsole('suntikConsole', '[✗] Pilih platform terlebih dahulu!', 'log-error');
+                return;
+            }
+            if (!selectedAction) {
+                updateConsole('suntikConsole', '[✗] Pilih aksi terlebih dahulu!', 'log-error');
+                return;
+            }
+            if (!target) {
+                updateConsole('suntikConsole', '[✗] Masukkan link/username target!', 'log-error');
+                return;
+            }
+            if (count < 1) {
+                updateConsole('suntikConsole', '[✗] Jumlah minimal 1!', 'log-error');
+                return;
+            }
+
+            const limit = currentUser?.limit;
+            if (limit !== Infinity && limit !== '∞' && limit !== null) {
+                const remaining = limit - (currentUser?.used || 0);
+                if (remaining <= 0) {
+                    updateConsole('suntikConsole', '[✗] Limit habis! Tunggu 1 jam untuk reset.', 'log-error');
+                    showToast('Limit habis! Tunggu 1 jam.', 'error');
+                    return;
+                }
+                if (count > remaining) {
+                    updateConsole('suntikConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
+                    showToast(`Sisa limit hanya ${remaining}!`, 'error');
+                    return;
+                }
+            }
+
+            isSpamming = true;
+            currentSuntikSession = `suntik_${currentUser.username}_${Date.now()}`;
+
+            const startBtn = document.getElementById('suntikStartBtn');
+            const stopBtn = document.getElementById('suntikStopBtn');
+            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+            startBtn.disabled = true;
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'block';
+            stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
+
+            updateConsole('suntikConsole', `[✓] Mengirim ${selectedAction} ke ${target} (${selectedPlatform}) ${count}x`, 'log-info');
+            updateConsole('suntikConsole', `[⏳] Provider: TikFollowers (Primary) + SMMStone (Fallback)`, 'log-warning');
+
+            fetch('/api/spam/suntik', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: currentUser.username,
+                    target: target,
+                    platform: selectedPlatform,
+                    action: selectedAction,
+                    count: count
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const r = data.result;
+                    updateConsole('suntikConsole', `[✓] Selesai! Berhasil: ${r.success}, Gagal: ${r.failed}`, 'log-success');
+                    if (r.success > 0) {
+                        currentUser.used = (currentUser.used || 0) + r.success;
+                        loadUserData();
+                        totalSuccess += r.success;
+                        totalFailed += r.failed || 0;
+                        document.getElementById('totalSuccess').textContent = totalSuccess;
+                        document.getElementById('totalFailed').textContent = totalFailed;
+                    }
+                    showToast(`Suntik selesai! Berhasil: ${r.success}`, r.success > 0 ? 'success' : 'warning');
+                } else {
+                    if (data.maintenance) {
+                        updateConsole('suntikConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
+                        showToast('Server maintenance!', 'error');
+                    } else {
+                        updateConsole('suntikConsole', `[✗] ${data.message}`, 'log-error');
+                        showToast(data.message, 'error');
                     }
                 }
-            });
-    }
-
-    function selectAction(action) {
-        selectedAction = action;
-        document.querySelectorAll('.action-option').forEach(el => el.classList.remove('active'));
-        const target = document.querySelector(`.action-option[data-action="${action}"]`);
-        if (target) target.classList.add('active');
-        updateConsole('suntikConsole', `[✓] Aksi ${action} dipilih. Siap suntik!`, 'log-success');
-    }
-
-    // ============================================
-    // SUNTIK
-    // ============================================
-    function toggleSuntik() {
-        if (isSpamming) { stopSuntik(); return; }
-        
-        const target = document.getElementById('suntikTarget').value.trim();
-        const count = parseInt(document.getElementById('suntikCount').value) || 5;
-        
-        if (!selectedPlatform) {
-            updateConsole('suntikConsole', '[✗] Pilih platform terlebih dahulu!', 'log-error');
-            return;
-        }
-        if (!selectedAction) {
-            updateConsole('suntikConsole', '[✗] Pilih aksi terlebih dahulu!', 'log-error');
-            return;
-        }
-        if (!target) {
-            updateConsole('suntikConsole', '[✗] Masukkan link/username target!', 'log-error');
-            return;
-        }
-        if (count < 1) {
-            updateConsole('suntikConsole', '[✗] Jumlah minimal 1!', 'log-error');
-            return;
-        }
-        
-        const limit = currentUser?.limit;
-        if (limit !== Infinity && limit !== '∞' && limit !== null) {
-            const remaining = limit - (currentUser?.used || 0);
-            if (remaining <= 0) {
-                updateConsole('suntikConsole', '[✗] Limit habis! Tunggu 1 jam untuk reset.', 'log-error');
-                showToast('Limit habis! Tunggu 1 jam.', 'error');
-                return;
-            }
-            if (count > remaining) {
-                updateConsole('suntikConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
-                showToast(`Sisa limit hanya ${remaining}!`, 'error');
-                return;
-            }
-        }
-        
-        isSpamming = true;
-        currentSuntikSession = `suntik_${currentUser.username}_${Date.now()}`;
-        
-        const startBtn = document.getElementById('suntikStartBtn');
-        const stopBtn = document.getElementById('suntikStopBtn');
-        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-        startBtn.disabled = true;
-        startBtn.style.display = 'none';
-        stopBtn.style.display = 'block';
-        stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
-        
-        updateConsole('suntikConsole', `[✓] Mengirim ${selectedAction} ke ${target} (${selectedPlatform}) ${count}x`, 'log-info');
-        updateConsole('suntikConsole', `[⏳] Cooldown 2 menit setelah setiap sukses`, 'log-warning');
-        
-        fetch('/api/spam/suntik', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: currentUser.username,
-                target: target,
-                platform: selectedPlatform,
-                action: selectedAction,
-                count: count
+                resetSuntikButtons();
+                loadProviderStatus();
             })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const r = data.result;
-                updateConsole('suntikConsole', `[✓] Selesai! Berhasil: ${r.success}, Gagal: ${r.failed}`, 'log-success');
-                if (r.needCaptcha) {
-                    updateConsole('suntikConsole', '[🔑] Captcha diperlukan! Selesaikan di dashboard.', 'log-captcha');
-                    showToast('Captcha diperlukan!', 'warning');
-                    checkZefoyStatus();
+            .catch(err => {
+                updateConsole('suntikConsole', `[✗] Error: ${err.message}`, 'log-error');
+                resetSuntikButtons();
+            });
+        }
+
+        function stopSuntik() {
+            if (!currentSuntikSession) { resetSuntikButtons(); return; }
+            updateConsole('suntikConsole', '[⛔] Menghentikan suntik...', 'log-warning');
+
+            fetch('/api/spam/suntik/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: currentSuntikSession })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    updateConsole('suntikConsole', '[⛔] Suntik dihentikan!', 'log-warning');
+                    showToast('Suntik dihentikan!', 'warning');
                 }
-                if (r.success > 0) {
-                    currentUser.used = (currentUser.used || 0) + r.success;
-                    loadUserData();
-                    totalSuccess += r.success;
-                    totalFailed += r.failed || 0;
-                    document.getElementById('totalSuccess').textContent = totalSuccess;
-                    document.getElementById('totalFailed').textContent = totalFailed;
-                }
-                showToast(`Suntik selesai! Berhasil: ${r.success}`, r.success > 0 ? 'success' : 'warning');
-            } else {
-                if (data.maintenance) {
-                    updateConsole('suntikConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
-                    showToast('Server maintenance!', 'error');
-                } else if (data.needCaptcha) {
-                    updateConsole('suntikConsole', '[🔑] Captcha diperlukan! Selesaikan di dashboard.', 'log-captcha');
-                    showToast('Captcha diperlukan!', 'warning');
-                    checkZefoyStatus();
+                resetSuntikButtons();
+            })
+            .catch(() => resetSuntikButtons());
+            isSpamming = false;
+        }
+
+        function resetSuntikButtons() {
+            isSpamming = false;
+            currentSuntikSession = null;
+            const startBtn = document.getElementById('suntikStartBtn');
+            const stopBtn = document.getElementById('suntikStopBtn');
+            startBtn.innerHTML = '<i class="fas fa-play"></i> Start Suntik';
+            startBtn.disabled = false;
+            startBtn.style.display = 'block';
+            stopBtn.style.display = 'none';
+        }
+
+        function updateSuntikProgress(data) {
+            if (data.type !== 'suntik') return;
+
+            const container = document.getElementById('suntikProgress');
+            container.style.display = 'block';
+            document.getElementById('suntikProgressText').textContent = `${data.current || 0}/${data.total || 0}`;
+            document.getElementById('suntikProgressBar').style.width = `${((data.current || 0)/(data.total || 1))*100}%`;
+
+            if (data.message) {
+                const cls = data.status === 'error' ? 'log-error' :
+                           data.status === 'cooldown' ? 'log-warning' :
+                           data.status === 'success' ? 'log-success' : 'log-info';
+                updateConsole('suntikConsole', `[${data.current||0}/${data.total||0}] ${data.message}`, cls);
+            }
+
+            if (data.completed) {
+                setTimeout(() => {
+                    container.style.display = 'none';
+                }, 3000);
+            }
+
+            if (data.stopped) {
+                container.style.display = 'none';
+                resetSuntikButtons();
+            }
+        }
+
+        // ============================================
+        // PAYMENT
+        // ============================================
+        let selectedPkg = 'premium';
+        let selectedPayment = 'dana';
+
+        function selectPricing(pkg) {
+            selectedPkg = pkg;
+            document.querySelectorAll('.pricing-card').forEach(el => el.style.borderColor = 'rgba(255,255,255,0.06)');
+            const targets = document.querySelectorAll(`.pricing-card[onclick*="${pkg}"]`);
+            targets.forEach(el => el.style.borderColor = '#6c5ce7');
+
+            const packages = {
+                premium: { label: 'Premium', price: 'Rp 10.000' },
+                vip: { label: 'VIP', price: 'Rp 20.000' },
+                reseller: { label: 'Reseller', price: 'Rp 30.000' }
+            };
+            document.getElementById('selectedPackage').value = packages[pkg].label;
+            document.getElementById('packagePrice').value = packages[pkg].price;
+        }
+
+        function selectPayment(method) {
+            selectedPayment = method;
+            document.querySelectorAll('.payment-option').forEach(el => el.style.borderColor = 'rgba(255,255,255,0.06)');
+            const targets = document.querySelectorAll(`.payment-option[onclick*="${method}"]`);
+            targets.forEach(el => el.style.borderColor = '#6c5ce7');
+            const numbers = { dana: 'Dana : 082320884089', ovo: 'OVO : 082320884089', gopay: 'Gopay : 082320884089' };
+            document.getElementById('paymentNumber').value = numbers[method];
+        }
+
+        function submitPayment() {
+            const pkg = document.getElementById('selectedPackage').value;
+            const name = document.getElementById('paymentName').value.trim();
+            const file = document.getElementById('paymentProof').files[0];
+
+            if (!name) { showToast('Masukkan atas nama!', 'error'); return; }
+            if (!file) { showToast('Upload bukti pembayaran!', 'error'); return; }
+
+            const formData = new FormData();
+            formData.append('username', currentUser.username);
+            formData.append('package', pkg);
+            formData.append('name', name);
+            formData.append('paymentMethod', selectedPayment || 'dana');
+            formData.append('proof', file);
+
+            updateConsole('paymentConsole', '[✓] Mengirim pembayaran...', 'log-info');
+
+            fetch('/api/payments/submit', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        updateConsole('paymentConsole', '[✓] Pembayaran terkirim! Menunggu verifikasi.', 'log-success');
+                        showToast('Pembayaran terkirim!', 'success');
+                        document.getElementById('paymentName').value = '';
+                        document.getElementById('paymentProof').value = '';
+                    } else {
+                        updateConsole('paymentConsole', `[✗] ${data.message}`, 'log-error');
+                    }
+                })
+                .catch(() => updateConsole('paymentConsole', '[✗] Error mengirim pembayaran', 'log-error'));
+        }
+
+        // ============================================
+        // CHAT
+        // ============================================
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input?.value.trim();
+            if (!msg || !socket || !currentUser) return;
+            socket.emit('sendMessage', {
+                username: currentUser.username,
+                status: currentUser.status || 'Free',
+                message: msg,
+                time: new Date().toISOString()
+            });
+            input.value = '';
+        }
+
+        function addChatMessage(data) {
+            const container = document.getElementById('chatMessages');
+            if (!container) return;
+            const isOwn = data.username === currentUser?.username;
+            const div = document.createElement('div');
+            div.className = `chat-message${isOwn ? ' own' : ''}`;
+            div.style.maxWidth = '70%';
+            div.style.padding = '0.8rem 1.2rem';
+            div.style.borderRadius = '12px';
+            div.style.background = isOwn ? 'rgba(0, 210, 211, 0.1)' : 'rgba(108, 92, 231, 0.1)';
+            div.style.border = isOwn ? '1px solid rgba(0, 210, 211, 0.2)' : '1px solid rgba(108, 92, 231, 0.1)';
+            div.style.alignSelf = isOwn ? 'flex-end' : 'flex-start';
+
+            const statusMap = { 'Developer': 'Dev', 'VIP': 'VIP', 'Reseller': 'RLR', 'Premium': 'Prem', 'Free': '' };
+            const statusLabel = statusMap[data.status] || '';
+            const statusColor = data.status?.toLowerCase() || 'free';
+
+            div.innerHTML = `
+                <div style="font-size:0.8rem;font-weight:600;color:#6c5ce7;margin-bottom:4px;">
+                    ${data.username} ${statusLabel ? `<span class="badge badge-${statusColor}">${statusLabel}</span>` : ''}
+                </div>
+                <div>${data.message}</div>
+                <div style="font-size:0.65rem;color:#666;margin-top:4px;">${new Date(data.time).toLocaleTimeString()}</div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            const placeholder = container.querySelector('.log-normal');
+            if (placeholder) placeholder.remove();
+        }
+
+        // ============================================
+        // PASSWORD
+        // ============================================
+        function changePassword() {
+            const newPass = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+            if (!newPass || newPass.length < 4) { showToast('Password minimal 4 karakter!', 'error'); return; }
+            if (newPass !== confirm) { showToast('Password tidak cocok!', 'error'); return; }
+
+            fetch('/api/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser.username, newPassword: newPass })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Password berhasil diubah!', 'success');
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
                 } else {
-                    updateConsole('suntikConsole', `[✗] ${data.message}`, 'log-error');
                     showToast(data.message, 'error');
                 }
-            }
-            resetSuntikButtons();
-            checkZefoyStatus();
-        })
-        .catch(err => {
-            updateConsole('suntikConsole', `[✗] Error: ${err.message}`, 'log-error');
-            resetSuntikButtons();
-        });
-    }
-
-    function stopSuntik() {
-        if (!currentSuntikSession) { resetSuntikButtons(); return; }
-        updateConsole('suntikConsole', '[⛔] Menghentikan suntik...', 'log-warning');
-        
-        fetch('/api/spam/suntik/stop', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: currentSuntikSession })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                updateConsole('suntikConsole', '[⛔] Suntik dihentikan!', 'log-warning');
-                showToast('Suntik dihentikan!', 'warning');
-            }
-            resetSuntikButtons();
-        })
-        .catch(() => resetSuntikButtons());
-        isSpamming = false;
-    }
-
-    function resetSuntikButtons() {
-        isSpamming = false;
-        currentSuntikSession = null;
-        const startBtn = document.getElementById('suntikStartBtn');
-        const stopBtn = document.getElementById('suntikStopBtn');
-        startBtn.innerHTML = '<i class="fas fa-play"></i> Start Suntik';
-        startBtn.disabled = false;
-        startBtn.style.display = 'block';
-        stopBtn.style.display = 'none';
-        document.getElementById('suntikProgress').style.display = 'none';
-    }
-
-    function updateSuntikProgress(data) {
-        if (data.type !== 'suntik') return;
-        
-        const container = document.getElementById('suntikProgress');
-        container.style.display = 'block';
-        document.getElementById('suntikProgressText').textContent = `${data.current || 0}/${data.total || 0}`;
-        document.getElementById('suntikProgressBar').style.width = `${((data.current || 0)/(data.total || 1))*100}%`;
-        
-        if (data.detail) {
-            document.getElementById('suntikDetailProgress').textContent = data.detail;
+            });
         }
-        
-        if (data.message) {
-            const cls = data.status === 'error' ? 'log-error' : 
-                       data.status === 'cooldown' ? 'log-warning' : 
-                       data.status === 'need_captcha' ? 'log-captcha' :
-                       data.status === 'success' ? 'log-success' : 'log-info';
-            updateConsole('suntikConsole', `[${data.current||0}/${data.total||0}] ${data.message}`, cls);
+
+        // ============================================
+        // ADMIN - FEATURES
+        // ============================================
+        function loadFeatures() {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/features')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const features = data.features || {};
+                        const grid = document.getElementById('featuresGrid');
+                        const featureNames = {
+                            'tiktok_followers': 'TikTok Followers',
+                            'tiktok_likes': 'TikTok Likes',
+                            'tiktok_views': 'TikTok Views',
+                            'tiktok_shares': 'TikTok Shares',
+                            'instagram_followers': 'Instagram Followers',
+                            'instagram_likes': 'Instagram Likes',
+                            'instagram_views': 'Instagram Views',
+                            'youtube_subscribers': 'YouTube Subscribers',
+                            'youtube_views': 'YouTube Views',
+                            'youtube_likes': 'YouTube Likes',
+                            'facebook_followers': 'Facebook Followers',
+                            'facebook_likes': 'Facebook Likes',
+                            'facebook_shares': 'Facebook Shares',
+                            'twitter_followers': 'Twitter Followers',
+                            'twitter_likes': 'Twitter Likes',
+                            'twitter_retweets': 'Twitter Retweets',
+                            'telegram_members': 'Telegram Members',
+                            'telegram_views': 'Telegram Views',
+                            'telegram_reactions': 'Telegram Reactions',
+                            'threads_followers': 'Threads Followers',
+                            'threads_likes': 'Threads Likes',
+                            'twitch_followers': 'Twitch Followers',
+                            'twitch_views': 'Twitch Views',
+                            'spotify_followers': 'Spotify Followers',
+                            'spotify_plays': 'Spotify Plays',
+                            'discord_members': 'Discord Members',
+                            'vk_followers': 'VK Followers',
+                            'vk_likes': 'VK Likes',
+                            'vk_views': 'VK Views',
+                            'kwai_followers': 'Kwai Followers',
+                            'kwai_likes': 'Kwai Likes',
+                            'kwai_views': 'Kwai Views',
+                            'soundcloud_plays': 'SoundCloud Plays',
+                            'clubhouse_followers': 'Clubhouse Followers'
+                        };
+
+                        const total = Object.keys(featureNames).length;
+                        const active = Object.keys(featureNames).filter(k => features[k] !== false).length;
+                        document.getElementById('totalFeatures').textContent = total;
+                        document.getElementById('activeFeatures').textContent = active;
+
+                        grid.innerHTML = Object.keys(featureNames).map(key => {
+                            const enabled = features[key] !== false;
+                            return `
+                                <div class="feature-item">
+                                    <span class="feature-name">${featureNames[key]}</span>
+                                    <button class="btn-sm ${enabled ? 'btn-toggle-on' : 'btn-toggle-off'}" 
+                                            onclick="toggleFeature('${key}', ${!enabled})"
+                                            style="${enabled ? 'background:rgba(0,210,211,0.2);color:#00d2d3;' : 'background:rgba(255,71,87,0.2);color:#ff4757;'}padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;transition:all 0.3s ease;">
+                                        ${enabled ? '✅ ON' : '❌ OFF'}
+                                    </button>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                });
         }
-        
-        if (data.cooldown && data.cooldownRemaining) {
-            document.getElementById('cooldownStatus').textContent = `${data.cooldownRemaining}s`;
-            document.getElementById('cooldownStatus').style.color = '#f9ca24';
-        }
-        
-        if (data.completed) {
-            setTimeout(() => {
-                container.style.display = 'none';
-                document.getElementById('cooldownStatus').textContent = 'Ready';
-                document.getElementById('cooldownStatus').style.color = '#00d2d3';
-            }, 3000);
-        }
-        
-        if (data.stopped) {
-            container.style.display = 'none';
-            resetSuntikButtons();
-        }
-        
-        if (data.needCaptcha) {
-            checkZefoyStatus();
-        }
-    }
 
-    // ============================================
-    // PAYMENT
-    // ============================================
-    let selectedPkg = 'premium';
-    let selectedPayment = 'dana';
-
-    function selectPricing(pkg) {
-        selectedPkg = pkg;
-        document.querySelectorAll('.pricing-card').forEach(el => el.classList.remove('selected'));
-        const target = document.querySelector(`.pricing-card[onclick*="${pkg}"]`);
-        if (target) target.classList.add('selected');
-
-        const packages = {
-            premium: { label: 'Premium', price: 'Rp 10.000' },
-            vip: { label: 'VIP', price: 'Rp 20.000' },
-            reseller: { label: 'Reseller', price: 'Rp 30.000' }
-        };
-        document.getElementById('selectedPackage').value = packages[pkg].label;
-        document.getElementById('packagePrice').value = packages[pkg].price;
-    }
-
-    function selectPayment(method) {
-        selectedPayment = method;
-        document.querySelectorAll('.call-option[onclick*="selectPayment"]').forEach(el => el.classList.remove('active'));
-        const target = document.querySelector(`.call-option[onclick*="${method}"]`);
-        if (target) target.classList.add('active');
-        const numbers = { dana: 'Dana : 082320884089', ovo: 'OVO : 082320884089', gopay: 'Gopay : 082320884089' };
-        document.getElementById('paymentNumber').value = numbers[method];
-    }
-
-    function submitPayment() {
-        const pkg = document.getElementById('selectedPackage').value;
-        const name = document.getElementById('paymentName').value.trim();
-        const file = document.getElementById('paymentProof').files[0];
-
-        if (!name) { showToast('Masukkan atas nama!', 'error'); return; }
-        if (!file) { showToast('Upload bukti pembayaran!', 'error'); return; }
-
-        const formData = new FormData();
-        formData.append('username', currentUser.username);
-        formData.append('package', pkg);
-        formData.append('name', name);
-        formData.append('paymentMethod', selectedPayment || 'dana');
-        formData.append('proof', file);
-
-        updateConsole('paymentConsole', '[✓] Mengirim pembayaran...', 'log-info');
-
-        fetch('/api/payments/submit', { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    updateConsole('paymentConsole', '[✓] Pembayaran terkirim! Menunggu verifikasi.', 'log-success');
-                    showToast('Pembayaran terkirim!', 'success');
-                    document.getElementById('paymentName').value = '';
-                    document.getElementById('paymentProof').value = '';
-                } else {
-                    updateConsole('paymentConsole', `[✗] ${data.message}`, 'log-error');
-                }
+        function toggleFeature(featureKey, enabled) {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/features/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ featureKey, enabled, admin: currentUser.username })
             })
-            .catch(() => updateConsole('paymentConsole', '[✗] Error mengirim pembayaran', 'log-error'));
-    }
-
-    // ============================================
-    // CHAT
-    // ============================================
-    function sendMessage() {
-        const input = document.getElementById('chatInput');
-        const msg = input?.value.trim();
-        if (!msg || !socket || !currentUser) return;
-        socket.emit('sendMessage', {
-            username: currentUser.username,
-            status: currentUser.status || 'Free',
-            message: msg,
-            time: new Date().toISOString()
-        });
-        input.value = '';
-    }
-
-    function addChatMessage(data) {
-        const container = document.getElementById('chatMessages');
-        if (!container) return;
-        const isOwn = data.username === currentUser?.username;
-        const div = document.createElement('div');
-        div.className = `chat-message${isOwn ? ' own' : ''}`;
-        const statusMap = { 'Developer': 'Dev', 'VIP': 'VIP', 'Reseller': 'RLR', 'Premium': 'Prem', 'Free': '' };
-        const statusLabel = statusMap[data.status] || '';
-        const statusColor = data.status?.toLowerCase() || 'free';
-        div.innerHTML = `
-            <div class="sender">${data.username} ${statusLabel ? `<span class="badge badge-${statusColor}">${statusLabel}</span>` : ''}</div>
-            <div>${data.message}</div>
-            <div class="time">${new Date(data.time).toLocaleTimeString()}</div>
-        `;
-        container.appendChild(div);
-        container.scrollTop = container.scrollHeight;
-        const placeholder = container.querySelector('.log-normal');
-        if (placeholder) placeholder.remove();
-    }
-
-    // ============================================
-    // PASSWORD
-    // ============================================
-    function changePassword() {
-        const newPass = document.getElementById('newPassword').value;
-        const confirm = document.getElementById('confirmPassword').value;
-        if (!newPass || newPass.length < 4) { showToast('Password minimal 4 karakter!', 'error'); return; }
-        if (newPass !== confirm) { showToast('Password tidak cocok!', 'error'); return; }
-
-        fetch('/api/change-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: currentUser.username, newPassword: newPass })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Password berhasil diubah!', 'success');
-                document.getElementById('newPassword').value = '';
-                document.getElementById('confirmPassword').value = '';
-            } else {
-                showToast(data.message, 'error');
-            }
-        });
-    }
-
-    // ============================================
-    // ADMIN - FEATURES
-    // ============================================
-    function loadFeatures() {
-        if (!currentUser?.isDeveloper) return;
-        fetch('/api/admin/features')
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    const features = data.features || {};
-                    const grid = document.getElementById('featuresGrid');
-                    const featureNames = {
-                        'tiktok_followers': 'TikTok Followers',
-                        'tiktok_likes': 'TikTok Likes',
-                        'tiktok_views': 'TikTok Views',
-                        'tiktok_shares': 'TikTok Shares',
-                        'instagram_followers': 'Instagram Followers',
-                        'instagram_likes': 'Instagram Likes',
-                        'instagram_views': 'Instagram Views',
-                        'youtube_subscribers': 'YouTube Subscribers',
-                        'youtube_views': 'YouTube Views',
-                        'youtube_likes': 'YouTube Likes',
-                        'facebook_followers': 'Facebook Followers',
-                        'facebook_likes': 'Facebook Likes',
-                        'facebook_shares': 'Facebook Shares',
-                        'twitter_followers': 'Twitter Followers',
-                        'twitter_likes': 'Twitter Likes',
-                        'twitter_retweets': 'Twitter Retweets'
-                    };
-                    
-                    const total = Object.keys(featureNames).length;
-                    const active = Object.keys(featureNames).filter(k => features[k] !== false).length;
-                    document.getElementById('totalFeatures').textContent = total;
-                    document.getElementById('activeFeatures').textContent = active;
-                    
-                    grid.innerHTML = Object.keys(featureNames).map(key => {
-                        const enabled = features[key] !== false;
-                        return `
-                            <div class="feature-item">
-                                <span class="feature-name">${featureNames[key]}</span>
-                                <button class="btn-sm ${enabled ? 'btn-toggle-on' : 'btn-toggle-off'}" 
-                                        onclick="toggleFeature('${key}', ${!enabled})">
-                                    ${enabled ? '✅ ON' : '❌ OFF'}
-                                </button>
+                    showToast(`Fitur ${enabled ? 'diaktifkan' : 'dinonaktifkan'}!`, 'success');
+                    loadFeatures();
+                    loadPlatforms();
+                }
+            });
+        }
+
+        // ============================================
+        // ADMIN - PROVIDER CONTROLS
+        // ============================================
+        function loadProviderControls() {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/providers/status')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.getElementById('providerControls');
+                        const providers = data.providers;
+                        const fallback = data.fallbackEnabled;
+
+                        container.innerHTML = `
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;">
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1.5rem;">
+                                    <h3 style="color:#fff;margin-bottom:1rem;">🔵 TikFollowers</h3>
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                                        <span style="color:#b0b0c8;">Status</span>
+                                        <button class="btn-sm ${providers.tikfollowers.enabled ? 'btn-toggle-on' : 'btn-toggle-off'}"
+                                                onclick="toggleProvider('tikfollowers', ${!providers.tikfollowers.enabled})"
+                                                style="${providers.tikfollowers.enabled ? 'background:rgba(0,210,211,0.2);color:#00d2d3;' : 'background:rgba(255,71,87,0.2);color:#ff4757;'}padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;">
+                                            ${providers.tikfollowers.enabled ? '✅ Enabled' : '❌ Disabled'}
+                                        </button>
+                                    </div>
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                                        <span style="color:#b0b0c8;">Primary</span>
+                                        <button class="btn-sm ${providers.tikfollowers.isPrimary ? 'btn-toggle-on' : 'btn-toggle-off'}"
+                                                onclick="setPrimaryProvider('tikfollowers')"
+                                                style="${providers.tikfollowers.isPrimary ? 'background:rgba(0,210,211,0.2);color:#00d2d3;' : 'background:rgba(255,255,255,0.05);color:#888;'}padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;">
+                                            ${providers.tikfollowers.isPrimary ? '⭐ Primary' : 'Set Primary'}
+                                        </button>
+                                    </div>
+                                    <div style="color:#888;font-size:0.85rem;">
+                                        Cooldown: ${providers.tikfollowers.cooldown}s | Max/Day: ${providers.tikfollowers.maxPerDay}
+                                    </div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1.5rem;">
+                                    <h3 style="color:#fff;margin-bottom:1rem;">🟢 SMMStone</h3>
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                                        <span style="color:#b0b0c8;">Status</span>
+                                        <button class="btn-sm ${providers.smmstone.enabled ? 'btn-toggle-on' : 'btn-toggle-off'}"
+                                                onclick="toggleProvider('smmstone', ${!providers.smmstone.enabled})"
+                                                style="${providers.smmstone.enabled ? 'background:rgba(0,210,211,0.2);color:#00d2d3;' : 'background:rgba(255,71,87,0.2);color:#ff4757;'}padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;">
+                                            ${providers.smmstone.enabled ? '✅ Enabled' : '❌ Disabled'}
+                                        </button>
+                                    </div>
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                                        <span style="color:#b0b0c8;">Primary</span>
+                                        <button class="btn-sm ${providers.smmstone.isPrimary ? 'btn-toggle-on' : 'btn-toggle-off'}"
+                                                onclick="setPrimaryProvider('smmstone')"
+                                                style="${providers.smmstone.isPrimary ? 'background:rgba(0,210,211,0.2);color:#00d2d3;' : 'background:rgba(255,255,255,0.05);color:#888;'}padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;">
+                                            ${providers.smmstone.isPrimary ? '⭐ Primary' : 'Set Primary'}
+                                        </button>
+                                    </div>
+                                    <div style="color:#888;font-size:0.85rem;">
+                                        Cooldown: ${providers.smmstone.cooldown}s | Max/Day: ${providers.smmstone.maxPerDay}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-top:1rem;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="color:#b0b0c8;">Fallback Mode</span>
+                                    <button class="btn-sm ${fallback ? 'btn-toggle-on' : 'btn-toggle-off'}"
+                                            onclick="toggleFallback(${!fallback})"
+                                            style="${fallback ? 'background:rgba(0,210,211,0.2);color:#00d2d3;' : 'background:rgba(255,71,87,0.2);color:#ff4757;'}padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;">
+                                        ${fallback ? '✅ Enabled' : '❌ Disabled'}
+                                    </button>
+                                </div>
+                                <div style="color:#888;font-size:0.8rem;margin-top:4px;">
+                                    ${fallback ? 'Auto switch to fallback if primary fails' : 'Fallback disabled'}
+                                </div>
                             </div>
                         `;
-                    }).join('');
-                }
-            });
-    }
-
-    function toggleFeature(featureKey, enabled) {
-        if (!currentUser?.isDeveloper) return;
-        fetch('/api/admin/features/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ featureKey, enabled, admin: currentUser.username })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showToast(`Fitur ${enabled ? 'diaktifkan' : 'dinonaktifkan'}!`, 'success');
-                loadFeatures();
-                loadPlatforms();
-            }
-        });
-    }
-
-    // ============================================
-    // ADMIN - USERS
-    // ============================================
-    function loadAdminData() {
-        if (!currentUser?.isDeveloper) return;
-        fetch('/api/admin/users')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('totalUsers').textContent = data.users.length;
-                    document.getElementById('activeUsers').textContent = data.users.filter(u => u.online).length;
-                    const body = document.getElementById('adminUsersBody');
-                    body.innerHTML = data.users.map(u => `
-                        <tr>
-                            <td><strong>${u.username}</strong></td>
-                            <td><span class="badge badge-${u.status?.toLowerCase() || 'free'}">${u.status || 'Free'}</span></td>
-                            <td>${u.limit === '∞' ? '∞' : u.limit}</td>
-                            <td>${u.used || 0}</td>
-                            <td>
-                                <select onchange="changeUserStatus('${u.username}', this.value)" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:4px;">
-                                    <option value="Free" ${u.status === 'Free' ? 'selected' : ''}>Free</option>
-                                    <option value="Premium" ${u.status === 'Premium' ? 'selected' : ''}>Premium</option>
-                                    <option value="VIP" ${u.status === 'VIP' ? 'selected' : ''}>VIP</option>
-                                    <option value="Reseller" ${u.status === 'Reseller' ? 'selected' : ''}>Reseller</option>
-                                    <option value="Developer" ${u.status === 'Developer' ? 'selected' : ''}>Developer</option>
-                                </select>
-                                <button class="btn-sm btn-delete" onclick="banUser('${u.username}')"><i class="fas fa-ban"></i></button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-            });
-    }
-
-    function changeUserStatus(username, status) {
-        if (!currentUser?.isDeveloper) return;
-        fetch('/api/admin/update-status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, status, admin: currentUser.username })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showToast(`Status ${username} diubah ke ${status}`, 'success');
-                loadAdminData();
-            }
-        });
-    }
-
-    function banUser(username) {
-        if (!currentUser?.isDeveloper || !confirm(`Ban user ${username}?`)) return;
-        fetch('/api/admin/ban', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, admin: currentUser.username })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showToast(`${username} di-ban!`, 'success');
-                loadAdminData();
-            }
-        });
-    }
-
-    function switchAdminTab(tab) {
-        document.querySelectorAll('.admin-tab').forEach(t => {
-            t.style.background = 'transparent';
-            t.style.color = '#888';
-        });
-        const tabEl = document.querySelector(`.admin-tab[onclick*="${tab}"]`);
-        if (tabEl) {
-            tabEl.style.background = 'rgba(108,92,231,0.15)';
-            tabEl.style.color = '#fff';
+                    }
+                });
         }
-        ['adminUsersTab', 'adminFeaturesTab', 'adminSettingsTab', 'adminPaymentsTab'].forEach(id => {
-            document.getElementById(id).style.display = 'none';
-        });
-        document.getElementById(`admin${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`).style.display = 'block';
-        if (tab === 'payments') loadPayments();
-        if (tab === 'features') loadFeatures();
-    }
 
-    function saveSettings() {
-        if (!currentUser?.isDeveloper) return;
-        const settings = {
-            maintenance: document.getElementById('maintenanceMode').value === 'true',
-            maintenanceMessage: document.getElementById('maintenanceMessage').value
-        };
-        fetch('/api/admin/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ settings, admin: currentUser.username })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) showToast('Settings saved!', 'success');
-        });
-    }
-
-    function loadPayments() {
-        fetch('/api/admin/payments')
+        function toggleProvider(provider, enabled) {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/provider/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider, enabled, admin: currentUser.username })
+            })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    const body = document.getElementById('adminPaymentsBody');
-                    body.innerHTML = data.payments.map(p => `
-                        <tr>
-                            <td>${p.username}</td>
-                            <td>${p.package}</td>
-                            <td>Rp ${p.amount?.toLocaleString() || 0}</td>
-                            <td><span class="badge badge-${p.status === 'verified' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}">${p.status}</span></td>
-                            <td>${p.status === 'pending' ? `
-                                <button class="btn-sm btn-edit" onclick="verifyPayment('${p.id}')">Verify</button>
-                                <button class="btn-sm btn-delete" onclick="rejectPayment('${p.id}')">Reject</button>
-                            ` : ''}</td>
-                        </tr>
-                    `).join('');
+                    showToast(`${provider} ${enabled ? 'diaktifkan' : 'dinonaktifkan'}!`, 'success');
+                    loadProviderControls();
+                    loadProviderStatus();
                 }
             });
-    }
+        }
 
-    function verifyPayment(id) {
-        if (!currentUser?.isDeveloper) return;
-        fetch('/api/admin/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: id, admin: currentUser.username })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Payment verified!', 'success');
-                loadPayments();
-                loadAdminData();
-            }
+        function setPrimaryProvider(provider) {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/primary-provider', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Primary provider: ${provider}`, 'success');
+                    loadProviderControls();
+                    loadProviderStatus();
+                }
+            });
+        }
+
+        function toggleFallback(enabled) {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/fallback-toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Fallback ${enabled ? 'diaktifkan' : 'dinonaktifkan'}!`, 'success');
+                    loadProviderControls();
+                    loadProviderStatus();
+                }
+            });
+        }
+
+        // ============================================
+        // ADMIN - PLATFORM CONTROLS
+        // ============================================
+        function loadPlatformControls() {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/suntik/platforms')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.getElementById('platformControls');
+                        container.innerHTML = data.platforms.map(p => `
+                            <div class="feature-item">
+                                <span class="feature-name"><i class="${p.icon}" style="color:${p.color};"></i> ${p.name}</span>
+                                <button class="btn-sm ${p.disabled ? 'btn-toggle-off' : 'btn-toggle-on'}"
+                                        onclick="togglePlatform('${p.name}', ${p.disabled})"
+                                        style="${p.disabled ? 'background:rgba(255,71,87,0.2);color:#ff4757;' : 'background:rgba(0,210,211,0.2);color:#00d2d3;'}padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;transition:all 0.3s ease;">
+                                    ${p.disabled ? '❌ OFF' : '✅ ON'}
+                                </button>
+                            </div>
+                        `).join('');
+                    }
+                });
+        }
+
+        function togglePlatform(platform, disabled) {
+            if (!currentUser?.isDeveloper) return;
+            const controlKey = `disable${platform}`;
+            fetch('/api/admin/control/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ controlKey, enabled: !disabled, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`${platform} ${disabled ? 'diaktifkan' : 'dinonaktifkan'}!`, 'success');
+                    loadPlatformControls();
+                    loadPlatforms();
+                }
+            });
+        }
+
+        // ============================================
+        // ADMIN - USERS
+        // ============================================
+        function loadAdminData() {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/users')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('totalUsers').textContent = data.users.length;
+                        document.getElementById('activeUsers').textContent = data.users.filter(u => u.online).length;
+                        const body = document.getElementById('adminUsersBody');
+                        body.innerHTML = data.users.map(u => `
+                            <tr>
+                                <td><strong>${u.username}</strong></td>
+                                <td><span class="badge badge-${u.status?.toLowerCase() || 'free'}">${u.status || 'Free'}</span></td>
+                                <td>${u.limit === '∞' ? '∞' : u.limit}</td>
+                                <td>${u.used || 0}</td>
+                                <td>
+                                    <select onchange="changeUserStatus('${u.username}', this.value)" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:4px;">
+                                        <option value="Free" ${u.status === 'Free' ? 'selected' : ''}>Free</option>
+                                        <option value="Premium" ${u.status === 'Premium' ? 'selected' : ''}>Premium</option>
+                                        <option value="VIP" ${u.status === 'VIP' ? 'selected' : ''}>VIP</option>
+                                        <option value="Reseller" ${u.status === 'Reseller' ? 'selected' : ''}>Reseller</option>
+                                        <option value="Developer" ${u.status === 'Developer' ? 'selected' : ''}>Developer</option>
+                                    </select>
+                                    <button class="btn-sm btn-delete" onclick="banUser('${u.username}')" style="background:rgba(255,71,87,0.2);color:#ff4757;padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;"><i class="fas fa-ban"></i></button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                });
+        }
+
+        function changeUserStatus(username, status) {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, status, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Status ${username} diubah ke ${status}`, 'success');
+                    loadAdminData();
+                }
+            });
+        }
+
+        function banUser(username) {
+            if (!currentUser?.isDeveloper || !confirm(`Ban user ${username}?`)) return;
+            fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`${username} di-ban!`, 'success');
+                    loadAdminData();
+                }
+            });
+        }
+
+        // ============================================
+        // ADMIN - PAYMENTS
+        // ============================================
+        function loadPayments() {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/payments')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const body = document.getElementById('adminPaymentsBody');
+                        body.innerHTML = data.payments.map(p => `
+                            <tr>
+                                <td>${p.username}</td>
+                                <td>${p.package}</td>
+                                <td>Rp ${p.amount?.toLocaleString() || 0}</td>
+                                <td><span class="badge badge-${p.status === 'verified' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}">${p.status}</span></td>
+                                <td>${p.status === 'pending' ? `
+                                    <button class="btn-sm" onclick="verifyPayment('${p.id}')" style="background:rgba(0,210,211,0.2);color:#00d2d3;padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;">Verify</button>
+                                    <button class="btn-sm" onclick="rejectPayment('${p.id}')" style="background:rgba(255,71,87,0.2);color:#ff4757;padding:4px 12px;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;">Reject</button>
+                                ` : ''}</td>
+                            </tr>
+                        `).join('');
+                    }
+                });
+        }
+
+        function verifyPayment(id) {
+            if (!currentUser?.isDeveloper) return;
+            fetch('/api/admin/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId: id, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Payment verified!', 'success');
+                    loadPayments();
+                    loadAdminData();
+                }
+            });
+        }
+
+        function rejectPayment(id) {
+            if (!currentUser?.isDeveloper) return;
+            const reason = prompt('Alasan pembatalan:');
+            if (!reason) return;
+            fetch('/api/admin/reject-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId: id, reason, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Payment rejected!', 'error');
+                    loadPayments();
+                }
+            });
+        }
+
+        // ============================================
+        // ADMIN - TABS
+        // ============================================
+        function switchAdminTab(tab) {
+            document.querySelectorAll('.admin-tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            const tabEl = document.querySelector(`.admin-tab[onclick*="${tab}"]`);
+            if (tabEl) tabEl.classList.add('active');
+
+            const tabs = ['users', 'features', 'providers', 'controls', 'payments'];
+            tabs.forEach(id => {
+                const el = document.getElementById(`admin${id.charAt(0).toUpperCase() + id.slice(1)}Tab`);
+                if (el) el.style.display = 'none';
+            });
+
+            const target = document.getElementById(`admin${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`);
+            if (target) target.style.display = 'block';
+
+            if (tab === 'payments') loadPayments();
+            if (tab === 'features') loadFeatures();
+            if (tab === 'providers') loadProviderControls();
+            if (tab === 'controls') loadPlatformControls();
+        }
+
+        // ============================================
+        // UTILITY
+        // ============================================
+        function updateConsole(consoleId, message, className = 'log-normal') {
+            const el = document.getElementById(consoleId);
+            if (!el) return;
+            const div = document.createElement('div');
+            div.className = className;
+            div.textContent = message;
+            el.appendChild(div);
+            el.scrollTop = el.scrollHeight;
+            while (el.children.length > 100) el.removeChild(el.firstChild);
+        }
+
+        function showToast(message, type = 'info') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const icons = { 'success': 'check-circle', 'error': 'times-circle', 'info': 'info-circle', 'warning': 'exclamation-triangle' };
+            toast.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.dataset.section;
+                if (section === 'admin' && !currentUser?.isDeveloper) {
+                    showToast('Akses ditolak! Hanya Developer!', 'error');
+                    return;
+                }
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById(section).classList.add('active');
+            });
         });
-    }
 
-    function rejectPayment(id) {
-        if (!currentUser?.isDeveloper) return;
-        const reason = prompt('Alasan pembatalan:');
-        if (!reason) return;
-        fetch('/api/admin/reject-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: id, reason, admin: currentUser.username })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Payment rejected!', 'error');
-                loadPayments();
-            }
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'L') { e.preventDefault(); handleLogout(); }
+            if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') sendMessage();
         });
-    }
 
-    // ============================================
-    // UTILITY
-    // ============================================
-    function updateConsole(consoleId, message, className = 'log-normal') {
-        const el = document.getElementById(consoleId);
-        if (!el) return;
-        const div = document.createElement('div');
-        div.className = className;
-        div.textContent = message;
-        el.appendChild(div);
-        el.scrollTop = el.scrollHeight;
-        while (el.children.length > 100) el.removeChild(el.firstChild);
-    }
-
-    function showToast(message, type = 'info') {
-        const existing = document.querySelector('.toast');
-        if (existing) existing.remove();
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        const icons = { 'success': 'check-circle', 'error': 'times-circle', 'info': 'info-circle', 'warning': 'exclamation-triangle' };
-        toast.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> ${message}`;
-        document.body.appendChild(toast);
-        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
-    }
-
-    // ============================================
-    // NAVIGATION
-    // ============================================
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const section = this.dataset.section;
-            if (section === 'admin-panel' && !currentUser?.isDeveloper) {
-                showToast('Akses ditolak! Hanya Developer!', 'error');
-                return;
-            }
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            this.classList.add('active');
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.getElementById(section).classList.add('active');
-        });
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', e => {
-        if (e.ctrlKey && e.shiftKey && e.key === 'L') { e.preventDefault(); handleLogout(); }
-        if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') sendMessage();
-        if (e.key === 'Enter' && document.activeElement?.id === 'captchaInput') submitCaptcha();
-        if (e.key === 'Enter' && document.activeElement?.id === 'captchaInput' && e.shiftKey) autoSolveCaptcha();
-    });
-
-    console.log('🔥 PrankMaster Pro - Suntik Sosial Media');
-    console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('💉 5 Platform Support');
-    console.log('⏳ Cooldown: 2 Menit');
-    console.log('🤖 Auto Bypass: Puppeteer + Stealth + OCR');
-    console.log('💡 Developer limit: ∞ (Unlimited)');
-    console.log('📌 Shortcut: Shift+Enter di input captcha = Auto Solve');
+        console.log('🔥 PrankMaster Pro V5 - Multi Provider');
+        console.log('👑 Admin: Lynzka / Asiafone11');
+        console.log('📌 Providers: TikFollowers (Primary) + SMMStone (Fallback)');
+        console.log('🔥 14 Platforms Supported');
+        console.log('💡 Developer limit: ∞ (Unlimited)');
     </script>
 </body>
 </html>
