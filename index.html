@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <style>
-        /* CSS SAMA SEPERTI SEBELUMNYA TAPI HAPUS OTP */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
@@ -176,8 +175,26 @@
             color: #fff;
         }
         .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 210, 211, 0.3); }
+        .btn-warning {
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            color: #fff;
+        }
+        .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(249, 202, 36, 0.3); }
         .btn-block { width: 100%; justify-content: center; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-sm.btn-edit { background: rgba(108, 92, 231, 0.2); color: #6c5ce7; }
+        .btn-sm.btn-delete { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+        .btn-sm.btn-toggle-on { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
+        .btn-sm.btn-toggle-off { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         
         .console-log {
             background: rgba(0, 0, 0, 0.6);
@@ -197,6 +214,7 @@
         .console-log .log-info { color: #f9ca24; }
         .console-log .log-warning { color: #ff9ff3; }
         .console-log .log-normal { color: #b0b0c8; }
+        .console-log .log-captcha { color: #ff6b6b; font-weight: bold; }
         
         .spam-progress {
             background: rgba(0, 0, 0, 0.4);
@@ -228,6 +246,8 @@
         .badge-reseller { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
         .badge-developer { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         .badge-free { background: rgba(45, 52, 54, 0.5); color: #b2bec3; }
+        .badge-off { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+        .badge-on { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
         
         .login-page {
             min-height: 100vh;
@@ -274,6 +294,7 @@
             z-index: 9999;
             animation: slideUp 0.3s ease;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-width: 90%;
         }
         .toast-success { border-color: rgba(0, 210, 211, 0.3); }
         .toast-error { border-color: rgba(255, 71, 87, 0.3); }
@@ -295,6 +316,7 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
+            position: relative;
         }
         .platform-option:hover, .action-option:hover {
             background: rgba(108, 92, 231, 0.05);
@@ -303,6 +325,10 @@
         .platform-option.active, .action-option.active {
             border-color: #6c5ce7;
             background: rgba(108, 92, 231, 0.1);
+        }
+        .platform-option.disabled, .action-option.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
         .platform-option i, .action-option i {
             font-size: 2rem;
@@ -313,6 +339,16 @@
             font-size: 0.8rem;
             font-weight: 500;
             display: block;
+        }
+        .platform-option .disabled-badge, .action-option .disabled-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4757;
+            color: #fff;
+            font-size: 0.6rem;
+            padding: 2px 8px;
+            border-radius: 10px;
         }
         
         .admin-panel {
@@ -343,8 +379,6 @@
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        .admin-table .btn-sm.btn-edit { background: rgba(108, 92, 231, 0.2); color: #6c5ce7; }
-        .admin-table .btn-sm.btn-delete { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         
         .admin-stats {
             display: grid;
@@ -370,6 +404,57 @@
             border-radius: 12px;
             margin-bottom: 20px;
             border: 1px solid rgba(255, 255, 255, 0.05);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .captcha-container {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(108, 92, 231, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        .captcha-container .captcha-word {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #6c5ce7;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+        .captcha-container .captcha-image {
+            max-width: 300px;
+            border-radius: 12px;
+            margin: 1rem auto;
+            display: block;
+        }
+        .captcha-container .captcha-input {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .captcha-container .captcha-input input {
+            padding: 12px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 4px;
+            width: 200px;
+            outline: none;
+        }
+        .captcha-container .captcha-input input:focus {
+            border-color: #6c5ce7;
         }
         
         .chat-container {
@@ -478,6 +563,26 @@
         .section-header h1 i { color: #6c5ce7; }
         .section-header p { color: #8888aa; margin-top: 6px; font-size: 0.95rem; }
         
+        .admin-features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .feature-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .feature-item .feature-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
         @media (max-width: 768px) {
             .navbar { padding: 0 1rem; height: 60px; }
             .nav-logo { font-size: 1.2rem; }
@@ -491,6 +596,8 @@
             .admin-stats { grid-template-columns: 1fr 1fr; }
             .pricing-grid { grid-template-columns: 1fr; }
             .section-header h1 { font-size: 1.5rem; }
+            .captcha-container .captcha-word { font-size: 2rem; letter-spacing: 4px; }
+            .status-bar { flex-direction: column; gap: 4px; }
         }
     </style>
 </head>
@@ -581,6 +688,23 @@
                     <div>🔌 Zefoy: <span id="zefoyStatus" style="color:#ff6b00;">Checking...</span></div>
                     <div>⏳ Cooldown: <span id="cooldownStatus">Ready</span></div>
                     <div>📊 Berhasil: <span id="totalSuccess">0</span> | Gagal: <span id="totalFailed">0</span></div>
+                    <div>🔑 Captcha: <span id="captchaStatus">Menunggu...</span></div>
+                </div>
+                
+                <!-- Captcha Container -->
+                <div id="captchaContainer" style="display:none;" class="captcha-container">
+                    <h3 style="color:#ff6b6b;margin-bottom:0.5rem;">🔑 Verifikasi Captcha Zefoy</h3>
+                    <p style="color:#888;margin-bottom:1rem;">Masukkan kata yang terlihat di bawah untuk melanjutkan</p>
+                    <div id="captchaWordDisplay" class="captcha-word">ZEFOY</div>
+                    <div id="captchaImageDisplay" style="display:none;">
+                        <img id="captchaImage" class="captcha-image" src="" alt="Captcha Image">
+                    </div>
+                    <div class="captcha-input">
+                        <input type="text" id="captchaInput" placeholder="Ketik kata..." maxlength="8" style="text-transform:uppercase;">
+                        <button class="btn btn-primary" onclick="submitCaptcha()"><i class="fas fa-check"></i> Verifikasi</button>
+                        <button class="btn btn-warning" onclick="refreshCaptcha()"><i class="fas fa-sync"></i> Refresh</button>
+                    </div>
+                    <div id="captchaMessage" style="color:#ff6b6b;margin-top:0.5rem;"></div>
                 </div>
                 
                 <div class="admin-stats">
@@ -607,7 +731,7 @@
                         </div>
                         <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
                             <div style="font-size:0.8rem;color:#888;">Bypass</div>
-                            <div style="font-size:1rem;font-weight:700;color:#6c5ce7;" id="bypassStatus">⏳ Initializing...</div>
+                            <div style="font-size:1rem;font-weight:700;color:#ff6b00;" id="bypassStatus">⏳ Menunggu Captcha</div>
                         </div>
                     </div>
                 </div>
@@ -652,7 +776,7 @@
                     <div class="form-group">
                         <label><i class="fas fa-terminal"></i> Console Log</label>
                         <div class="console-log" id="suntikConsole">
-                            <div class="log-normal">[✓] Sistem siap... Pilih platform dan aksi</div>
+                            <div class="log-normal">[✓] Sistem siap... Selesaikan captcha Zefoy terlebih dahulu</div>
                             <div class="log-normal">[✓] Cooldown: 2 menit setelah setiap sukses</div>
                         </div>
                     </div>
@@ -777,11 +901,12 @@
                 <div class="admin-panel">
                     <div class="section-header">
                         <h1><i class="fas fa-user-shield"></i> Admin Panel</h1>
-                        <p id="adminAccessMessage">Kelola pengguna dan sistem</p>
+                        <p id="adminAccessMessage">Kelola pengguna, fitur, dan sistem</p>
                     </div>
                     <div id="adminContent">
                         <div class="admin-tabs" style="display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
                             <button class="admin-tab active" onclick="switchAdminTab('users')" style="padding:8px 20px;border:none;border-radius:10px;background:rgba(108,92,231,0.15);color:#fff;cursor:pointer;">Users</button>
+                            <button class="admin-tab" onclick="switchAdminTab('features')" style="padding:8px 20px;border:none;border-radius:10px;background:transparent;color:#888;cursor:pointer;">Features</button>
                             <button class="admin-tab" onclick="switchAdminTab('settings')" style="padding:8px 20px;border:none;border-radius:10px;background:transparent;color:#888;cursor:pointer;">Settings</button>
                             <button class="admin-tab" onclick="switchAdminTab('payments')" style="padding:8px 20px;border:none;border-radius:10px;background:transparent;color:#888;cursor:pointer;">Payments</button>
                         </div>
@@ -794,6 +919,13 @@
                                 <thead><tr><th>Username</th><th>Status</th><th>Limit</th><th>Used</th><th>Actions</th></tr></thead>
                                 <tbody id="adminUsersBody"></tbody>
                             </table>
+                        </div>
+                        <div id="adminFeaturesTab" style="display:none;">
+                            <div class="admin-stats">
+                                <div class="stat-card"><div class="number" id="totalFeatures">0</div><div class="label">Total Features</div></div>
+                                <div class="stat-card"><div class="number" id="activeFeatures">0</div><div class="label">Active Features</div></div>
+                            </div>
+                            <div id="featuresGrid" class="admin-features-grid"></div>
                         </div>
                         <div id="adminSettingsTab" style="display:none;">
                             <div class="form-group">
@@ -862,6 +994,8 @@
     let totalSuccess = 0;
     let totalFailed = 0;
     let isCooldown = false;
+    let currentCaptchaSessionId = null;
+    let captchaAttempts = 0;
 
     // ============================================
     // DOM READY
@@ -882,6 +1016,7 @@
                     checkZefoyStatus();
                     if (currentUser.isAdmin || currentUser.isDeveloper) {
                         loadAdminData();
+                        loadFeatures();
                     }
                     return;
                 }
@@ -922,6 +1057,12 @@
             socket.on('userUpdated', (data) => {
                 if (data.username === currentUser?.username) loadUserData();
                 if (currentUser?.isAdmin || currentUser?.isDeveloper) loadAdminData();
+            });
+
+            socket.on('settingsUpdated', (data) => {
+                if (currentUser?.isAdmin || currentUser?.isDeveloper) {
+                    loadFeatures();
+                }
             });
 
         } catch (err) {
@@ -966,7 +1107,10 @@
                 loadUserData();
                 loadPlatforms();
                 checkZefoyStatus();
-                if (currentUser.isAdmin || currentUser.isDeveloper) loadAdminData();
+                if (currentUser.isAdmin || currentUser.isDeveloper) {
+                    loadAdminData();
+                    loadFeatures();
+                }
                 showToast('Login berhasil!', 'success');
             } else {
                 errorEl.textContent = data.message || 'Login gagal!';
@@ -1130,7 +1274,7 @@
     }
 
     // ============================================
-    // ZEFOY STATUS
+    // ZEFOY CAPTCHA
     // ============================================
     function checkZefoyStatus() {
         fetch('/api/zefoy/status')
@@ -1138,16 +1282,34 @@
             .then(data => {
                 const statusEl = document.getElementById('zefoyStatus');
                 const bypassEl = document.getElementById('bypassStatus');
+                const captchaEl = document.getElementById('captchaStatus');
+                
                 if (data.success && data.ready) {
                     statusEl.textContent = '✅ Ready';
                     statusEl.style.color = '#00d2d3';
                     bypassEl.textContent = '✅ Active';
                     bypassEl.style.color = '#00d2d3';
+                    captchaEl.textContent = '✅ Terverifikasi';
+                    captchaEl.style.color = '#00d2d3';
+                    document.getElementById('captchaContainer').style.display = 'none';
+                } else if (data.waitingCaptcha) {
+                    statusEl.textContent = '🔑 Waiting Captcha';
+                    statusEl.style.color = '#ff6b00';
+                    bypassEl.textContent = '🔑 Butuh Verifikasi';
+                    bypassEl.style.color = '#ff6b00';
+                    captchaEl.textContent = '⏳ Belum diverifikasi';
+                    captchaEl.style.color = '#ff6b00';
+                    // Tampilkan captcha container
+                    document.getElementById('captchaContainer').style.display = 'block';
+                    // Ambil captcha baru
+                    getCaptcha();
                 } else {
                     statusEl.textContent = '⚠️ Initializing...';
                     statusEl.style.color = '#ff6b00';
-                    bypassEl.textContent = '⏳ Waiting...';
+                    bypassEl.textContent = '⏳ Menunggu...';
                     bypassEl.style.color = '#f9ca24';
+                    captchaEl.textContent = '⏳ Menunggu...';
+                    captchaEl.style.color = '#f9ca24';
                 }
                 if (data.cooldown) {
                     statusEl.textContent = '⏳ Cooldown';
@@ -1158,6 +1320,93 @@
                 document.getElementById('zefoyStatus').textContent = '❌ Error';
                 document.getElementById('zefoyStatus').style.color = '#ff4757';
             });
+    }
+
+    function getCaptcha() {
+        fetch('/api/zefoy/captcha')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentCaptchaSessionId = data.sessionId;
+                    document.getElementById('captchaWordDisplay').textContent = data.captchaWord || '????';
+                    if (data.captchaImage) {
+                        document.getElementById('captchaImage').src = data.captchaImage;
+                        document.getElementById('captchaImageDisplay').style.display = 'block';
+                    } else {
+                        document.getElementById('captchaImageDisplay').style.display = 'none';
+                    }
+                    document.getElementById('captchaInput').value = '';
+                    document.getElementById('captchaMessage').textContent = 'Masukkan kata captcha di atas';
+                    document.getElementById('captchaMessage').style.color = '#f9ca24';
+                    document.getElementById('captchaContainer').style.display = 'block';
+                    updateConsole('suntikConsole', '🔑 Captcha diperlukan! Masukkan kata yang terlihat.', 'log-captcha');
+                    showToast('Captcha Zefoy diperlukan!', 'warning');
+                } else {
+                    document.getElementById('captchaMessage').textContent = 'Gagal mendapatkan captcha: ' + (data.error || 'Unknown');
+                    document.getElementById('captchaMessage').style.color = '#ff4757';
+                }
+            })
+            .catch(err => {
+                document.getElementById('captchaMessage').textContent = 'Error: ' + err.message;
+                document.getElementById('captchaMessage').style.color = '#ff4757';
+            });
+    }
+
+    function refreshCaptcha() {
+        document.getElementById('captchaMessage').textContent = 'Mengambil captcha baru...';
+        document.getElementById('captchaMessage').style.color = '#f9ca24';
+        getCaptcha();
+    }
+
+    function submitCaptcha() {
+        const word = document.getElementById('captchaInput').value.trim().toUpperCase();
+        if (!word || word.length < 3) {
+            document.getElementById('captchaMessage').textContent = 'Masukkan kata yang valid (min 3 karakter)!';
+            document.getElementById('captchaMessage').style.color = '#ff4757';
+            return;
+        }
+        if (!currentCaptchaSessionId) {
+            document.getElementById('captchaMessage').textContent = 'Session captcha tidak valid! Refresh captcha.';
+            document.getElementById('captchaMessage').style.color = '#ff4757';
+            return;
+        }
+
+        document.getElementById('captchaMessage').textContent = '⏳ Memverifikasi...';
+        document.getElementById('captchaMessage').style.color = '#f9ca24';
+
+        fetch('/api/zefoy/captcha/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: currentCaptchaSessionId, word: word })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('captchaMessage').textContent = '✅ Captcha berhasil! Zefoy siap digunakan.';
+                document.getElementById('captchaMessage').style.color = '#00d2d3';
+                document.getElementById('captchaContainer').style.display = 'none';
+                updateConsole('suntikConsole', '✅ Captcha berhasil! Siap suntik.', 'log-success');
+                showToast('Captcha berhasil!', 'success');
+                checkZefoyStatus();
+                // Refresh status
+                setTimeout(() => checkZefoyStatus(), 1000);
+            } else {
+                document.getElementById('captchaMessage').textContent = '❌ ' + (data.error || 'Captcha salah! Coba lagi.');
+                document.getElementById('captchaMessage').style.color = '#ff4757';
+                captchaAttempts++;
+                if (captchaAttempts >= 3) {
+                    document.getElementById('captchaMessage').textContent = '⚠️ Terlalu banyak percobaan! Refresh captcha.';
+                    refreshCaptcha();
+                    captchaAttempts = 0;
+                }
+                document.getElementById('captchaInput').value = '';
+                document.getElementById('captchaInput').focus();
+            }
+        })
+        .catch(err => {
+            document.getElementById('captchaMessage').textContent = 'Error: ' + err.message;
+            document.getElementById('captchaMessage').style.color = '#ff4757';
+        });
     }
 
     // ============================================
@@ -1173,6 +1422,7 @@
                         <div class="platform-option" data-platform="${p.name}" onclick="selectPlatform('${p.name}')">
                             <i class="${p.icon}"></i>
                             <span>${p.name}</span>
+                            ${p.actions.some(a => !a.enabled) ? '<span class="disabled-badge">⚠️</span>' : ''}
                         </div>
                     `).join('');
                 }
@@ -1203,9 +1453,13 @@
                             'Retweets': 'fa-retweet'
                         };
                         container.innerHTML = platformData.actions.map(action => `
-                            <div class="action-option" data-action="${action.name}" onclick="selectAction('${action.name}')">
+                            <div class="action-option ${action.enabled ? '' : 'disabled'}" 
+                                 data-action="${action.name}" 
+                                 onclick="${action.enabled ? `selectAction('${action.name}')` : ''}"
+                                 style="${action.enabled ? '' : 'opacity:0.4;cursor:not-allowed;'}">
                                 <i class="fas ${actionIcons[action.name] || 'fa-star'}"></i>
                                 <span>${action.name}</span>
+                                ${!action.enabled ? '<span class="disabled-badge">OFF</span>' : ''}
                             </div>
                         `).join('');
                         updateConsole('suntikConsole', `[✓] Platform ${platform} dipilih. Pilih aksi.`, 'log-success');
@@ -1293,9 +1547,10 @@
             if (data.success) {
                 const r = data.result;
                 updateConsole('suntikConsole', `[✓] Selesai! Berhasil: ${r.success}, Gagal: ${r.failed}`, 'log-success');
-                if (r.bypassFailed) {
-                    updateConsole('suntikConsole', '[⚠️] Bypass gagal! Coba lagi nanti.', 'log-warning');
-                    showToast('Bypass gagal! Coba lagi nanti.', 'warning');
+                if (r.needCaptcha) {
+                    updateConsole('suntikConsole', '[🔑] Captcha diperlukan! Selesaikan di dashboard.', 'log-captcha');
+                    showToast('Captcha diperlukan!', 'warning');
+                    checkZefoyStatus();
                 }
                 if (r.success > 0) {
                     currentUser.used = (currentUser.used || 0) + r.success;
@@ -1310,6 +1565,10 @@
                 if (data.maintenance) {
                     updateConsole('suntikConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
                     showToast('Server maintenance!', 'error');
+                } else if (data.needCaptcha) {
+                    updateConsole('suntikConsole', '[🔑] Captcha diperlukan! Selesaikan di dashboard.', 'log-captcha');
+                    showToast('Captcha diperlukan!', 'warning');
+                    checkZefoyStatus();
                 } else {
                     updateConsole('suntikConsole', `[✗] ${data.message}`, 'log-error');
                     showToast(data.message, 'error');
@@ -1371,6 +1630,7 @@
         if (data.message) {
             const cls = data.status === 'error' ? 'log-error' : 
                        data.status === 'cooldown' ? 'log-warning' : 
+                       data.status === 'need_captcha' ? 'log-captcha' :
                        data.status === 'success' ? 'log-success' : 'log-info';
             updateConsole('suntikConsole', `[${data.current||0}/${data.total||0}] ${data.message}`, cls);
         }
@@ -1393,11 +1653,18 @@
             container.style.display = 'none';
             resetSuntikButtons();
         }
+        
+        if (data.needCaptcha) {
+            checkZefoyStatus();
+        }
     }
 
     // ============================================
     // PAYMENT
     // ============================================
+    let selectedPkg = 'premium';
+    let selectedPayment = 'dana';
+
     function selectPricing(pkg) {
         selectedPkg = pkg;
         document.querySelectorAll('.pricing-card').forEach(el => el.classList.remove('selected'));
@@ -1414,6 +1681,7 @@
     }
 
     function selectPayment(method) {
+        selectedPayment = method;
         document.querySelectorAll('.call-option[onclick*="selectPayment"]').forEach(el => el.classList.remove('active'));
         const target = document.querySelector(`.call-option[onclick*="${method}"]`);
         if (target) target.classList.add('active');
@@ -1516,7 +1784,75 @@
     }
 
     // ============================================
-    // ADMIN
+    // ADMIN - FEATURES
+    // ============================================
+    function loadFeatures() {
+        if (!currentUser?.isDeveloper) return;
+        fetch('/api/admin/features')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const features = data.features || {};
+                    const grid = document.getElementById('featuresGrid');
+                    const featureNames = {
+                        'tiktok_followers': 'TikTok Followers',
+                        'tiktok_likes': 'TikTok Likes',
+                        'tiktok_views': 'TikTok Views',
+                        'tiktok_shares': 'TikTok Shares',
+                        'instagram_followers': 'Instagram Followers',
+                        'instagram_likes': 'Instagram Likes',
+                        'instagram_views': 'Instagram Views',
+                        'youtube_subscribers': 'YouTube Subscribers',
+                        'youtube_views': 'YouTube Views',
+                        'youtube_likes': 'YouTube Likes',
+                        'facebook_followers': 'Facebook Followers',
+                        'facebook_likes': 'Facebook Likes',
+                        'facebook_shares': 'Facebook Shares',
+                        'twitter_followers': 'Twitter Followers',
+                        'twitter_likes': 'Twitter Likes',
+                        'twitter_retweets': 'Twitter Retweets'
+                    };
+                    
+                    const total = Object.keys(featureNames).length;
+                    const active = Object.keys(featureNames).filter(k => features[k] !== false).length;
+                    document.getElementById('totalFeatures').textContent = total;
+                    document.getElementById('activeFeatures').textContent = active;
+                    
+                    grid.innerHTML = Object.keys(featureNames).map(key => {
+                        const enabled = features[key] !== false;
+                        return `
+                            <div class="feature-item">
+                                <span class="feature-name">${featureNames[key]}</span>
+                                <button class="btn-sm ${enabled ? 'btn-toggle-on' : 'btn-toggle-off'}" 
+                                        onclick="toggleFeature('${key}', ${!enabled})">
+                                    ${enabled ? '✅ ON' : '❌ OFF'}
+                                </button>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            });
+    }
+
+    function toggleFeature(featureKey, enabled) {
+        if (!currentUser?.isDeveloper) return;
+        fetch('/api/admin/features/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ featureKey, enabled, admin: currentUser.username })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Fitur ${enabled ? 'diaktifkan' : 'dinonaktifkan'}!`, 'success');
+                loadFeatures();
+                loadPlatforms();
+            }
+        });
+    }
+
+    // ============================================
+    // ADMIN - USERS
     // ============================================
     function loadAdminData() {
         if (!currentUser?.isDeveloper) return;
@@ -1549,17 +1885,6 @@
             });
     }
 
-    function switchAdminTab(tab) {
-        document.querySelectorAll('.admin-tab').forEach(t => t.style.background = 'transparent');
-        const tabEl = document.querySelector(`.admin-tab[onclick*="${tab}"]`);
-        if (tabEl) { tabEl.style.background = 'rgba(108,92,231,0.15)'; tabEl.style.color = '#fff'; }
-        ['adminUsersTab', 'adminSettingsTab', 'adminPaymentsTab'].forEach(id => {
-            document.getElementById(id).style.display = 'none';
-        });
-        document.getElementById(`admin${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`).style.display = 'block';
-        if (tab === 'payments') loadPayments();
-    }
-
     function changeUserStatus(username, status) {
         if (!currentUser?.isDeveloper) return;
         fetch('/api/admin/update-status', {
@@ -1590,6 +1915,24 @@
                 loadAdminData();
             }
         });
+    }
+
+    function switchAdminTab(tab) {
+        document.querySelectorAll('.admin-tab').forEach(t => {
+            t.style.background = 'transparent';
+            t.style.color = '#888';
+        });
+        const tabEl = document.querySelector(`.admin-tab[onclick*="${tab}"]`);
+        if (tabEl) {
+            tabEl.style.background = 'rgba(108,92,231,0.15)';
+            tabEl.style.color = '#fff';
+        }
+        ['adminUsersTab', 'adminFeaturesTab', 'adminSettingsTab', 'adminPaymentsTab'].forEach(id => {
+            document.getElementById(id).style.display = 'none';
+        });
+        document.getElementById(`admin${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`).style.display = 'block';
+        if (tab === 'payments') loadPayments();
+        if (tab === 'features') loadFeatures();
     }
 
     function saveSettings() {
@@ -1713,12 +2056,14 @@
     document.addEventListener('keydown', e => {
         if (e.ctrlKey && e.shiftKey && e.key === 'L') { e.preventDefault(); handleLogout(); }
         if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') sendMessage();
+        if (e.key === 'Enter' && document.activeElement?.id === 'captchaInput') submitCaptcha();
     });
 
     console.log('🔥 PrankMaster Pro - Suntik Sosial Media');
     console.log('👑 Admin: Lynzka / Asiafone11');
     console.log('💉 5 Platform Support');
     console.log('⏳ Cooldown: 2 Menit');
+    console.log('🔑 Captcha Manual Zefoy');
     console.log('💡 Developer limit: ∞ (Unlimited)');
     </script>
 </body>

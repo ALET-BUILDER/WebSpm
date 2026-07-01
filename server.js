@@ -1,3 +1,5 @@
+// server.js - ZEFOY BYPASS DENGAN CAPTCHA MANUAL + ADMIN CONTROL
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -41,12 +43,31 @@ let db = {
     messages: [],
     settings: { 
         maintenance: false,
-        maintenanceMessage: 'Server sedang dalam perbaikan. Silakan coba lagi nanti.'
+        maintenanceMessage: 'Server sedang dalam perbaikan. Silakan coba lagi nanti.',
+        features: {
+            tiktok_followers: true,
+            tiktok_likes: true,
+            tiktok_views: true,
+            tiktok_shares: true,
+            instagram_followers: true,
+            instagram_likes: true,
+            instagram_views: true,
+            youtube_subscribers: true,
+            youtube_views: true,
+            youtube_likes: true,
+            facebook_followers: true,
+            facebook_likes: true,
+            facebook_shares: true,
+            twitter_followers: true,
+            twitter_likes: true,
+            twitter_retweets: true
+        }
     },
     stats: {
         totalSuntikSent: 0,
         lastReset: Date.now()
-    }
+    },
+    captchaSessions: {}
 };
 
 function loadDB() {
@@ -102,7 +123,7 @@ const userAgents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36',
+    'Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
 ];
 
 function getRandomUserAgent() {
@@ -112,7 +133,7 @@ function getRandomUserAgent() {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ============================================
-// ZEFOY BYPASS TANPA PUPPETEER
+// ZEFOY BYPASS DENGAN CAPTCHA MANUAL
 // ============================================
 
 class ZefoyBypass {
@@ -121,6 +142,7 @@ class ZefoyBypass {
         this.isConnected = false;
         this.sessionData = null;
         this.lastCaptchaWord = null;
+        this.captchaImage = null;
         this.baseUrl = 'https://zefoy.com';
         this.headers = {
             'User-Agent': getRandomUserAgent(),
@@ -136,56 +158,83 @@ class ZefoyBypass {
             'Cache-Control': 'max-age=0'
         };
         this.captchaCache = [];
+        this.isWaitingCaptcha = false;
+        this.captchaSessionId = null;
     }
 
     // ============================================
-    // STEP 1: BUKA ZEFOY & DAPATKAN COOKIES
+    // STEP 1: BUKA ZEFOY & DAPATKAN CAPTCHA
     // ============================================
-    async connect() {
+    async getCaptcha() {
         try {
-            console.log('🔌 Connecting to Zefoy (no puppeteer)...');
+            console.log('🔍 Getting captcha from Zefoy...');
             
             const response = await fetch(this.baseUrl, {
                 headers: this.headers,
                 redirect: 'manual'
             });
 
-            // Ambil cookies dari response
+            // Ambil cookies
             const setCookies = response.headers.raw()['set-cookie'] || [];
             this.cookies = setCookies.map(c => c.split(';')[0]).join('; ');
-            
-            // Tambahkan cookies ke headers
             this.headers['Cookie'] = this.cookies;
-            
-            // Ambil HTML
+
             const html = await response.text();
             const $ = cheerio.load(html);
             
-            // Cari kata captcha
-            const captchaText = this.extractCaptchaWord($);
+            // Cari kata captcha (text-based)
+            let captchaWord = this.extractCaptchaWord($);
+            let captchaImageUrl = null;
             
-            if (captchaText) {
-                this.lastCaptchaWord = captchaText;
-                console.log('📝 Captcha ditemukan:', captchaText);
-                this.isConnected = true;
-                return true;
-            } else {
-                console.log('⚠️ Captcha tidak ditemukan, mungkin sudah bypass');
-                this.isConnected = true;
-                return true;
+            // Cari gambar captcha
+            const imgElement = $('img[src*="captcha"], img[src*="captcha.php"], img[alt*="captcha"]');
+            if (imgElement.length > 0) {
+                const src = imgElement.attr('src');
+                if (src) {
+                    captchaImageUrl = src.startsWith('http') ? src : `${this.baseUrl}${src}`;
+                }
             }
+            
+            // Cari di div dengan class captcha
+            if (!captchaWord) {
+                const captchaText = $('.captcha-text, .captcha-word, .verification-text, .word-display');
+                captchaWord = captchaText.text().trim().replace(/[^A-Za-z0-9]/g, '');
+            }
+            
+            // Generate session ID untuk captcha
+            this.captchaSessionId = uuidv4();
+            this.isWaitingCaptcha = true;
+            
+            // Simpan ke database
+            db.captchaSessions[this.captchaSessionId] = {
+                captchaWord: captchaWord,
+                captchaImage: captchaImageUrl,
+                createdAt: Date.now(),
+                solved: false,
+                cookies: this.cookies
+            };
+            saveDB();
+            
+            console.log('📝 Captcha session created:', this.captchaSessionId);
+            console.log('📝 Captcha word:', captchaWord);
+            
+            return {
+                success: true,
+                sessionId: this.captchaSessionId,
+                captchaWord: captchaWord,
+                captchaImage: captchaImageUrl,
+                message: 'Masukkan kata captcha yang terlihat'
+            };
         } catch (error) {
-            console.error('❌ Connect error:', error.message);
-            this.isConnected = false;
-            return false;
+            console.error('❌ Get captcha error:', error.message);
+            return { success: false, error: error.message };
         }
     }
 
     // ============================================
-    // STEP 2: EKSTRAK KATA CAPTCHA DARI HTML
+    // STEP 2: EKSTRAK KATA CAPTCHA
     // ============================================
     extractCaptchaWord($) {
-        // Coba berbagai selector
         const selectors = [
             '.captcha-word',
             '.captcha-text',
@@ -194,20 +243,22 @@ class ZefoyBypass {
             '[class*="captcha"] span',
             '.verification-text',
             '.word-display',
-            '.captcha-box span'
+            '.captcha-box span',
+            '.captcha-code',
+            '.code-display'
         ];
 
         for (const selector of selectors) {
             const text = $(selector).text().trim();
             if (text) {
-                const clean = text.replace(/[^A-Za-z]/g, '').toUpperCase();
+                const clean = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
                 if (clean.length >= 3) {
                     return clean;
                 }
             }
         }
 
-        // Fallback: cari pola huruf kapital di text
+        // Fallback: cari pola huruf/kapital di text
         const bodyText = $('body').text();
         const match = bodyText.match(/[A-Z]{3,8}/);
         if (match) {
@@ -220,11 +271,19 @@ class ZefoyBypass {
     // ============================================
     // STEP 3: SUBMIT CAPTCHA
     // ============================================
-    async submitCaptcha(word) {
+    async submitCaptcha(sessionId, word) {
         try {
+            const session = db.captchaSessions[sessionId];
+            if (!session) {
+                return { success: false, error: 'Session tidak ditemukan!' };
+            }
+
+            // Gunakan cookies dari session
+            this.headers['Cookie'] = session.cookies || this.cookies;
+
             console.log('📤 Submitting captcha:', word);
-            
-            // Cari form action atau submit URL
+
+            // Cari form action
             const response = await fetch(this.baseUrl, {
                 headers: {
                     ...this.headers,
@@ -243,26 +302,39 @@ class ZefoyBypass {
             if (setCookies.length > 0) {
                 this.cookies = setCookies.map(c => c.split(';')[0]).join('; ');
                 this.headers['Cookie'] = this.cookies;
+                session.cookies = this.cookies;
             }
 
-            // Cek response
             const html = await response.text();
             const $ = cheerio.load(html);
             
-            // Cek apakah berhasil (tidak ada captcha lagi)
+            // Cek apakah berhasil
             const hasCaptcha = $('.captcha-word, .captcha-text, [class*="captcha"]').length > 0;
             
             if (!hasCaptcha) {
                 console.log('✅ Captcha bypass berhasil!');
                 this.isConnected = true;
-                return true;
+                this.isWaitingCaptcha = false;
+                session.solved = true;
+                session.solvedAt = Date.now();
+                saveDB();
+                
+                // Hapus session setelah 5 menit
+                setTimeout(() => {
+                    if (db.captchaSessions[sessionId]) {
+                        delete db.captchaSessions[sessionId];
+                        saveDB();
+                    }
+                }, 300000);
+                
+                return { success: true, message: 'Captcha berhasil! Zefoy siap digunakan.' };
             } else {
                 console.log('❌ Captcha masih ada, mungkin salah input');
-                return false;
+                return { success: false, error: 'Kata captcha salah! Coba lagi.' };
             }
         } catch (error) {
             console.error('❌ Submit captcha error:', error.message);
-            return false;
+            return { success: false, error: error.message };
         }
     }
 
@@ -270,46 +342,8 @@ class ZefoyBypass {
     // STEP 4: BYPASS LENGKAP
     // ============================================
     async bypass() {
-        let attempts = 0;
-        let success = false;
-
-        while (attempts < 5 && !success) {
-            attempts++;
-            console.log(`🔄 Bypass attempt ${attempts}/5`);
-
-            // Connect dulu
-            const connected = await this.connect();
-            if (!connected) {
-                console.log('⚠️ Connect failed, retrying...');
-                await sleep(2000);
-                continue;
-            }
-
-            // Jika sudah tidak ada captcha, berarti sudah bypass
-            if (!this.lastCaptchaWord) {
-                console.log('✅ Sudah bypass (tidak ada captcha)');
-                success = true;
-                break;
-            }
-
-            // Submit captcha
-            success = await this.submitCaptcha(this.lastCaptchaWord);
-            
-            if (!success) {
-                console.log('⚠️ Submit failed, retrying...');
-                await sleep(2000);
-            }
-        }
-
-        if (success) {
-            console.log('🎉 Zefoy bypass berhasil!');
-            this.isConnected = true;
-        } else {
-            console.log('❌ Zefoy bypass gagal setelah 5 percobaan');
-            this.isConnected = false;
-        }
-
-        return { success, attempts };
+        const result = await this.getCaptcha();
+        return result;
     }
 
     // ============================================
@@ -317,11 +351,14 @@ class ZefoyBypass {
     // ============================================
     async useService(platform, action, target) {
         if (!this.isConnected) {
-            console.log('⚠️ Not connected, trying bypass...');
-            const bypassResult = await this.bypass();
-            if (!bypassResult.success) {
-                return { success: false, error: 'Zefoy not connected' };
-            }
+            console.log('⚠️ Not connected, need captcha first');
+            return { success: false, error: 'Zefoy tidak terhubung! Selesaikan captcha terlebih dahulu.', needCaptcha: true };
+        }
+
+        // Cek fitur aktif
+        const featureKey = `${platform.toLowerCase()}_${action.toLowerCase()}`.replace(/ /g, '_');
+        if (db.settings.features && db.settings.features[featureKey] === false) {
+            return { success: false, error: `Fitur ${platform} ${action} sedang dinonaktifkan oleh admin.` };
         }
 
         try {
@@ -364,10 +401,21 @@ class ZefoyBypass {
 
             // Buka halaman service
             const response = await fetch(url, {
-                headers: this.headers
+                headers: {
+                    ...this.headers,
+                    'User-Agent': getRandomUserAgent()
+                }
             });
+            
             const html = await response.text();
             const $ = cheerio.load(html);
+
+            // Cek apakah ada captcha lagi
+            const hasCaptcha = $('.captcha-word, .captcha-text, [class*="captcha"]').length > 0;
+            if (hasCaptcha) {
+                this.isConnected = false;
+                return { success: false, error: 'Captcha muncul lagi! Perlu bypass ulang.', needCaptcha: true };
+            }
 
             // Cari form untuk submit target
             const form = $('form');
@@ -376,10 +424,19 @@ class ZefoyBypass {
                 const formData = new URLSearchParams();
                 
                 // Cari input target
-                const targetInput = $('input[type="text"], input[placeholder*="username"], input[placeholder*="link"]');
+                const targetInput = $('input[type="text"], input[placeholder*="username"], input[placeholder*="link"], input[name*="username"], input[name*="link"]');
                 if (targetInput.length > 0) {
                     const name = targetInput.attr('name') || 'username';
                     formData.append(name, target);
+                } else {
+                    // Fallback: coba berbagai nama field
+                    const possibleNames = ['username', 'link', 'url', 'target', 'id', 'user'];
+                    for (const name of possibleNames) {
+                        if ($(`input[name="${name}"]`).length > 0) {
+                            formData.append(name, target);
+                            break;
+                        }
+                    }
                 }
 
                 // Submit form
@@ -387,7 +444,8 @@ class ZefoyBypass {
                 const submitResponse = await fetch(submitUrl, {
                     headers: {
                         ...this.headers,
-                        'Content-Type': 'application/x-www-form-urlencoded'
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': getRandomUserAgent()
                     },
                     method: form.attr('method') || 'POST',
                     body: formData
@@ -397,19 +455,24 @@ class ZefoyBypass {
                 const result$ = cheerio.load(resultHtml);
                 
                 // Cek hasil
-                const statusEl = result$('.status, .result, .message, .alert');
+                const statusEl = result$('.status, .result, .message, .alert, .success, .error');
                 const statusText = statusEl.text().trim() || 'Success';
+
+                // Cek apakah ada pesan error
+                if (statusText.toLowerCase().includes('error') || statusText.toLowerCase().includes('failed')) {
+                    return { success: false, error: statusText };
+                }
 
                 return {
                     success: true,
-                    message: statusText,
+                    message: statusText || 'Berhasil!',
                     platform: platform,
                     action: action,
                     target: target
                 };
             }
 
-            return { success: false, error: 'Form not found' };
+            return { success: false, error: 'Form tidak ditemukan' };
         } catch (error) {
             console.error('❌ Service error:', error.message);
             return { success: false, error: error.message };
@@ -422,7 +485,10 @@ class ZefoyBypass {
     async keepAlive() {
         try {
             const response = await fetch(this.baseUrl, {
-                headers: this.headers
+                headers: {
+                    ...this.headers,
+                    'User-Agent': getRandomUserAgent()
+                }
             });
             return response.status === 200;
         } catch (error) {
@@ -437,7 +503,8 @@ class ZefoyBypass {
         return {
             connected: this.isConnected,
             cookies: this.cookies ? '✅' : '❌',
-            captchaWord: this.lastCaptchaWord || 'N/A'
+            waitingCaptcha: this.isWaitingCaptcha,
+            captchaSessionId: this.captchaSessionId
         };
     }
 }
@@ -452,16 +519,21 @@ let zefoyCooldown = false;
 
 async function initZefoy() {
     try {
-        console.log('🔄 Initializing Zefoy (no puppeteer)...');
+        console.log('🔄 Initializing Zefoy...');
         zefoyInstance = new ZefoyBypass();
-        const result = await zefoyInstance.bypass();
-        isZefoyReady = result.success;
-        console.log(`✅ Zefoy ready: ${isZefoyReady}`);
-        return isZefoyReady;
+        const result = await zefoyInstance.getCaptcha();
+        if (result.success) {
+            isZefoyReady = false; // Tunggu captcha diisi
+            console.log('📝 Menunggu captcha diisi...');
+        } else {
+            isZefoyReady = false;
+            console.log('❌ Init Zefoy gagal:', result.error);
+        }
+        return result;
     } catch (error) {
         console.error('❌ Init Zefoy error:', error.message);
         isZefoyReady = false;
-        return false;
+        return { success: false, error: error.message };
     }
 }
 
@@ -535,29 +607,17 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
 
     // Cek Zefoy
-    if (!isZefoyReady) {
+    if (!zefoyInstance || !isZefoyReady) {
         io.emit('spamProgress', {
             sessionId, type: 'suntik',
             target, platform, action,
             current: 0, total: count,
             success: 0, failed: 0,
-            message: '🔧 Initializing Zefoy bypass...',
-            status: 'init'
+            message: '🔑 Harap selesaikan captcha Zefoy terlebih dahulu!',
+            status: 'need_captcha',
+            needCaptcha: true
         });
-
-        const initResult = await initZefoy();
-        if (!initResult) {
-            io.emit('spamProgress', {
-                sessionId, type: 'suntik',
-                target, platform, action,
-                current: 0, total: count,
-                success: 0, failed: 0,
-                message: '❌ Zefoy initialization failed! Please retry.',
-                status: 'error',
-                error: 'Zefoy init failed'
-            });
-            return { success: 0, failed: count, total: count, attempts: 0, bypassFailed: true };
-        }
+        return { success: 0, failed: count, total: count, attempts: 0, needCaptcha: true };
     }
 
     for (let i = 0; i < count; i++) {
@@ -586,11 +646,25 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 cooldown: true
             });
             
-            while (zefoyCooldown && !isStopped) {
+            let cooldownRemaining = 120;
+            while (cooldownRemaining > 0 && !isStopped) {
                 await sleep(1000);
+                cooldownRemaining--;
+                if (cooldownRemaining % 10 === 0) {
+                    io.emit('spamProgress', {
+                        sessionId, type: 'suntik',
+                        target, platform, action,
+                        current: i, total: count,
+                        success: results.success, failed: results.failed,
+                        message: `⏳ Cooldown: ${cooldownRemaining}s remaining`,
+                        status: 'cooldown',
+                        cooldown: true,
+                        cooldownRemaining: cooldownRemaining
+                    });
+                }
             }
             
-            if (isStopped) break;
+            zefoyCooldown = false;
         }
 
         // Keep alive setiap 3 attempt
@@ -613,6 +687,23 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                     status: 'success',
                     serviceUsed: 'Zefoy'
                 });
+                // Cooldown setelah sukses
+                if (i < count - 1) {
+                    zefoyCooldown = true;
+                }
+            } else if (result.needCaptcha) {
+                // Butuh captcha ulang
+                io.emit('spamProgress', {
+                    sessionId, type: 'suntik',
+                    target, platform, action,
+                    current: i + 1, total: count,
+                    success: results.success, failed: results.failed,
+                    message: '🔑 Captcha diperlukan! Selesaikan captcha di halaman Zefoy.',
+                    status: 'need_captcha',
+                    needCaptcha: true
+                });
+                isZefoyReady = false;
+                break;
             } else {
                 results.failed++;
                 io.emit('spamProgress', {
@@ -641,41 +732,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         results.total = results.success + results.failed;
         results.attempts = i + 1;
 
-        // Cooldown if success
-        if (results.success > 0 && i < count - 1) {
-            zefoyCooldown = true;
-            io.emit('spamProgress', {
-                sessionId, type: 'suntik',
-                target, platform, action,
-                current: i + 1, total: count,
-                success: results.success, failed: results.failed,
-                message: '⏳ Cooldown 2 minutes started...',
-                status: 'cooldown_start',
-                cooldown: true
-            });
-
-            let cooldownRemaining = 120;
-            while (cooldownRemaining > 0 && !isStopped) {
-                await sleep(1000);
-                cooldownRemaining--;
-                if (cooldownRemaining % 10 === 0) {
-                    io.emit('spamProgress', {
-                        sessionId, type: 'suntik',
-                        target, platform, action,
-                        current: i + 1, total: count,
-                        success: results.success, failed: results.failed,
-                        message: `⏳ Cooldown: ${cooldownRemaining}s remaining`,
-                        status: 'cooldown',
-                        cooldown: true,
-                        cooldownRemaining: cooldownRemaining
-                    });
-                }
-            }
-            
-            zefoyCooldown = false;
-        }
-
-        if (i < count - 1 && !isStopped) {
+        if (i < count - 1 && !isStopped && !zefoyCooldown) {
             await sleep(2000 + Math.random() * 3000);
         }
     }
@@ -713,12 +770,61 @@ app.get('/api/suntik/platforms', (req, res) => {
             color: platformConfigs[key].color,
             actions: platformConfigs[key].actions.map(action => ({
                 name: action,
-                icon: platformConfigs[key].actionIcons?.[action] || 'fa-circle'
+                icon: platformConfigs[key].actionIcons?.[action] || 'fa-circle',
+                enabled: db.settings.features?.[`${key.toLowerCase()}_${action.toLowerCase().replace(/ /g, '_')}`] !== false
             }))
         }));
         res.json({ success: true, platforms });
     } catch (err) {
         res.json({ success: false, platforms: [] });
+    }
+});
+
+// ===== ZEFOY CAPTCHA =====
+app.get('/api/zefoy/captcha', async (req, res) => {
+    try {
+        if (!zefoyInstance) {
+            zefoyInstance = new ZefoyBypass();
+        }
+        const result = await zefoyInstance.getCaptcha();
+        res.json(result);
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/zefoy/captcha/submit', async (req, res) => {
+    try {
+        const { sessionId, word } = req.body;
+        if (!sessionId || !word) {
+            return res.json({ success: false, error: 'Session ID dan kata captcha wajib diisi!' });
+        }
+        
+        const result = await zefoyInstance.submitCaptcha(sessionId, word);
+        if (result.success) {
+            isZefoyReady = true;
+        }
+        res.json(result);
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.get('/api/zefoy/captcha/status', (req, res) => {
+    try {
+        const sessions = Object.keys(db.captchaSessions || {}).map(key => ({
+            id: key,
+            ...db.captchaSessions[key]
+        }));
+        res.json({
+            success: true,
+            sessions,
+            isReady: isZefoyReady,
+            isConnected: zefoyInstance ? zefoyInstance.isConnected : false,
+            waitingCaptcha: zefoyInstance ? zefoyInstance.isWaitingCaptcha : false
+        });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
     }
 });
 
@@ -731,7 +837,8 @@ app.get('/api/zefoy/status', async (req, res) => {
             ready: isZefoyReady,
             cooldown: zefoyCooldown,
             connected: status.connected,
-            captcha: status.captchaWord || 'N/A'
+            waitingCaptcha: status.waitingCaptcha || false,
+            captchaSessionId: status.captchaSessionId || null
         });
     } catch (err) {
         res.json({ success: false, error: err.message });
@@ -742,11 +849,7 @@ app.get('/api/zefoy/status', async (req, res) => {
 app.post('/api/zefoy/init', async (req, res) => {
     try {
         const result = await initZefoy();
-        res.json({
-            success: result,
-            ready: isZefoyReady,
-            message: result ? 'Zefoy initialized successfully' : 'Zefoy initialization failed'
-        });
+        res.json(result);
     } catch (err) {
         res.json({ success: false, error: err.message });
     }
@@ -782,6 +885,15 @@ app.post('/api/spam/suntik', async (req, res) => {
             return res.json({ success: false, message: 'Pilih platform dan aksi!' });
         }
         
+        // Cek fitur aktif
+        const featureKey = `${platform.toLowerCase()}_${action.toLowerCase().replace(/ /g, '_')}`;
+        if (db.settings.features && db.settings.features[featureKey] === false) {
+            return res.json({ 
+                success: false, 
+                message: `Fitur ${platform} ${action} sedang dinonaktifkan oleh admin.` 
+            });
+        }
+        
         if (!count || count < 1) {
             return res.json({ success: false, message: 'Jumlah minimal 1!' });
         }
@@ -812,14 +924,11 @@ app.post('/api/spam/suntik', async (req, res) => {
 
         // Cek Zefoy
         if (!isZefoyReady) {
-            const initResult = await initZefoy();
-            if (!initResult) {
-                return res.json({ 
-                    success: false, 
-                    message: 'Zefoy initialization failed! Please retry.',
-                    zefoyError: true
-                });
-            }
+            return res.json({ 
+                success: false, 
+                message: 'Zefoy belum siap! Selesaikan captcha terlebih dahulu.',
+                needCaptcha: true
+            });
         }
 
         const sessionId = `suntik_${username}_${Date.now()}`;
@@ -840,7 +949,7 @@ app.post('/api/spam/suntik', async (req, res) => {
                 failed: result.failed,
                 total: result.total || result.success + result.failed,
                 attempts: result.attempts || 0,
-                bypassFailed: result.bypassFailed || false
+                needCaptcha: result.needCaptcha || false
             }
         });
     } catch (err) {
@@ -1064,9 +1173,37 @@ app.post('/api/admin/settings', (req, res) => {
         if (!adminUser || !adminUser.isDeveloper) {
             return res.json({ success: false, message: 'Hanya Developer!' });
         }
-        db.settings = settings;
+        db.settings = { ...db.settings, ...settings };
         saveDB();
-        io.emit('settingsUpdated', { settings });
+        io.emit('settingsUpdated', { settings: db.settings });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/admin/features', (req, res) => {
+    try {
+        res.json({
+            success: true,
+            features: db.settings.features || {}
+        });
+    } catch (err) {
+        res.json({ success: false, features: {} });
+    }
+});
+
+app.post('/api/admin/features/toggle', (req, res) => {
+    try {
+        const { featureKey, enabled, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        if (!db.settings.features) db.settings.features = {};
+        db.settings.features[featureKey] = enabled;
+        saveDB();
+        io.emit('settingsUpdated', { settings: db.settings });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -1224,8 +1361,6 @@ setInterval(async () => {
         } catch (error) {
             console.log('⚠️ Zefoy heartbeat failed, reconnecting...');
             isZefoyReady = false;
-            zefoyInstance = null;
-            await initZefoy();
         }
     }
 }, 30000);
@@ -1258,18 +1393,15 @@ server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log('========================================');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('💉 SUNTIK SOSIAL MEDIA + BYPASS');
+    console.log('💉 SUNTIK SOSIAL MEDIA + CAPTCHA BYPASS');
     console.log('========================================');
-    console.log('🔥 TANPA PUPPETEER!');
     console.log('🔥 Platform: TikTok, Instagram, YouTube, Facebook, Twitter');
-    console.log('========================================');
-    console.log('⏳ Cooldown: 2 menit setelah setiap sukses');
     console.log('========================================');
     console.log('✅ Server siap!');
     console.log('========================================');
 
     // Init Zefoy
-    console.log('🔄 Initializing Zefoy (no puppeteer)...');
+    console.log('🔄 Initializing Zefoy...');
     setTimeout(async () => {
         await initZefoy();
     }, 3000);
