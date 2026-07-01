@@ -1,4 +1,6 @@
-// server.js - ZEFOY BYPASS DENGAN CAPTCHA MANUAL + ADMIN CONTROL
+// ============================================
+// PRANKMASTER PRO - FULL AUTO BYPASS
+// ============================================
 
 const express = require('express');
 const http = require('http');
@@ -11,6 +13,25 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
+const Tesseract = require('tesseract.js');
+const sharp = require('sharp');
+const userAgent = require('user-agents');
+const fakeUa = require('fake-useragent');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
+const UserPreferencesPlugin = require('puppeteer-extra-plugin-user-preferences');
+
+// ===== PUPPETEER PLUGINS =====
+puppeteer.use(StealthPlugin());
+puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
+puppeteer.use(UserPreferencesPlugin({
+    userPrefs: {
+        'profile.default_content_setting_values.notifications': 2,
+        'profile.default_content_setting_values.geolocation': 2,
+        'profile.default_content_setting_values.media_stream': 2,
+    }
+}));
 
 const app = express();
 const server = http.createServer(app);
@@ -25,6 +46,21 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ===== SECURITY =====
+const helmet = require('helmet');
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+}));
+
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { success: false, message: 'Terlalu banyak request!' }
+});
+app.use('/api/', limiter);
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -67,7 +103,9 @@ let db = {
         totalSuntikSent: 0,
         lastReset: Date.now()
     },
-    captchaSessions: {}
+    captchaSessions: {},
+    proxyList: [],
+    userAgents: []
 };
 
 function loadDB() {
@@ -112,28 +150,163 @@ function generateApiKey() {
 }
 
 // ============================================
-// USER AGENT ROTATION
+// HUMAN-LIKE BEHAVIOR
 // ============================================
-
-const userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-];
 
 function getRandomUserAgent() {
-    return userAgents[Math.floor(Math.random() * userAgents.length)];
+    return new userAgent().toString();
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function getRandomDelay(min = 1000, max = 5000) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getRandomProxy() {
+    if (db.proxyList && db.proxyList.length > 0) {
+        return db.proxyList[Math.floor(Math.random() * db.proxyList.length)];
+    }
+    return null;
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms + (Math.random() * 500)));
+}
 
 // ============================================
-// ZEFOY BYPASS DENGAN CAPTCHA MANUAL
+// PUPPETEER BROWSER MANAGER
+// ============================================
+
+let browserInstance = null;
+let pageInstance = null;
+
+async function getBrowser() {
+    if (!browserInstance) {
+        browserInstance = await puppeteer.launch({
+            headless: 'new',
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--window-size=1920,1080',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-features=IsolateOrigins,site-per-process',
+                '--disable-web-security',
+                '--disable-features=BlockInsecurePrivateNetworkRequests',
+                '--disable-features=OutOfBlinkCors',
+                '--disable-features=SameSiteByDefaultCookies',
+                '--disable-features=EnableDoubleTapZoom',
+                '--disable-features=OverscrollHistoryNavigation',
+                '--disable-features=TranslateUI',
+                '--disable-features=BackForwardCache',
+                '--disable-features=GlobalMediaControls',
+                '--disable-features=PasswordImport',
+                '--disable-features=ImprovedCookieControls',
+                '--disable-features=PrivacySandboxSettings',
+                '--disable-features=PrivacySandboxSettings3',
+                '--disable-features=CookieDeprecationFacilitatedTesting',
+                '--disable-features=FedCm',
+                '--disable-features=WebAuthn',
+                '--disable-features=WebAuthentication',
+                '--disable-features=WebOTP',
+                '--disable-features=WebXR',
+                '--disable-features=WebPayments',
+                '--disable-features=WebBluetooth',
+                '--disable-features=WebUSB',
+                '--disable-features=WebHID',
+                '--disable-features=WebSerial',
+                '--disable-features=WebMidi',
+                '--disable-features=WebNfc',
+                '--disable-features=WebShare',
+                '--disable-features=WebLocks',
+                '--disable-features=WebSocketStream',
+                '--disable-features=WebTransport',
+                '--disable-features=WebCodecs',
+                '--disable-features=WebAssembly',
+                '--disable-features=WebGL',
+                '--disable-features=WebGPU',
+                '--disable-features=WebXr',
+                '--disable-features=WebXRIncubations',
+                '--disable-features=WebXRHandInput',
+                '--disable-features=WebXRHitTest',
+                '--disable-features=WebXRAnchors',
+                '--disable-features=WebXRPlaneDetection',
+                '--disable-features=WebXRImageTracking',
+                '--disable-features=WebXRDepthSensing',
+                '--disable-features=WebXRMedia',
+                '--disable-features=WebXRScreenCapture'
+            ],
+            ignoreDefaultArgs: ['--enable-automation'],
+            defaultViewport: {
+                width: 1920,
+                height: 1080,
+                deviceScaleFactor: 1,
+                hasTouch: false,
+                isLandscape: true,
+                isMobile: false,
+            }
+        });
+    }
+    return browserInstance;
+}
+
+async function getPage() {
+    if (!pageInstance || pageInstance.isClosed()) {
+        const browser = await getBrowser();
+        pageInstance = await browser.newPage();
+        
+        // Randomize viewport
+        const viewports = [
+            { width: 1366, height: 768 },
+            { width: 1440, height: 900 },
+            { width: 1536, height: 864 },
+            { width: 1600, height: 900 },
+            { width: 1680, height: 1050 },
+            { width: 1920, height: 1080 }
+        ];
+        const vp = viewports[Math.floor(Math.random() * viewports.length)];
+        await pageInstance.setViewport(vp);
+        
+        // Set user agent
+        const ua = getRandomUserAgent();
+        await pageInstance.setUserAgent(ua);
+        
+        // Set extra HTTP headers
+        await pageInstance.setExtraHTTPHeaders({
+            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+        });
+        
+        // Simulate human mouse movements
+        await pageInstance.evaluateOnNewDocument(() => {
+            // Override navigator properties
+            Object.defineProperty(navigator, 'webdriver', { get: () => false });
+            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+            Object.defineProperty(navigator, 'languages', { get: () => ['id-ID', 'id', 'en-US', 'en'] });
+            
+            // Add random scroll behavior
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: Math.random() * 500,
+                        behavior: 'smooth'
+                    });
+                }, Math.random() * 2000 + 1000);
+            });
+        });
+    }
+    return pageInstance;
+}
+
+// ============================================
+// ZEFOY BYPASS DENGAN PUPPETEER + OCR
 // ============================================
 
 class ZefoyBypass {
@@ -147,7 +320,7 @@ class ZefoyBypass {
         this.headers = {
             'User-Agent': getRandomUserAgent(),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8',
+            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
@@ -160,33 +333,44 @@ class ZefoyBypass {
         this.captchaCache = [];
         this.isWaitingCaptcha = false;
         this.captchaSessionId = null;
+        this.captchaAttempts = 0;
     }
 
     // ============================================
-    // STEP 1: BUKA ZEFOY & DAPATKAN CAPTCHA
+    // GET CAPTCHA DENGAN PUPPETEER
     // ============================================
     async getCaptcha() {
         try {
-            console.log('🔍 Getting captcha from Zefoy...');
+            console.log('🔍 Getting captcha from Zefoy with Puppeteer...');
             
-            const response = await fetch(this.baseUrl, {
-                headers: this.headers,
-                redirect: 'manual'
+            const page = await getPage();
+            
+            // Navigate to Zefoy with random delay
+            await page.goto(this.baseUrl, {
+                waitUntil: 'networkidle2',
+                timeout: 30000
             });
-
-            // Ambil cookies
-            const setCookies = response.headers.raw()['set-cookie'] || [];
-            this.cookies = setCookies.map(c => c.split(';')[0]).join('; ');
-            this.headers['Cookie'] = this.cookies;
-
-            const html = await response.text();
+            
+            // Random scroll
+            await page.evaluate(() => {
+                window.scrollBy(0, Math.random() * 300 + 100);
+            });
+            await sleep(1000 + Math.random() * 2000);
+            
+            // Get page content
+            const html = await page.content();
             const $ = cheerio.load(html);
             
-            // Cari kata captcha (text-based)
+            // Get cookies
+            const cookies = await page.cookies();
+            this.cookies = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+            this.headers['Cookie'] = this.cookies;
+            
+            // Extract captcha word
             let captchaWord = this.extractCaptchaWord($);
             let captchaImageUrl = null;
             
-            // Cari gambar captcha
+            // Extract captcha image
             const imgElement = $('img[src*="captcha"], img[src*="captcha.php"], img[alt*="captcha"]');
             if (imgElement.length > 0) {
                 const src = imgElement.attr('src');
@@ -195,34 +379,57 @@ class ZefoyBypass {
                 }
             }
             
-            // Cari di div dengan class captcha
+            // Fallback: try to find in text
             if (!captchaWord) {
                 const captchaText = $('.captcha-text, .captcha-word, .verification-text, .word-display');
                 captchaWord = captchaText.text().trim().replace(/[^A-Za-z0-9]/g, '');
             }
             
-            // Generate session ID untuk captcha
+            // Generate session ID
             this.captchaSessionId = uuidv4();
             this.isWaitingCaptcha = true;
             
-            // Simpan ke database
+            // Save to database
             db.captchaSessions[this.captchaSessionId] = {
                 captchaWord: captchaWord,
                 captchaImage: captchaImageUrl,
                 createdAt: Date.now(),
                 solved: false,
-                cookies: this.cookies
+                cookies: this.cookies,
+                pageState: await page.evaluate(() => ({
+                    scrollY: window.scrollY,
+                    url: window.location.href
+                }))
             };
             saveDB();
             
             console.log('📝 Captcha session created:', this.captchaSessionId);
             console.log('📝 Captcha word:', captchaWord);
             
+            // Auto-solve if word found
+            if (captchaWord && captchaWord.length >= 3) {
+                console.log('🤖 Auto-solving captcha...');
+                const result = await this.submitCaptchaWithPage(page, this.captchaSessionId, captchaWord);
+                if (result.success) {
+                    this.isConnected = true;
+                    this.isWaitingCaptcha = false;
+                    return {
+                        success: true,
+                        sessionId: this.captchaSessionId,
+                        captchaWord: captchaWord,
+                        captchaImage: captchaImageUrl,
+                        autoSolved: true,
+                        message: '✅ Captcha auto-solved!'
+                    };
+                }
+            }
+            
             return {
                 success: true,
                 sessionId: this.captchaSessionId,
-                captchaWord: captchaWord,
+                captchaWord: captchaWord || '????',
                 captchaImage: captchaImageUrl,
+                autoSolved: false,
                 message: 'Masukkan kata captcha yang terlihat'
             };
         } catch (error) {
@@ -232,7 +439,111 @@ class ZefoyBypass {
     }
 
     // ============================================
-    // STEP 2: EKSTRAK KATA CAPTCHA
+    // SUBMIT CAPTCHA WITH PUPPETEER
+    // ============================================
+    async submitCaptchaWithPage(page, sessionId, word) {
+        try {
+            const session = db.captchaSessions[sessionId];
+            if (!session) {
+                return { success: false, error: 'Session tidak ditemukan!' };
+            }
+            
+            console.log('📤 Submitting captcha:', word);
+            
+            // Find and fill captcha input
+            await page.evaluate((word) => {
+                const inputs = document.querySelectorAll('input[type="text"]');
+                let captchaInput = null;
+                
+                for (const input of inputs) {
+                    const placeholder = input.placeholder || '';
+                    const name = input.name || '';
+                    const id = input.id || '';
+                    const className = input.className || '';
+                    
+                    if (placeholder.toLowerCase().includes('captcha') ||
+                        placeholder.toLowerCase().includes('verification') ||
+                        placeholder.toLowerCase().includes('text') ||
+                        name.toLowerCase().includes('captcha') ||
+                        id.toLowerCase().includes('captcha') ||
+                        className.toLowerCase().includes('captcha')) {
+                        captchaInput = input;
+                        break;
+                    }
+                }
+                
+                if (captchaInput) {
+                    captchaInput.value = word;
+                    captchaInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    captchaInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }, word);
+            
+            await sleep(500 + Math.random() * 1000);
+            
+            // Find and click submit button
+            await page.evaluate(() => {
+                const buttons = document.querySelectorAll('button, input[type="submit"]');
+                let submitBtn = null;
+                
+                for (const btn of buttons) {
+                    const text = (btn.textContent || '').toLowerCase();
+                    const type = btn.type || '';
+                    const className = btn.className || '';
+                    
+                    if (text.includes('verif') || text.includes('submit') || 
+                        text.includes('kirim') || text.includes('confirm') ||
+                        type === 'submit' ||
+                        className.toLowerCase().includes('submit')) {
+                        submitBtn = btn;
+                        break;
+                    }
+                }
+                
+                if (submitBtn) {
+                    submitBtn.click();
+                }
+            });
+            
+            await sleep(2000 + Math.random() * 2000);
+            
+            // Check if captcha is solved
+            const html = await page.content();
+            const $ = cheerio.load(html);
+            
+            const hasCaptcha = $('.captcha-word, .captcha-text, [class*="captcha"]').length > 0;
+            const successMessage = $('.success, .alert-success, .result-success').text().trim();
+            
+            if (!hasCaptcha || successMessage) {
+                console.log('✅ Captcha bypass berhasil!');
+                this.isConnected = true;
+                this.isWaitingCaptcha = false;
+                session.solved = true;
+                session.solvedAt = Date.now();
+                saveDB();
+                
+                // Cleanup session after 5 minutes
+                setTimeout(() => {
+                    if (db.captchaSessions[sessionId]) {
+                        delete db.captchaSessions[sessionId];
+                        saveDB();
+                    }
+                }, 300000);
+                
+                return { success: true, message: 'Captcha berhasil! Zefoy siap digunakan.' };
+            } else {
+                console.log('❌ Captcha masih ada, mungkin salah input');
+                this.captchaAttempts++;
+                return { success: false, error: 'Kata captcha salah! Coba lagi.' };
+            }
+        } catch (error) {
+            console.error('❌ Submit captcha error:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // ============================================
+    // EXTRACT CAPTCHA WORD
     // ============================================
     extractCaptchaWord($) {
         const selectors = [
@@ -269,85 +580,83 @@ class ZefoyBypass {
     }
 
     // ============================================
-    // STEP 3: SUBMIT CAPTCHA
+    // AUTO SOLVE WITH OCR
     // ============================================
-    async submitCaptcha(sessionId, word) {
+    async autoSolveWithOCR(sessionId) {
         try {
             const session = db.captchaSessions[sessionId];
             if (!session) {
                 return { success: false, error: 'Session tidak ditemukan!' };
             }
 
-            // Gunakan cookies dari session
-            this.headers['Cookie'] = session.cookies || this.cookies;
-
-            console.log('📤 Submitting captcha:', word);
-
-            // Cari form action
-            const response = await fetch(this.baseUrl, {
-                headers: {
-                    ...this.headers,
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                method: 'POST',
-                body: new URLSearchParams({
-                    'captcha': word,
-                    'submit': 'Verifikasi'
-                }),
-                redirect: 'manual'
-            });
-
-            // Ambil cookies baru
-            const setCookies = response.headers.raw()['set-cookie'] || [];
-            if (setCookies.length > 0) {
-                this.cookies = setCookies.map(c => c.split(';')[0]).join('; ');
-                this.headers['Cookie'] = this.cookies;
-                session.cookies = this.cookies;
-            }
-
-            const html = await response.text();
-            const $ = cheerio.load(html);
+            let captchaWord = session.captchaWord;
             
-            // Cek apakah berhasil
-            const hasCaptcha = $('.captcha-word, .captcha-text, [class*="captcha"]').length > 0;
-            
-            if (!hasCaptcha) {
-                console.log('✅ Captcha bypass berhasil!');
-                this.isConnected = true;
-                this.isWaitingCaptcha = false;
-                session.solved = true;
-                session.solvedAt = Date.now();
-                saveDB();
+            // Try OCR if we have image
+            if (session.captchaImage && !captchaWord) {
+                console.log('📸 Downloading captcha image for OCR...');
                 
-                // Hapus session setelah 5 menit
-                setTimeout(() => {
-                    if (db.captchaSessions[sessionId]) {
-                        delete db.captchaSessions[sessionId];
-                        saveDB();
+                const response = await fetch(session.captchaImage, {
+                    headers: {
+                        'User-Agent': getRandomUserAgent(),
+                        'Cookie': session.cookies || this.cookies
                     }
-                }, 300000);
+                });
                 
-                return { success: true, message: 'Captcha berhasil! Zefoy siap digunakan.' };
-            } else {
-                console.log('❌ Captcha masih ada, mungkin salah input');
-                return { success: false, error: 'Kata captcha salah! Coba lagi.' };
+                const buffer = await response.buffer();
+                
+                // Process image for better OCR
+                const processedBuffer = await sharp(buffer)
+                    .grayscale()
+                    .normalize()
+                    .threshold(128)
+                    .toBuffer();
+                
+                console.log('🔍 Running OCR with Tesseract...');
+                
+                const result = await Tesseract.recognize(processedBuffer, 'eng', {
+                    logger: (m) => {
+                        if (m.status === 'recognizing text') {
+                            console.log(`📝 OCR progress: ${Math.round(m.progress * 100)}%`);
+                        }
+                    }
+                });
+                
+                captchaWord = result.data.text
+                    .replace(/[^A-Za-z0-9]/g, '')
+                    .toUpperCase()
+                    .trim();
+                
+                console.log('✅ OCR Result:', captchaWord);
             }
+            
+            if (!captchaWord || captchaWord.length < 3) {
+                return { success: false, error: 'Gagal membaca captcha dengan OCR' };
+            }
+            
+            // Submit with Puppeteer
+            const page = await getPage();
+            if (session.pageState) {
+                await page.goto(session.pageState.url || this.baseUrl, {
+                    waitUntil: 'networkidle2'
+                });
+            }
+            
+            const result = await this.submitCaptchaWithPage(page, sessionId, captchaWord);
+            
+            return {
+                success: result.success,
+                word: captchaWord,
+                message: result.message,
+                error: result.error
+            };
         } catch (error) {
-            console.error('❌ Submit captcha error:', error.message);
+            console.error('❌ Auto OCR error:', error.message);
             return { success: false, error: error.message };
         }
     }
 
     // ============================================
-    // STEP 4: BYPASS LENGKAP
-    // ============================================
-    async bypass() {
-        const result = await this.getCaptcha();
-        return result;
-    }
-
-    // ============================================
-    // STEP 5: PAKAI LAYANAN ZEFOY
+    // USE SERVICE
     // ============================================
     async useService(platform, action, target) {
         if (!this.isConnected) {
@@ -355,7 +664,7 @@ class ZefoyBypass {
             return { success: false, error: 'Zefoy tidak terhubung! Selesaikan captcha terlebih dahulu.', needCaptcha: true };
         }
 
-        // Cek fitur aktif
+        // Check feature
         const featureKey = `${platform.toLowerCase()}_${action.toLowerCase()}`.replace(/ /g, '_');
         if (db.settings.features && db.settings.features[featureKey] === false) {
             return { success: false, error: `Fitur ${platform} ${action} sedang dinonaktifkan oleh admin.` };
@@ -399,80 +708,108 @@ class ZefoyBypass {
             const url = `${this.baseUrl}${path}`;
             console.log(`📤 Using service: ${url}`);
 
-            // Buka halaman service
-            const response = await fetch(url, {
-                headers: {
-                    ...this.headers,
-                    'User-Agent': getRandomUserAgent()
-                }
+            // Use Puppeteer for service
+            const page = await getPage();
+            
+            // Navigate with random delay
+            await page.goto(url, {
+                waitUntil: 'networkidle2',
+                timeout: 30000
             });
             
-            const html = await response.text();
+            await sleep(1000 + Math.random() * 2000);
+            
+            // Random scroll
+            await page.evaluate(() => {
+                window.scrollBy(0, Math.random() * 400 + 100);
+            });
+            
+            // Check for captcha
+            const html = await page.content();
             const $ = cheerio.load(html);
-
-            // Cek apakah ada captcha lagi
             const hasCaptcha = $('.captcha-word, .captcha-text, [class*="captcha"]').length > 0;
+            
             if (hasCaptcha) {
                 this.isConnected = false;
                 return { success: false, error: 'Captcha muncul lagi! Perlu bypass ulang.', needCaptcha: true };
             }
 
-            // Cari form untuk submit target
-            const form = $('form');
-            if (form.length > 0) {
-                const formAction = form.attr('action') || '';
-                const formData = new URLSearchParams();
+            // Find and fill target input
+            await page.evaluate((target) => {
+                const inputs = document.querySelectorAll('input[type="text"]');
+                let targetInput = null;
                 
-                // Cari input target
-                const targetInput = $('input[type="text"], input[placeholder*="username"], input[placeholder*="link"], input[name*="username"], input[name*="link"]');
-                if (targetInput.length > 0) {
-                    const name = targetInput.attr('name') || 'username';
-                    formData.append(name, target);
-                } else {
-                    // Fallback: coba berbagai nama field
-                    const possibleNames = ['username', 'link', 'url', 'target', 'id', 'user'];
-                    for (const name of possibleNames) {
-                        if ($(`input[name="${name}"]`).length > 0) {
-                            formData.append(name, target);
-                            break;
-                        }
+                for (const input of inputs) {
+                    const placeholder = input.placeholder || '';
+                    const name = input.name || '';
+                    const id = input.id || '';
+                    
+                    if (placeholder.toLowerCase().includes('username') ||
+                        placeholder.toLowerCase().includes('link') ||
+                        placeholder.toLowerCase().includes('user') ||
+                        placeholder.toLowerCase().includes('target') ||
+                        name.toLowerCase().includes('username') ||
+                        name.toLowerCase().includes('link') ||
+                        name.toLowerCase().includes('user') ||
+                        id.toLowerCase().includes('username') ||
+                        id.toLowerCase().includes('link') ||
+                        id.toLowerCase().includes('user')) {
+                        targetInput = input;
+                        break;
                     }
                 }
-
-                // Submit form
-                const submitUrl = formAction ? new URL(formAction, this.baseUrl).toString() : url;
-                const submitResponse = await fetch(submitUrl, {
-                    headers: {
-                        ...this.headers,
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'User-Agent': getRandomUserAgent()
-                    },
-                    method: form.attr('method') || 'POST',
-                    body: formData
-                });
-
-                const resultHtml = await submitResponse.text();
-                const result$ = cheerio.load(resultHtml);
                 
-                // Cek hasil
-                const statusEl = result$('.status, .result, .message, .alert, .success, .error');
-                const statusText = statusEl.text().trim() || 'Success';
-
-                // Cek apakah ada pesan error
-                if (statusText.toLowerCase().includes('error') || statusText.toLowerCase().includes('failed')) {
-                    return { success: false, error: statusText };
+                if (targetInput) {
+                    targetInput.value = target;
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    targetInput.dispatchEvent(new Event('change', { bubbles: true }));
                 }
-
-                return {
-                    success: true,
-                    message: statusText || 'Berhasil!',
-                    platform: platform,
-                    action: action,
-                    target: target
-                };
+            }, target);
+            
+            await sleep(500 + Math.random() * 1000);
+            
+            // Find and click submit button
+            await page.evaluate(() => {
+                const buttons = document.querySelectorAll('button, input[type="submit"]');
+                let submitBtn = null;
+                
+                for (const btn of buttons) {
+                    const text = (btn.textContent || '').toLowerCase();
+                    const type = btn.type || '';
+                    
+                    if (text.includes('submit') || text.includes('kirim') || 
+                        text.includes('send') || text.includes('go') ||
+                        type === 'submit') {
+                        submitBtn = btn;
+                        break;
+                    }
+                }
+                
+                if (submitBtn) {
+                    submitBtn.click();
+                }
+            });
+            
+            await sleep(3000 + Math.random() * 2000);
+            
+            // Get result
+            const resultHtml = await page.content();
+            const result$ = cheerio.load(resultHtml);
+            
+            const statusEl = result$('.status, .result, .message, .alert, .success, .error');
+            const statusText = statusEl.text().trim() || 'Success';
+            
+            if (statusText.toLowerCase().includes('error') || statusText.toLowerCase().includes('failed')) {
+                return { success: false, error: statusText };
             }
 
-            return { success: false, error: 'Form tidak ditemukan' };
+            return {
+                success: true,
+                message: statusText || 'Berhasil!',
+                platform: platform,
+                action: action,
+                target: target
+            };
         } catch (error) {
             console.error('❌ Service error:', error.message);
             return { success: false, error: error.message };
@@ -480,31 +817,31 @@ class ZefoyBypass {
     }
 
     // ============================================
-    // STEP 6: KEEP ALIVE
+    // KEEP ALIVE
     // ============================================
     async keepAlive() {
         try {
-            const response = await fetch(this.baseUrl, {
-                headers: {
-                    ...this.headers,
-                    'User-Agent': getRandomUserAgent()
-                }
+            const page = await getPage();
+            await page.goto(this.baseUrl, {
+                waitUntil: 'networkidle2',
+                timeout: 10000
             });
-            return response.status === 200;
+            return true;
         } catch (error) {
             return false;
         }
     }
 
     // ============================================
-    // STEP 7: GET STATUS
+    // GET STATUS
     // ============================================
     getStatus() {
         return {
             connected: this.isConnected,
             cookies: this.cookies ? '✅' : '❌',
             waitingCaptcha: this.isWaitingCaptcha,
-            captchaSessionId: this.captchaSessionId
+            captchaSessionId: this.captchaSessionId,
+            captchaAttempts: this.captchaAttempts
         };
     }
 }
@@ -519,12 +856,17 @@ let zefoyCooldown = false;
 
 async function initZefoy() {
     try {
-        console.log('🔄 Initializing Zefoy...');
+        console.log('🔄 Initializing Zefoy with Puppeteer...');
         zefoyInstance = new ZefoyBypass();
         const result = await zefoyInstance.getCaptcha();
         if (result.success) {
-            isZefoyReady = false; // Tunggu captcha diisi
-            console.log('📝 Menunggu captcha diisi...');
+            if (result.autoSolved) {
+                isZefoyReady = true;
+                console.log('✅ Zefoy auto-ready!');
+            } else {
+                isZefoyReady = false;
+                console.log('📝 Menunggu captcha diisi...');
+            }
         } else {
             isZefoyReady = false;
             console.log('❌ Init Zefoy gagal:', result.error);
@@ -606,7 +948,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
 
-    // Cek Zefoy
+    // Check Zefoy
     if (!zefoyInstance || !isZefoyReady) {
         io.emit('spamProgress', {
             sessionId, type: 'suntik',
@@ -667,7 +1009,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             zefoyCooldown = false;
         }
 
-        // Keep alive setiap 3 attempt
+        // Keep alive every 3 attempts
         if (i > 0 && i % 3 === 0 && zefoyInstance) {
             await zefoyInstance.keepAlive();
         }
@@ -687,12 +1029,12 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                     status: 'success',
                     serviceUsed: 'Zefoy'
                 });
-                // Cooldown setelah sukses
+                // Cooldown after success
                 if (i < count - 1) {
                     zefoyCooldown = true;
                 }
             } else if (result.needCaptcha) {
-                // Butuh captcha ulang
+                // Need captcha again
                 io.emit('spamProgress', {
                     sessionId, type: 'suntik',
                     target, platform, action,
@@ -732,8 +1074,9 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         results.total = results.success + results.failed;
         results.attempts = i + 1;
 
+        // Human-like delay between attempts
         if (i < count - 1 && !isStopped && !zefoyCooldown) {
-            await sleep(2000 + Math.random() * 3000);
+            await sleep(getRandomDelay(3000, 7000));
         }
     }
 
@@ -800,7 +1143,8 @@ app.post('/api/zefoy/captcha/submit', async (req, res) => {
             return res.json({ success: false, error: 'Session ID dan kata captcha wajib diisi!' });
         }
         
-        const result = await zefoyInstance.submitCaptcha(sessionId, word);
+        const page = await getPage();
+        const result = await zefoyInstance.submitCaptchaWithPage(page, sessionId, word);
         if (result.success) {
             isZefoyReady = true;
         }
@@ -823,6 +1167,25 @@ app.get('/api/zefoy/captcha/status', (req, res) => {
             isConnected: zefoyInstance ? zefoyInstance.isConnected : false,
             waitingCaptcha: zefoyInstance ? zefoyInstance.isWaitingCaptcha : false
         });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+// ===== AUTO SOLVE CAPTCHA =====
+app.post('/api/zefoy/captcha/auto-solve', async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+        if (!sessionId) {
+            return res.json({ success: false, error: 'Session ID wajib diisi!' });
+        }
+
+        const result = await zefoyInstance.autoSolveWithOCR(sessionId);
+        if (result.success) {
+            isZefoyReady = true;
+            console.log('✅ Auto captcha solved!');
+        }
+        res.json(result);
     } catch (err) {
         res.json({ success: false, error: err.message });
     }
@@ -885,7 +1248,7 @@ app.post('/api/spam/suntik', async (req, res) => {
             return res.json({ success: false, message: 'Pilih platform dan aksi!' });
         }
         
-        // Cek fitur aktif
+        // Check feature
         const featureKey = `${platform.toLowerCase()}_${action.toLowerCase().replace(/ /g, '_')}`;
         if (db.settings.features && db.settings.features[featureKey] === false) {
             return res.json({ 
@@ -922,7 +1285,7 @@ app.post('/api/spam/suntik', async (req, res) => {
             }
         }
 
-        // Cek Zefoy
+        // Check Zefoy
         if (!isZefoyReady) {
             return res.json({ 
                 success: false, 

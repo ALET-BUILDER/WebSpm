@@ -685,7 +685,7 @@
                 
                 <!-- Zefoy Status -->
                 <div class="status-bar" id="zefoyStatusBar">
-                    <div>🔌 Zefoy: <span id="zefoyStatus" style="color:#ff6b00;">Checking...</span></div>
+                    <div>🤖 Zefoy: <span id="zefoyStatus" style="color:#ff6b00;">Initializing...</span></div>
                     <div>⏳ Cooldown: <span id="cooldownStatus">Ready</span></div>
                     <div>📊 Berhasil: <span id="totalSuccess">0</span> | Gagal: <span id="totalFailed">0</span></div>
                     <div>🔑 Captcha: <span id="captchaStatus">Menunggu...</span></div>
@@ -695,13 +695,14 @@
                 <div id="captchaContainer" style="display:none;" class="captcha-container">
                     <h3 style="color:#ff6b6b;margin-bottom:0.5rem;">🔑 Verifikasi Captcha Zefoy</h3>
                     <p style="color:#888;margin-bottom:1rem;">Masukkan kata yang terlihat di bawah untuk melanjutkan</p>
-                    <div id="captchaWordDisplay" class="captcha-word">ZEFOY</div>
+                    <div id="captchaWordDisplay" class="captcha-word">????</div>
                     <div id="captchaImageDisplay" style="display:none;">
                         <img id="captchaImage" class="captcha-image" src="" alt="Captcha Image">
                     </div>
                     <div class="captcha-input">
                         <input type="text" id="captchaInput" placeholder="Ketik kata..." maxlength="8" style="text-transform:uppercase;">
                         <button class="btn btn-primary" onclick="submitCaptcha()"><i class="fas fa-check"></i> Verifikasi</button>
+                        <button class="btn btn-success" onclick="autoSolveCaptcha()"><i class="fas fa-robot"></i> Auto Solve</button>
                         <button class="btn btn-warning" onclick="refreshCaptcha()"><i class="fas fa-sync"></i> Refresh</button>
                     </div>
                     <div id="captchaMessage" style="color:#ff6b6b;margin-top:0.5rem;"></div>
@@ -778,6 +779,7 @@
                         <div class="console-log" id="suntikConsole">
                             <div class="log-normal">[✓] Sistem siap... Selesaikan captcha Zefoy terlebih dahulu</div>
                             <div class="log-normal">[✓] Cooldown: 2 menit setelah setiap sukses</div>
+                            <div class="log-normal">[✓] Auto-solve: Gunakan tombol Auto Solve untuk bypass otomatis</div>
                         </div>
                     </div>
                     
@@ -996,6 +998,7 @@
     let isCooldown = false;
     let currentCaptchaSessionId = null;
     let captchaAttempts = 0;
+    let isAutoSolving = false;
 
     // ============================================
     // DOM READY
@@ -1003,6 +1006,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🔥 PrankMaster Pro - Suntik Sosial Media');
         console.log('👑 Admin: Lynzka / Asiafone11');
+        console.log('🤖 Auto Bypass Captcha dengan OCR');
 
         const session = localStorage.getItem('prankUser');
         if (session) {
@@ -1299,10 +1303,11 @@
                     bypassEl.style.color = '#ff6b00';
                     captchaEl.textContent = '⏳ Belum diverifikasi';
                     captchaEl.style.color = '#ff6b00';
-                    // Tampilkan captcha container
                     document.getElementById('captchaContainer').style.display = 'block';
-                    // Ambil captcha baru
-                    getCaptcha();
+                    // Hanya ambil captcha jika belum ada session
+                    if (!currentCaptchaSessionId) {
+                        getCaptcha();
+                    }
                 } else {
                     statusEl.textContent = '⚠️ Initializing...';
                     statusEl.style.color = '#ff6b00';
@@ -1336,11 +1341,18 @@
                         document.getElementById('captchaImageDisplay').style.display = 'none';
                     }
                     document.getElementById('captchaInput').value = '';
-                    document.getElementById('captchaMessage').textContent = 'Masukkan kata captcha di atas';
+                    document.getElementById('captchaMessage').textContent = 'Masukkan kata captcha di atas atau klik Auto Solve';
                     document.getElementById('captchaMessage').style.color = '#f9ca24';
                     document.getElementById('captchaContainer').style.display = 'block';
-                    updateConsole('suntikConsole', '🔑 Captcha diperlukan! Masukkan kata yang terlihat.', 'log-captcha');
+                    updateConsole('suntikConsole', '🔑 Captcha diperlukan! Gunakan Auto Solve atau input manual.', 'log-captcha');
                     showToast('Captcha Zefoy diperlukan!', 'warning');
+                    
+                    // Try auto-solve if word is already visible
+                    if (data.captchaWord && data.captchaWord.length >= 3) {
+                        setTimeout(() => {
+                            autoSolveCaptcha();
+                        }, 2000);
+                    }
                 } else {
                     document.getElementById('captchaMessage').textContent = 'Gagal mendapatkan captcha: ' + (data.error || 'Unknown');
                     document.getElementById('captchaMessage').style.color = '#ff4757';
@@ -1355,6 +1367,7 @@
     function refreshCaptcha() {
         document.getElementById('captchaMessage').textContent = 'Mengambil captcha baru...';
         document.getElementById('captchaMessage').style.color = '#f9ca24';
+        currentCaptchaSessionId = null;
         getCaptcha();
     }
 
@@ -1388,7 +1401,6 @@
                 updateConsole('suntikConsole', '✅ Captcha berhasil! Siap suntik.', 'log-success');
                 showToast('Captcha berhasil!', 'success');
                 checkZefoyStatus();
-                // Refresh status
                 setTimeout(() => checkZefoyStatus(), 1000);
             } else {
                 document.getElementById('captchaMessage').textContent = '❌ ' + (data.error || 'Captcha salah! Coba lagi.');
@@ -1406,6 +1418,71 @@
         .catch(err => {
             document.getElementById('captchaMessage').textContent = 'Error: ' + err.message;
             document.getElementById('captchaMessage').style.color = '#ff4757';
+        });
+    }
+
+    // ============================================
+    // AUTO SOLVE CAPTCHA
+    // ============================================
+    function autoSolveCaptcha() {
+        if (isAutoSolving) {
+            showToast('Proses auto-solve sedang berjalan...', 'warning');
+            return;
+        }
+        
+        if (!currentCaptchaSessionId) {
+            showToast('Refresh captcha terlebih dahulu!', 'error');
+            refreshCaptcha();
+            setTimeout(() => {
+                if (currentCaptchaSessionId) autoSolveCaptcha();
+            }, 3000);
+            return;
+        }
+        
+        isAutoSolving = true;
+        document.getElementById('captchaMessage').textContent = '🤖 Memproses captcha dengan OCR...';
+        document.getElementById('captchaMessage').style.color = '#f9ca24';
+        updateConsole('suntikConsole', '🤖 Auto-solving captcha dengan OCR...', 'log-info');
+        
+        fetch('/api/zefoy/captcha/auto-solve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: currentCaptchaSessionId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            isAutoSolving = false;
+            if (data.success) {
+                document.getElementById('captchaMessage').textContent = `✅ Captcha solved! Word: ${data.word}`;
+                document.getElementById('captchaMessage').style.color = '#00d2d3';
+                document.getElementById('captchaInput').value = data.word || '';
+                document.getElementById('captchaContainer').style.display = 'none';
+                updateConsole('suntikConsole', `✅ Auto-solve berhasil! Word: ${data.word}`, 'log-success');
+                checkZefoyStatus();
+                showToast('Captcha auto-solved! 🎉', 'success');
+                // Refresh status after 1 second
+                setTimeout(() => checkZefoyStatus(), 1000);
+            } else {
+                document.getElementById('captchaMessage').textContent = '❌ ' + (data.error || 'Gagal auto-solve! Silakan input manual.');
+                document.getElementById('captchaMessage').style.color = '#ff4757';
+                updateConsole('suntikConsole', `❌ Auto-solve gagal: ${data.error || 'Unknown'}`, 'log-error');
+                showToast('Auto-solve gagal, silakan input manual', 'warning');
+                // Coba lagi dengan refresh
+                if (captchaAttempts < 2) {
+                    captchaAttempts++;
+                    setTimeout(() => {
+                        refreshCaptcha();
+                        setTimeout(() => autoSolveCaptcha(), 3000);
+                    }, 2000);
+                }
+            }
+        })
+        .catch(err => {
+            isAutoSolving = false;
+            document.getElementById('captchaMessage').textContent = 'Error: ' + err.message;
+            document.getElementById('captchaMessage').style.color = '#ff4757';
+            updateConsole('suntikConsole', `❌ Auto-solve error: ${err.message}`, 'log-error');
+            showToast('Error auto-solve, coba manual', 'error');
         });
     }
 
@@ -1613,6 +1690,7 @@
         startBtn.disabled = false;
         startBtn.style.display = 'block';
         stopBtn.style.display = 'none';
+        document.getElementById('suntikProgress').style.display = 'none';
     }
 
     function updateSuntikProgress(data) {
@@ -1635,7 +1713,6 @@
             updateConsole('suntikConsole', `[${data.current||0}/${data.total||0}] ${data.message}`, cls);
         }
         
-        // Cooldown display
         if (data.cooldown && data.cooldownRemaining) {
             document.getElementById('cooldownStatus').textContent = `${data.cooldownRemaining}s`;
             document.getElementById('cooldownStatus').style.color = '#f9ca24';
@@ -2057,14 +2134,16 @@
         if (e.ctrlKey && e.shiftKey && e.key === 'L') { e.preventDefault(); handleLogout(); }
         if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') sendMessage();
         if (e.key === 'Enter' && document.activeElement?.id === 'captchaInput') submitCaptcha();
+        if (e.key === 'Enter' && document.activeElement?.id === 'captchaInput' && e.shiftKey) autoSolveCaptcha();
     });
 
     console.log('🔥 PrankMaster Pro - Suntik Sosial Media');
     console.log('👑 Admin: Lynzka / Asiafone11');
     console.log('💉 5 Platform Support');
     console.log('⏳ Cooldown: 2 Menit');
-    console.log('🔑 Captcha Manual Zefoy');
+    console.log('🤖 Auto Bypass: Puppeteer + Stealth + OCR');
     console.log('💡 Developer limit: ∞ (Unlimited)');
+    console.log('📌 Shortcut: Shift+Enter di input captcha = Auto Solve');
     </script>
 </body>
 </html>
