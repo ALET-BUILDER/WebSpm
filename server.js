@@ -47,7 +47,7 @@ let db = {
         maintenanceMessage: 'Server sedang dalam perbaikan.',
         smmApiKey: '199d2c58cab21534580f7d3cdb58a2eb',
         smmApiUrl: 'https://smmstone.com/api/v2',
-        defaultProvider: 'tikfollowers', // tikfollowers | smmpanel
+        defaultProvider: 'tikfollowers',
         providers: {
             smmpanel: { enabled: true, cooldown: 60, maxPerDay: 100 },
             tikfollowers: { enabled: true, cooldown: 120, maxPerDay: 50 }
@@ -310,6 +310,9 @@ class SMMPanelProvider {
         this.apiKey = db.settings.smmApiKey || '199d2c58cab21534580f7d3cdb58a2eb';
         this.apiUrl = db.settings.smmApiUrl || 'https://smmstone.com/api/v2';
         this.lastError = '';
+        this.enabled = db.settings.providers.smmpanel?.enabled !== false;
+        this.cooldown = db.settings.providers.smmpanel?.cooldown || 60;
+        this.maxPerDay = db.settings.providers.smmpanel?.maxPerDay || 100;
     }
 
     checkDailyLimit() {
@@ -318,7 +321,7 @@ class SMMPanelProvider {
             this.dailyCount = 0;
             this.dailyReset = now;
         }
-        return this.dailyCount < (db.settings.providers.smmpanel?.maxPerDay || 100);
+        return this.dailyCount < this.maxPerDay;
     }
 
     async useService(platform, action, target) {
@@ -349,7 +352,6 @@ class SMMPanelProvider {
         }
 
         try {
-            // Format target
             let formattedTarget = target;
             if (platform === 'TikTok' && target.includes('tiktok.com')) {
                 const match = target.match(/@([a-zA-Z0-9_.]+)/);
@@ -358,7 +360,6 @@ class SMMPanelProvider {
 
             console.log(`📤 SMM Panel: ${platform} ${action} for ${formattedTarget} (Service: ${serviceId})`);
 
-            // Call API
             const response = await fetch(`${this.apiUrl}/order`, {
                 method: 'POST',
                 headers: {
@@ -377,7 +378,7 @@ class SMMPanelProvider {
             const result = await response.json();
 
             if (result && result.order) {
-                this.cooldownUntil = Date.now() + (db.settings.providers.smmpanel?.cooldown || 60) * 1000;
+                this.cooldownUntil = Date.now() + this.cooldown * 1000;
                 this.dailyCount++;
                 this.lastError = '';
 
@@ -412,16 +413,19 @@ class SMMPanelProvider {
         return {
             provider: 'smmpanel',
             cooldownRemaining: Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000)),
-            dailyRemaining: (db.settings.providers.smmpanel?.maxPerDay || 100) - this.dailyCount,
+            dailyCount: this.dailyCount,
+            maxPerDay: this.maxPerDay,
+            dailyRemaining: this.maxPerDay - this.dailyCount,
             isReady: this.cooldownUntil <= now && this.checkDailyLimit(),
-            enabled: db.settings.providers.smmpanel?.enabled !== false,
-            lastError: this.lastError
+            enabled: this.enabled,
+            lastError: this.lastError,
+            cooldown: this.cooldown
         };
     }
 }
 
 // ============================================
-// TIKFOLLOWERS (FIXED - No Login)
+// TIKFOLLOWERS
 // ============================================
 
 class TikFollowersProvider {
@@ -433,6 +437,9 @@ class TikFollowersProvider {
         this.baseUrl = 'https://tikfollowers.com';
         this.cookies = '';
         this.lastError = '';
+        this.enabled = db.settings.providers.tikfollowers?.enabled !== false;
+        this.cooldown = db.settings.providers.tikfollowers?.cooldown || 120;
+        this.maxPerDay = db.settings.providers.tikfollowers?.maxPerDay || 50;
     }
 
     checkDailyLimit() {
@@ -441,7 +448,7 @@ class TikFollowersProvider {
             this.dailyCount = 0;
             this.dailyReset = now;
         }
-        return this.dailyCount < (db.settings.providers.tikfollowers?.maxPerDay || 50);
+        return this.dailyCount < this.maxPerDay;
     }
 
     async useService(platform, action, target) {
@@ -465,7 +472,6 @@ class TikFollowersProvider {
             };
         }
 
-        // Extract username
         let username = target;
         if (target.includes('tiktok.com')) {
             const match = target.match(/@([a-zA-Z0-9_.]+)/);
@@ -486,7 +492,6 @@ class TikFollowersProvider {
             const url = `${this.baseUrl}${path}`;
             console.log(`📤 TikFollowers: ${action} for ${username}`);
 
-            // GET page
             const response = await fetch(url, {
                 headers: {
                     'User-Agent': getRandomUserAgent(),
@@ -498,11 +503,10 @@ class TikFollowersProvider {
             const html = await response.text();
             const $ = cheerio.load(html);
 
-            // Save cookies
             const cookies = response.headers.raw()['set-cookie'] || [];
             this.cookies = cookies.map(c => c.split(';')[0]).join('; ');
 
-            // Find form - MULTIPLE SELECTORS
+            // Try to find form and submit
             let form = $('form');
             let input = $('input[type="text"]');
 
@@ -510,24 +514,6 @@ class TikFollowersProvider {
                 form = input.closest('form');
             }
 
-            if (form.length === 0) {
-                // Try div-based forms
-                const formDiv = $('div[class*="form"], div[class*="input"], div[class*="box"]');
-                if (formDiv.length > 0) {
-                    const inputInside = formDiv.find('input[type="text"]');
-                    if (inputInside.length > 0) {
-                        input = inputInside;
-                        const fakeForm = $('<form>');
-                        fakeForm.attr('action', url);
-                        fakeForm.attr('method', 'POST');
-                        // Add the input to fake form
-                        fakeForm.html(input);
-                        form = fakeForm;
-                    }
-                }
-            }
-
-            // If still no form, try direct POST
             if (form.length === 0 || input.length === 0) {
                 console.log('⚠️ Form not found, using direct POST...');
 
@@ -554,7 +540,7 @@ class TikFollowersProvider {
                 const successMsg = result$('.success, .alert-success, .result-success').text().trim();
 
                 if (successMsg) {
-                    this.cooldownUntil = Date.now() + 120 * 1000;
+                    this.cooldownUntil = Date.now() + this.cooldown * 1000;
                     this.dailyCount++;
                     this.lastError = '';
                     return {
@@ -579,7 +565,6 @@ class TikFollowersProvider {
             const formData = new URLSearchParams();
             formData.append(inputName, username);
 
-            // Add hidden inputs
             form.find('input[type="hidden"]').each((i, el) => {
                 const name = $(el).attr('name');
                 const value = $(el).attr('value');
@@ -602,7 +587,6 @@ class TikFollowersProvider {
             const resultHtml = await submitResponse.text();
             const result$ = cheerio.load(resultHtml);
 
-            // Check success
             const successSelectors = ['.success', '.alert-success', '.result-success', '.message-success'];
             let successMsg = '';
             for (const sel of successSelectors) {
@@ -613,7 +597,6 @@ class TikFollowersProvider {
                 }
             }
 
-            // Check for wait message
             const bodyText = result$('body').text().toLowerCase();
             if (!successMsg && (bodyText.includes('wait') || bodyText.includes('tunggu'))) {
                 const waitMatch = bodyText.match(/(\d+)\s*(minute|min|menit)/);
@@ -636,7 +619,7 @@ class TikFollowersProvider {
                 };
             }
 
-            this.cooldownUntil = Date.now() + 120 * 1000;
+            this.cooldownUntil = Date.now() + this.cooldown * 1000;
             this.dailyCount++;
             this.lastError = '';
 
@@ -663,17 +646,16 @@ class TikFollowersProvider {
 
     getStatus() {
         const now = Date.now();
-        const maxPerDay = db.settings.providers.tikfollowers?.maxPerDay || 50;
         return {
             provider: 'tikfollowers',
             cooldownRemaining: Math.max(0, Math.ceil((this.cooldownUntil - now) / 1000)),
             dailyCount: this.dailyCount,
-            dailyLimit: maxPerDay,
-            dailyRemaining: maxPerDay - this.dailyCount,
-            isReady: this.cooldownUntil <= now && this.dailyCount < maxPerDay,
-            enabled: db.settings.providers.tikfollowers?.enabled !== false,
+            maxPerDay: this.maxPerDay,
+            dailyRemaining: this.maxPerDay - this.dailyCount,
+            isReady: this.cooldownUntil <= now && this.checkDailyLimit(),
+            enabled: this.enabled,
             lastError: this.lastError,
-            requiresLogin: false
+            cooldown: this.cooldown
         };
     }
 }
@@ -686,6 +668,8 @@ class SessionManager {
     constructor() {
         this.smmpanel = new SMMPanelProvider();
         this.tikfollowers = new TikFollowersProvider();
+        this.primaryProvider = db.settings.defaultProvider || 'tikfollowers';
+        this.fallbackEnabled = true;
     }
 
     getProvider(provider) {
@@ -697,34 +681,37 @@ class SessionManager {
     getStatus() {
         return {
             smmpanel: this.smmpanel.getStatus(),
-            tikfollowers: this.tikfollowers.getStatus()
+            tikfollowers: this.tikfollowers.getStatus(),
+            primaryProvider: this.primaryProvider,
+            fallbackEnabled: this.fallbackEnabled
         };
     }
 
     getAvailableProvider(platform) {
         const config = platformConfigs[platform];
-        if (!config) return 'tikfollowers';
+        if (!config) return this.primaryProvider;
 
         const providers = config.providers || ['tikfollowers'];
-        const defaultProvider = config.defaultProvider || providers[0];
-
-        // Check if default is enabled and ready
-        const defaultStatus = this.getProvider(defaultProvider)?.getStatus();
-        if (defaultStatus?.enabled && defaultStatus?.isReady) {
-            return defaultProvider;
+        
+        // Try primary first
+        const primaryStatus = this.getProvider(this.primaryProvider)?.getStatus();
+        if (primaryStatus?.enabled && primaryStatus?.isReady && providers.includes(this.primaryProvider)) {
+            return this.primaryProvider;
         }
 
-        // Try fallback providers
-        for (const provider of providers) {
-            if (provider === defaultProvider) continue;
-            const status = this.getProvider(provider)?.getStatus();
-            if (status?.enabled && status?.isReady) {
-                return provider;
+        // Try fallback if enabled
+        if (this.fallbackEnabled) {
+            for (const provider of providers) {
+                if (provider === this.primaryProvider) continue;
+                const status = this.getProvider(provider)?.getStatus();
+                if (status?.enabled && status?.isReady) {
+                    return provider;
+                }
             }
         }
 
-        // Return default even if not ready (will show cooldown)
-        return defaultProvider;
+        // Return primary even if not ready (will show cooldown)
+        return this.primaryProvider;
     }
 }
 
@@ -736,7 +723,7 @@ const sessionManager = new SessionManager();
 global.spamSessions = {};
 
 // ============================================
-// SUNTIK FUNCTION - FIXED
+// SUNTIK FUNCTION
 // ============================================
 
 async function spamSuntik(target, platform, action, count, username, sessionId) {
@@ -746,8 +733,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
     let currentAttempt = 0;
     let consecutiveFails = 0;
 
-    // Register session
-    if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = {
         stop: () => {
             isStopped = true;
@@ -762,11 +747,13 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         io.emit('spamProgress', {
             sessionId, type: 'suntik',
             target, platform, action,
-            current: 0, total: count,
+            current: 0, total: 0,
             success: 0, failed: 0,
             message: '❌ Platform tidak ditemukan!',
-            status: 'error'
+            status: 'error',
+            completed: true
         });
+        delete global.spamSessions[sessionId];
         return results;
     }
 
@@ -775,7 +762,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
     const userLimit = limits[user?.status] || 15;
     const maxCount = Math.min(count, userLimit);
 
-    // Get best available provider
     let currentProvider = sessionManager.getAvailableProvider(platform);
     let providerObj = sessionManager.getProvider(currentProvider);
 
@@ -784,7 +770,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
     for (let i = 0; i < maxCount; i++) {
         currentAttempt = i + 1;
 
-        // CHECK STOP
         if (isStopped || (global.spamSessions[sessionId] && global.spamSessions[sessionId].isStopped())) {
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
@@ -799,7 +784,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             break;
         }
 
-        // Check user limit
         if (user && user.limit !== Infinity && user.limit !== '∞') {
             const remaining = user.limit - (user.used || 0);
             if (remaining <= 0) {
@@ -809,17 +793,17 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                     current: i, total: maxCount,
                     success: results.success, failed: results.failed,
                     message: '⛔ Limit habis!',
-                    status: 'error'
+                    status: 'error',
+                    completed: true
                 });
                 isCompleted = true;
                 break;
             }
         }
 
-        // Check if provider is ready, if not try to get another
+        // Check provider status
         const providerStatus = providerObj?.getStatus();
         if (!providerStatus?.isReady || !providerStatus?.enabled) {
-            // Try to switch provider
             const newProvider = sessionManager.getAvailableProvider(platform);
             if (newProvider !== currentProvider) {
                 currentProvider = newProvider;
@@ -833,7 +817,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                     status: 'info'
                 });
             } else if (providerStatus?.cooldownRemaining > 0) {
-                // Provider on cooldown - show status but CONTINUE
                 const remaining = providerStatus.cooldownRemaining;
                 io.emit('spamProgress', {
                     sessionId, type: 'suntik',
@@ -849,33 +832,9 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 i--;
                 continue;
             } else {
-                // Provider disabled or not ready - try fallback
-                const fallbackProvider = config.providers?.find(p => p !== currentProvider);
-                if (fallbackProvider) {
-                    const fallbackObj = sessionManager.getProvider(fallbackProvider);
-                    const fallbackStatus = fallbackObj?.getStatus();
-                    if (fallbackStatus?.enabled && fallbackStatus?.isReady) {
-                        currentProvider = fallbackProvider;
-                        providerObj = fallbackObj;
-                        io.emit('spamProgress', {
-                            sessionId, type: 'suntik',
-                            target, platform, action,
-                            current: i, total: maxCount,
-                            success: results.success, failed: results.failed,
-                            message: `🔄 Switch to ${fallbackProvider}`,
-                            status: 'info'
-                        });
-                    } else {
-                        // No provider available - wait and retry
-                        await sleep(5000);
-                        i--;
-                        continue;
-                    }
-                } else {
-                    await sleep(5000);
-                    i--;
-                    continue;
-                }
+                await sleep(5000);
+                i--;
+                continue;
             }
         }
 
@@ -900,7 +859,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                     provider: currentProvider
                 });
             } else if (result && result.cooldown) {
-                // Cooldown - show but CONTINUE
                 const remaining = result.cooldownRemaining || 60;
                 io.emit('spamProgress', {
                     sessionId, type: 'suntik',
@@ -929,7 +887,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                     error: errorMsg
                 });
 
-                // If too many consecutive fails, try switching provider
                 if (consecutiveFails >= 3) {
                     const fallbackProvider = config.providers?.find(p => p !== currentProvider);
                     if (fallbackProvider) {
@@ -978,7 +935,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         }
     }
 
-    // Final status
     if (!isStopped && !isCompleted) {
         isCompleted = true;
         io.emit('spamProgress', {
@@ -995,14 +951,12 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         });
     }
 
-    // Update stats
     if (results.success > 0) {
         db.stats.totalSuntikSent = (db.stats.totalSuntikSent || 0) + results.success;
         saveDB();
         io.emit('userUpdated', { username: user?.username });
     }
 
-    // Cleanup
     if (global.spamSessions && global.spamSessions[sessionId]) {
         delete global.spamSessions[sessionId];
     }
@@ -1014,6 +968,78 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
 // API ROUTES
 // ============================================
 
+// ===== AUTH ROUTES =====
+app.post('/api/login', (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = db.users.find(u => u.username === username);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        if (user.banned) return res.json({ success: false, message: 'Akun di-ban!' });
+        if (!bcrypt.compareSync(password, user.password)) {
+            return res.json({ success: false, message: 'Password salah!' });
+        }
+        user.online = true;
+        saveDB();
+        io.emit('usersOnline', db.users.filter(u => u.online).map(u => u.username));
+        res.json({ success: true, user: { ...user, password: undefined } });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/register', (req, res) => {
+    try {
+        const { username, password } = req.body;
+        if (db.users.find(u => u.username === username)) {
+            return res.json({ success: false, message: 'Username sudah dipakai!' });
+        }
+        const user = {
+            id: uuidv4(),
+            username,
+            password: bcrypt.hashSync(password, 10),
+            status: 'Free',
+            limit: 15,
+            used: 0,
+            lastReset: Date.now(),
+            isAdmin: false,
+            isDeveloper: false,
+            isReseller: false,
+            online: false,
+            createdAt: new Date().toISOString(),
+            apiKey: generateApiKey()
+        };
+        db.users.push(user);
+        saveDB();
+        res.json({ success: true, message: 'Registrasi berhasil!' });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/change-password', (req, res) => {
+    try {
+        const { username, newPassword } = req.body;
+        const user = db.users.find(u => u.username === username);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        user.password = bcrypt.hashSync(newPassword, 10);
+        saveDB();
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/user/:username', (req, res) => {
+    try {
+        const user = db.users.find(u => u.username === req.params.username);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        res.json({ success: true, user: { ...user, password: undefined } });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+// ===== PLATFORMS =====
 app.get('/api/suntik/platforms', (req, res) => {
     try {
         const platforms = Object.keys(platformConfigs).map(key => {
@@ -1039,6 +1065,7 @@ app.get('/api/suntik/platforms', (req, res) => {
     }
 });
 
+// ===== PROVIDER STATUS =====
 app.get('/api/providers/status', (req, res) => {
     try {
         const status = sessionManager.getStatus();
@@ -1048,13 +1075,15 @@ app.get('/api/providers/status', (req, res) => {
                 smmpanel: status.smmpanel,
                 tikfollowers: status.tikfollowers
             },
-            defaultProvider: db.settings.defaultProvider || 'tikfollowers'
+            primaryProvider: status.primaryProvider,
+            fallbackEnabled: status.fallbackEnabled
         });
     } catch (err) {
         res.json({ success: false, error: err.message });
     }
 });
 
+// ===== SPAM =====
 app.post('/api/spam/suntik', async (req, res) => {
     try {
         const { username, target, platform, action, count } = req.body;
@@ -1128,14 +1157,139 @@ app.post('/api/spam/suntik/stop', (req, res) => {
     }
 });
 
-// ===== AUTH ROUTES =====
-// ... (sama seperti sebelumnya, pertahankan semua route auth)
+// ===== PAYMENTS =====
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
+const upload = multer({ storage });
 
-// ============================================
-// ADMIN - PROVIDER SETTINGS
-// ============================================
+app.post('/api/payments/submit', upload.single('proof'), (req, res) => {
+    try {
+        const { username, package: pkg, name, paymentMethod } = req.body;
+        if (!req.file) return res.json({ success: false, message: 'Upload bukti pembayaran!' });
 
-app.post('/api/admin/default-provider', (req, res) => {
+        const packages = { 'Premium': 10000, 'VIP': 20000, 'Reseller': 30000 };
+        const amount = packages[pkg] || 0;
+
+        db.payments.push({
+            id: uuidv4(),
+            username,
+            package: pkg,
+            amount,
+            name,
+            paymentMethod: paymentMethod || 'dana',
+            proof: req.file.filename,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        });
+        saveDB();
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+// ===== ADMIN =====
+app.get('/api/admin/users', (req, res) => {
+    try {
+        res.json({ success: true, users: db.users.map(u => ({ ...u, password: undefined })) });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/update-status', (req, res) => {
+    try {
+        const { username, status, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        const user = db.users.find(u => u.username === username);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        if (user.isDeveloper && admin !== 'Lynzka') {
+            return res.json({ success: false, message: 'Tidak bisa ubah Developer!' });
+        }
+
+        const limits = { 'Free': 15, 'Premium': 80, 'VIP': 150, 'Reseller': 200, 'Developer': Infinity };
+        user.status = status;
+        user.limit = limits[status] || 15;
+        saveDB();
+        io.emit('userUpdated', { username });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/ban', (req, res) => {
+    try {
+        const { username, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        const user = db.users.find(u => u.username === username);
+        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
+        if (user.isDeveloper && admin !== 'Lynzka') {
+            return res.json({ success: false, message: 'Tidak bisa ban Developer!' });
+        }
+        user.banned = true;
+        saveDB();
+        io.emit('userUpdated', { username });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/admin/features', (req, res) => {
+    try {
+        res.json({ success: true, features: db.settings.features || {} });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/features/toggle', (req, res) => {
+    try {
+        const { featureKey, enabled, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        if (!db.settings.features) db.settings.features = {};
+        db.settings.features[featureKey] = enabled;
+        saveDB();
+        io.emit('settingsUpdated', { settings: db.settings });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/provider/toggle', (req, res) => {
+    try {
+        const { provider, enabled, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        if (provider === 'tikfollowers') {
+            db.settings.providers.tikfollowers.enabled = enabled;
+        } else if (provider === 'smmpanel') {
+            db.settings.providers.smmpanel.enabled = enabled;
+        }
+        saveDB();
+        io.emit('settingsUpdated', { settings: db.settings });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/primary-provider', (req, res) => {
     try {
         const { provider, admin } = req.body;
         const adminUser = db.users.find(u => u.username === admin);
@@ -1146,12 +1300,136 @@ app.post('/api/admin/default-provider', (req, res) => {
             return res.json({ success: false, message: 'Provider tidak valid!' });
         }
         db.settings.defaultProvider = provider;
+        sessionManager.primaryProvider = provider;
         saveDB();
         io.emit('settingsUpdated', { settings: db.settings });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
     }
+});
+
+app.post('/api/admin/fallback-toggle', (req, res) => {
+    try {
+        const { enabled, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        sessionManager.fallbackEnabled = enabled;
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/control/toggle', (req, res) => {
+    try {
+        const { controlKey, enabled, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        if (!db.settings.adminControls) db.settings.adminControls = {};
+        db.settings.adminControls[controlKey] = !enabled;
+        saveDB();
+        io.emit('settingsUpdated', { settings: db.settings });
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/admin/payments', (req, res) => {
+    try {
+        res.json({ success: true, payments: db.payments });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/verify-payment', (req, res) => {
+    try {
+        const { paymentId, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        const payment = db.payments.find(p => p.id === paymentId);
+        if (!payment) return res.json({ success: false, message: 'Payment tidak ditemukan!' });
+        if (payment.status !== 'pending') return res.json({ success: false, message: 'Sudah diproses!' });
+
+        payment.status = 'verified';
+        const user = db.users.find(u => u.username === payment.username);
+        if (user) {
+            const limits = { 'Premium': 80, 'VIP': 150, 'Reseller': 200 };
+            const newLimit = limits[payment.package] || 15;
+            user.limit = newLimit;
+            user.status = payment.package;
+            saveDB();
+            io.emit('userUpdated', { username: user.username });
+        }
+        saveDB();
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/reject-payment', (req, res) => {
+    try {
+        const { paymentId, reason, admin } = req.body;
+        const adminUser = db.users.find(u => u.username === admin);
+        if (!adminUser || !adminUser.isDeveloper) {
+            return res.json({ success: false, message: 'Hanya Developer!' });
+        }
+        const payment = db.payments.find(p => p.id === paymentId);
+        if (!payment) return res.json({ success: false, message: 'Payment tidak ditemukan!' });
+        if (payment.status !== 'pending') return res.json({ success: false, message: 'Sudah diproses!' });
+
+        payment.status = 'rejected';
+        payment.reason = reason || 'Ditolak admin';
+        saveDB();
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+// ============================================
+// SOCKET.IO EVENTS
+// ============================================
+io.on('connection', (socket) => {
+    console.log('🔗 Client connected:', socket.id);
+
+    socket.on('userOnline', (username) => {
+        const user = db.users.find(u => u.username === username);
+        if (user) {
+            user.online = true;
+            saveDB();
+            io.emit('usersOnline', db.users.filter(u => u.online).map(u => u.username));
+        }
+    });
+
+    socket.on('userOffline', (username) => {
+        const user = db.users.find(u => u.username === username);
+        if (user) {
+            user.online = false;
+            saveDB();
+            io.emit('usersOnline', db.users.filter(u => u.online).map(u => u.username));
+        }
+    });
+
+    socket.on('sendMessage', (data) => {
+        if (!data.username || !data.message) return;
+        db.messages.push(data);
+        if (db.messages.length > 100) db.messages.shift();
+        io.emit('newMessage', data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔌 Client disconnected:', socket.id);
+    });
 });
 
 // ============================================
@@ -1165,7 +1443,7 @@ server.listen(PORT, async () => {
     console.log('💉 PRANKMASTER PRO V7 - FULL FIX');
     console.log('========================================');
     console.log('📌 Providers:');
-    console.log('  🔵 TikFollowers (No Login)');
+    console.log('  🔵 TikTokFollowers (No Login)');
     console.log('  🟢 SMM Panel API');
     console.log('🔥 14 Platforms Supported');
     console.log('✅ STOP button fixed!');
