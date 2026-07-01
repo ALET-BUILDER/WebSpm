@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrankMaster Pro - Spam OTP & Pairing</title>
+    <title>PrankMaster Pro - Spam OTP & Suntik</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
@@ -190,6 +190,11 @@
             color: #fff;
         }
         .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 210, 211, 0.3); }
+        .btn-warning {
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            color: #fff;
+        }
+        .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(249, 202, 36, 0.3); }
         .btn-block { width: 100%; justify-content: center; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
         .console-log {
@@ -208,6 +213,7 @@
         .console-log .log-success { color: #00d2d3; }
         .console-log .log-error { color: #ff4757; }
         .console-log .log-info { color: #f9ca24; }
+        .console-log .log-warning { color: #ff9ff3; }
         .console-log .log-normal { color: #b0b0c8; }
         .admin-stats {
             display: grid;
@@ -301,6 +307,7 @@
         .toast-success { border-color: rgba(0, 210, 211, 0.3); }
         .toast-error { border-color: rgba(255, 71, 87, 0.3); }
         .toast-info { border-color: rgba(108, 92, 231, 0.3); }
+        .toast-warning { border-color: rgba(249, 202, 36, 0.3); }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .mt-1 { margin-top: 1rem; }
         .hidden { display: none !important; }
@@ -343,6 +350,7 @@
             margin-bottom: 1.5rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             padding-bottom: 1rem;
+            flex-wrap: wrap;
         }
         .admin-tab {
             padding: 8px 20px;
@@ -415,16 +423,6 @@
         }
         .chat-input input { flex: 1; padding: 0.8rem 1rem; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: #fff; }
         .chat-input button { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; background: #6c5ce7; color: #fff; cursor: pointer; }
-        .bot-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .bot-status.ready { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
-        .bot-status.connecting { background: rgba(249, 202, 36, 0.2); color: #f9ca24; }
-        .bot-status.disconnected { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         .status-badge {
             display: inline-block;
             padding: 2px 8px;
@@ -441,10 +439,12 @@
         .call-options {
             display: flex;
             gap: 1rem;
-            margin: 1rem 0;
+            margin: 0.5rem 0;
+            flex-wrap: wrap;
         }
         .call-option {
             flex: 1;
+            min-width: 100px;
             padding: 16px;
             background: rgba(255, 255, 255, 0.03);
             border: 2px solid rgba(255, 255, 255, 0.06);
@@ -456,7 +456,13 @@
         .call-option:hover { background: rgba(108, 92, 231, 0.05); border-color: rgba(108, 92, 231, 0.2); }
         .call-option.active { border-color: #6c5ce7; background: rgba(108, 92, 231, 0.1); }
         .call-option i { font-size: 2rem; display: block; margin-bottom: 6px; }
-        .call-option span { font-size: 0.85rem; font-weight: 500; }
+        .call-option span { font-size: 0.85rem; font-weight: 500; display: block; }
+        .call-option .sub-text { font-size: 0.6rem; color: #888; margin-top: 4px; }
+        .platform-icon {
+            font-size: 2.5rem !important;
+        }
+        .platform-option .fab { font-size: 2.5rem !important; }
+        .action-option i { font-size: 1.8rem !important; }
         .code-display {
             display: flex;
             justify-content: center;
@@ -466,17 +472,6 @@
             border-radius: 12px;
             min-height: 200px;
             margin: 1rem 0;
-        }
-        .code-display img { max-width: 250px; height: auto; }
-        .code-display .pairing-code {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #6c5ce7;
-            letter-spacing: 4px;
-            background: rgba(108, 92, 231, 0.1);
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            border: 2px dashed rgba(108, 92, 231, 0.3);
         }
         @media (max-width: 768px) {
             .navbar { padding: 0 1rem; height: 60px; }
@@ -558,8 +553,7 @@
                 <div class="nav-menu">
                     <a href="#" class="nav-link active" data-section="dashboard"><i class="fas fa-home"></i><span>Dashboard</span></a>
                     <a href="#" class="nav-link" data-section="spam-otp"><i class="fas fa-bolt"></i><span>Spam OTP</span></a>
-                    <a href="#" class="nav-link" data-section="spam-pairing"><i class="fas fa-code"></i><span>Pairing</span></a>
-                    <a href="#" class="nav-link" data-section="connect-bot"><i class="fas fa-robot"></i><span>Bot</span></a>
+                    <a href="#" class="nav-link" data-section="suntik"><i class="fas fa-syringe"></i><span>Suntik</span></a>
                     <a href="#" class="nav-link" data-section="pricing"><i class="fas fa-tags"></i><span>Pricing</span></a>
                     <a href="#" class="nav-link" data-section="chat-public"><i class="fas fa-comments"></i><span>Chat</span></a>
                     <a href="#" class="nav-link" data-section="admin-panel" id="adminNavLink" style="display:none;"><i class="fas fa-user-shield"></i><span>Admin</span></a>
@@ -584,126 +578,123 @@
                     <div class="stat-card"><div class="number" id="statSpam">0</div><div class="label">Total Spam</div></div>
                     <div class="stat-card"><div class="number" id="statLimit">15</div><div class="label">Sisa Limit</div></div>
                     <div class="stat-card"><div class="number" id="statUsers">0</div><div class="label">Online Users</div></div>
-                    <div class="stat-card"><div class="number" id="statBot">0</div><div class="label">Bot Active</div></div>
+                    <div class="stat-card"><div class="number" id="statSuntik">0</div><div class="label">Total Suntik</div></div>
                 </div>
                 <div class="card">
-                    <div class="card-title"><i class="fas fa-robot"></i> Status Bot</div>
-                    <div id="botStatusDisplay"><p class="log-normal">Belum ada bot terhubung</p></div>
+                    <div class="card-title"><i class="fas fa-info-circle"></i> Informasi Sistem</div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
+                        <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
+                            <div style="font-size:0.8rem;color:#888;">API OTP</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#6c5ce7;">25+</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
+                            <div style="font-size:0.8rem;color:#888;">Platform Suntik</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#00d2d3;">5</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
+                            <div style="font-size:0.8rem;color:#888;">Layanan Suntik</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#f9ca24;">5</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
+                            <div style="font-size:0.8rem;color:#888;">Status</div>
+                            <div style="font-size:1rem;font-weight:700;color:#00d2d3;">✅ Online</div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-<!-- ===== SPAM OTP ===== -->
-<section id="spam-otp" class="section">
-    <div class="section-header">
-        <h1><i class="fas fa-bolt"></i> Spam OTP</h1>
-        <p>Kirim OTP ke nomor target menggunakan <span class="badge badge-success">80+ API</span></p>
-    </div>
-    <div class="card">
-        <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
-        <div class="form-group">
-            <label><i class="fas fa-bullseye"></i> Nomor Target</label>
-            <input type="text" id="otpTarget" placeholder="6281234567890" inputmode="numeric" value="628">
-            <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (awali dengan 628)</small>
-        </div>
-        <div class="form-group">
-            <label><i class="fas fa-sort-numeric-up"></i> Jumlah Pengiriman</label>
-            <input type="number" id="otpCount" min="1" max="200" value="5">
-            <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
-        </div>
-        <div class="form-group">
-            <label><i class="fas fa-terminal"></i> Console Log</label>
-            <div class="console-log" id="otpConsole"><div class="log-normal">[✓] Sistem siap... 80+ API OTP</div></div>
-        </div>
-        <div id="otpProgress" style="display:none;" class="spam-progress">
-            <div>Progress: <span id="otpProgressText">0/0</span></div>
-            <div class="bar" id="otpProgressBar" style="width:0%"></div>
-            <div style="margin-top:10px;font-size:0.8rem;color:#888;" id="otpDetailProgress"></div>
-        </div>
-        <div style="display:flex;gap:10px;">
-            <button class="btn btn-primary btn-block" id="otpStartBtn" onclick="toggleOTP()">
-                <i class="fas fa-play"></i> Start Spam OTP
-            </button>
-            <button class="btn btn-danger btn-block" id="otpStopBtn" onclick="stopOTP()" style="display:none;flex:1;">
-                <i class="fas fa-stop"></i> STOP
-            </button>
-        </div>
-    </div>
-</section>
-
-            <!-- ===== SPAM PAIRING ===== -->
-            <section id="spam-pairing" class="section">
+            <!-- ===== SPAM OTP ===== -->
+            <section id="spam-otp" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-code"></i> Spam Pairing</h1>
-                    <p>Kirim pairing code ke nomor target <span class="badge badge-danger">REAL</span></p>
+                    <h1><i class="fas fa-bolt"></i> Spam OTP</h1>
+                    <p>Kirim OTP ke nomor target menggunakan <span class="badge badge-success">25+ API</span></p>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
                     <div class="form-group">
                         <label><i class="fas fa-bullseye"></i> Nomor Target</label>
-                        <input type="text" id="pairingTarget" placeholder="6281234567890" inputmode="numeric">
-                        <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (tanpa +62)</small>
+                        <input type="text" id="otpTarget" placeholder="6281234567890" inputmode="numeric" value="628">
+                        <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (awali dengan 628)</small>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah (Max 15x)</label>
-                        <input type="number" id="pairingCount" min="1" max="15" value="5">
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-robot"></i> Gunakan Bot</label>
-                        <select id="pairingUseBot" style="width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;font-size:0.95rem;font-family:'Inter',sans-serif;">
-                            <option value="true">Ya (Pakai Bot yang sudah connect)</option>
-                            <option value="false" selected>Tidak (Auto connect tanpa bot)</option>
-                        </select>
-                        <small style="color:#888;font-size:0.75rem;">Pilih "Tidak" untuk spam pairing tanpa perlu connect bot dulu</small>
+                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah Pengiriman</label>
+                        <input type="number" id="otpCount" min="1" max="200" value="5">
+                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="pairingConsole"><div class="log-normal">[✓] Sistem siap...</div></div>
+                        <div class="console-log" id="otpConsole"><div class="log-normal">[✓] Sistem siap... 25+ API OTP</div></div>
                     </div>
-                    <div id="pairingProgress" style="display:none;" class="spam-progress">
-                        <div>Progress: <span id="pairingProgressText">0/0</span></div>
-                        <div class="bar" id="pairingProgressBar" style="width:0%"></div>
+                    <div id="otpProgress" style="display:none;" class="spam-progress">
+                        <div>Progress: <span id="otpProgressText">0/0</span></div>
+                        <div class="bar" id="otpProgressBar" style="width:0%"></div>
+                        <div style="margin-top:10px;font-size:0.8rem;color:#888;" id="otpDetailProgress"></div>
                     </div>
-                    <button class="btn btn-primary btn-block" id="pairingStartBtn" onclick="togglePairing()">
-                        <i class="fas fa-play"></i> Start
-                    </button>
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn btn-primary btn-block" id="otpStartBtn" onclick="toggleOTP()">
+                            <i class="fas fa-play"></i> Start Spam OTP
+                        </button>
+                        <button class="btn btn-danger btn-block" id="otpStopBtn" onclick="stopOTP()" style="display:none;flex:1;">
+                            <i class="fas fa-stop"></i> STOP
+                        </button>
+                    </div>
                 </div>
             </section>
 
-            <!-- ===== CONNECT BOT ===== -->
-            <section id="connect-bot" class="section">
+            <!-- ===== SUNTIK ===== -->
+            <section id="suntik" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-robot"></i> Connect Bot</h1>
-                    <p>Hubungkan bot WhatsApp untuk Spam Pairing</p>
+                    <h1><i class="fas fa-syringe"></i> Suntik</h1>
+                    <p>Kirim followers, likes, views, dan lainnya ke berbagai platform sosial media</p>
                 </div>
                 <div class="card">
-                    <div class="card-title"><i class="fas fa-plug"></i> Konfigurasi Bot</div>
+                    <div class="card-title"><i class="fas fa-cogs"></i> Konfigurasi</div>
+                    
                     <div class="form-group">
-                        <label><i class="fas fa-robot"></i> Nomor Bot</label>
-                        <input type="text" id="botNumber" placeholder="6281234567890" inputmode="numeric">
-                        <small style="color:#888;font-size:0.75rem;">Nomor WhatsApp yang akan digunakan sebagai bot</small>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-qrcode"></i> Pilih Metode</label>
-                        <div class="call-options">
-                            <div class="call-option active" data-connect-type="qris" onclick="selectConnectType('qris')">
-                                <i class="fas fa-qrcode"></i><span>QRIS</span>
-                            </div>
-                            <div class="call-option" data-connect-type="code" onclick="selectConnectType('code')">
-                                <i class="fas fa-compact-disc"></i><span>Code</span>
-                            </div>
+                        <label><i class="fas fa-globe"></i> Pilih Platform</label>
+                        <div id="platformOptions" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
+                            <!-- Akan diisi oleh JavaScript -->
                         </div>
                     </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-bullseye"></i> Pilih Aksi</label>
+                        <div id="actionOptions" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
+                            <!-- Akan diisi oleh JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-link"></i> Link/Username Target</label>
+                        <input type="text" id="suntikTarget" placeholder="https://www.tiktok.com/@username atau username">
+                        <small style="color:#888;font-size:0.75rem;">Masukkan link profil atau username target</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah</label>
+                        <input type="number" id="suntikCount" min="1" max="200" value="5">
+                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
+                    </div>
+                    
                     <div class="form-group">
                         <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="botConsole"><div class="log-normal">[✓] Pilih metode koneksi...</div></div>
-                        <div class="code-display" id="codeDisplay"><div class="log-normal">Pilih metode untuk menampilkan QR/Code</div></div>
+                        <div class="console-log" id="suntikConsole"><div class="log-normal">[✓] Sistem siap... Pilih platform dan aksi</div></div>
                     </div>
-                    <button class="btn btn-success btn-block" onclick="connectBot()">
-                        <i class="fas fa-plug"></i> Connect Bot
-                    </button>
-                    <button class="btn btn-danger btn-block mt-1" onclick="disconnectBot()">
-                        <i class="fas fa-unlink"></i> Disconnect
-                    </button>
+                    
+                    <div id="suntikProgress" style="display:none;" class="spam-progress">
+                        <div>Progress: <span id="suntikProgressText">0/0</span></div>
+                        <div class="bar" id="suntikProgressBar" style="width:0%"></div>
+                        <div style="margin-top:10px;font-size:0.8rem;color:#888;" id="suntikDetailProgress"></div>
+                    </div>
+                    
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn btn-primary btn-block" id="suntikStartBtn" onclick="toggleSuntik()">
+                            <i class="fas fa-play"></i> Start Suntik
+                        </button>
+                        <button class="btn btn-danger btn-block" id="suntikStopBtn" onclick="stopSuntik()" style="display:none;flex:1;">
+                            <i class="fas fa-stop"></i> STOP
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -824,7 +815,6 @@
                     <div id="adminContent">
                         <div class="admin-tabs">
                             <button class="admin-tab active" onclick="switchAdminTab('users')">Users</button>
-                            <button class="admin-tab" onclick="switchAdminTab('bots')">Bots</button>
                             <button class="admin-tab" onclick="switchAdminTab('settings')">Settings</button>
                             <button class="admin-tab" onclick="switchAdminTab('payments')">Payments</button>
                         </div>
@@ -832,18 +822,11 @@
                             <div class="admin-stats">
                                 <div class="stat-card"><div class="number" id="totalUsers">0</div><div class="label">Total Users</div></div>
                                 <div class="stat-card"><div class="number" id="activeUsers">0</div><div class="label">Active Users</div></div>
-                                <div class="stat-card"><div class="number" id="totalBots">0</div><div class="label">Total Bots</div></div>
                                 <div class="stat-card"><div class="number" id="totalSpams">0</div><div class="label">Total Spam</div></div>
                             </div>
                             <table class="admin-table">
                                 <thead><tr><th>Username</th><th>Status</th><th>Limit</th><th>Used</th><th>Actions</th></tr></thead>
                                 <tbody id="adminUsersBody"></tbody>
-                            </table>
-                        </div>
-                        <div id="adminBotsTab" style="display:none;">
-                            <table class="admin-table">
-                                <thead><tr><th>Bot ID</th><th>Number</th><th>Status</th><th>Owner</th><th>Actions</th></tr></thead>
-                                <tbody id="adminBotsBody"></tbody>
                             </table>
                         </div>
                         <div id="adminSettingsTab" style="display:none;">
@@ -881,20 +864,12 @@
                         <div class="stat-card"><div class="number" id="resellerUsers">0</div><div class="label">Total Users</div></div>
                         <div class="stat-card"><div class="number" id="resellerOnline">0</div><div class="label">Online Users</div></div>
                         <div class="stat-card"><div class="number" id="resellerSpam">0</div><div class="label">Total Spam Hari Ini</div></div>
-                        <div class="stat-card"><div class="number" id="resellerBots">0</div><div class="label">Total Bots</div></div>
                     </div>
                     <div class="card">
                         <div class="card-title"><i class="fas fa-users"></i> Daftar User</div>
                         <table class="admin-table">
                             <thead><tr><th>Username</th><th>Status</th><th>Limit</th><th>Used</th></tr></thead>
                             <tbody id="resellerUsersBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="card">
-                        <div class="card-title"><i class="fas fa-robot"></i> Daftar Bot</div>
-                        <table class="admin-table">
-                            <thead><tr><th>Number</th><th>Status</th><th>Owner</th></tr></thead>
-                            <tbody id="resellerBotsBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -938,15 +913,16 @@
     let socket = null;
     let selectedPkg = 'premium';
     let selectedPayment = 'dana';
-    let selectedConnectType = 'qris';
-    let currentSessionId = null;
+    let selectedPlatform = null;
+    let selectedAction = null;
+    let currentSuntikSession = null;
     let isSpamming = false;
 
     // ============================================
     // DOM READY - INIT
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔥 PrankMaster Pro - Spam OTP & Pairing');
+        console.log('🔥 PrankMaster Pro - Spam OTP & Suntik');
         console.log('👑 Admin: Lynzka / Asiafone11');
 
         const session = localStorage.getItem('prankUser');
@@ -957,7 +933,7 @@
                     showMainApp();
                     connectSocket();
                     loadUserData();
-                    loadBots();
+                    loadPlatforms();
                     if (currentUser.isAdmin || currentUser.isDeveloper) {
                         loadAdminData();
                     }
@@ -1009,67 +985,12 @@
                 addChatMessage(data);
             });
 
-            socket.on('botQR', (data) => {
-                const display = document.getElementById('codeDisplay');
-                if (display) {
-                    display.innerHTML = `
-                        <div style="text-align:center;">
-                            <div class="label">SCAN QR CODE</div>
-                            <img src="${data.qr}" style="max-width:250px;height:auto;background:#fff;padding:10px;border-radius:12px;">
-                            <div style="margin-top:10px;color:#00d2d3;font-size:0.85rem;">Scan QR dengan WhatsApp</div>
-                        </div>
-                    `;
-                }
-                updateConsole('botConsole', '[✓] QR Code siap di scan', 'log-success');
-                showToast('QR Code siap di scan!', 'success');
-            });
-
-            socket.on('botPairingCode', (data) => {
-                const display = document.getElementById('codeDisplay');
-                if (display) {
-                    display.innerHTML = `
-                        <div style="text-align:center;">
-                            <div class="label">🔑 PAIRING CODE</div>
-                            <div class="pairing-code" style="font-size:3rem;letter-spacing:8px;background:rgba(108,92,231,0.2);padding:1.5rem 2rem;border-radius:12px;border:3px solid #6c5ce7;">
-                                ${data.code}
-                            </div>
-                            <div style="margin-top:15px;color:#00d2d3;font-size:0.95rem;">
-                                <i class="fas fa-phone"></i> Buka WhatsApp → Settings → Linked Devices
-                            </div>
-                            <div style="color:#888;font-size:0.85rem;">
-                                → Pilih "Link with phone number" → Masukkan kode di atas
-                            </div>
-                        </div>
-                    `;
-                }
-                updateConsole('botConsole', `[✓] Pairing Code: ${data.code}`, 'log-success');
-                showToast(`Pairing Code: ${data.code}`, 'success');
-            });
-
-            socket.on('botReady', (data) => {
-                updateConsole('botConsole', `[✓] Bot ${data.sessionId} siap digunakan!`, 'log-success');
-                showToast('Bot siap!', 'success');
-                const el = document.getElementById('statBot');
-                if (el) el.textContent = parseInt(el.textContent) + 1;
-                updateBotStatus('ready', data.sessionId);
-                currentSessionId = data.sessionId;
-                loadBots();
-            });
-
-            socket.on('botDisconnected', (data) => {
-                updateConsole('botConsole', `[✗] Bot terputus: ${data.reason}`, 'log-error');
-                updateBotStatus('disconnected', data.sessionId);
-                if (data.sessionId === currentSessionId) currentSessionId = null;
-                loadBots();
-            });
-
             socket.on('spamProgress', (data) => {
                 updateSpamProgress(data);
             });
 
             socket.on('paymentStatus', (data) => {
-                updateConsole('paymentConsole', `[${data.status}] ${data.message}`, data.status === 'success' ? 'log-success' :
-                    'log-error');
+                updateConsole('paymentConsole', `[${data.status}] ${data.message}`, data.status === 'success' ? 'log-success' : 'log-error');
                 if (data.status === 'success') {
                     showToast('Pembayaran berhasil!', 'success');
                     loadUserData();
@@ -1142,7 +1063,7 @@
                     showMainApp();
                     connectSocket();
                     loadUserData();
-                    loadBots();
+                    loadPlatforms();
                     if (currentUser.isAdmin || currentUser.isDeveloper) {
                         loadAdminData();
                     }
@@ -1261,7 +1182,7 @@
         document.getElementById('loginPage').style.display = 'flex';
         isSpamming = false;
 
-        ['otpStartBtn', 'pairingStartBtn'].forEach(id => {
+        ['otpStartBtn', 'suntikStartBtn'].forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
                 btn.innerHTML = '<i class="fas fa-play"></i> Start';
@@ -1270,7 +1191,7 @@
             }
         });
 
-        ['otpProgress', 'pairingProgress'].forEach(id => {
+        ['otpProgress', 'suntikProgress'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
@@ -1351,6 +1272,9 @@
 
                     const statSpam = document.getElementById('statSpam');
                     if (statSpam) statSpam.textContent = currentUser.used || 0;
+                    
+                    const statSuntik = document.getElementById('statSuntik');
+                    if (statSuntik) statSuntik.textContent = currentUser.used || 0;
 
                     const limit = currentUser.limit;
                     let remaining;
@@ -1382,141 +1306,75 @@
             .catch(err => console.log('❌ Load user error:', err));
     }
 
-    function loadBots() {
-        fetch('/api/bots')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    const statBot = document.getElementById('statBot');
-                    if (statBot) statBot.textContent = data.bots.length;
-
-                    if (data.bots.length > 0) {
-                        const bot = data.bots[0];
-                        updateBotStatus(bot.status || 'ready', bot.id);
-                        currentSessionId = bot.id;
-
-                        if (bot.pairingCode && bot.status === 'connecting') {
-                            const display = document.getElementById('codeDisplay');
-                            if (display) {
-                                display.innerHTML = `
-                                    <div style="text-align:center;">
-                                        <div class="label">🔑 PAIRING CODE</div>
-                                        <div class="pairing-code" style="font-size:3rem;letter-spacing:8px;background:rgba(108,92,231,0.2);padding:1.5rem 2rem;border-radius:12px;border:3px solid #6c5ce7;">
-                                            ${bot.pairingCode}
-                                        </div>
-                                        <div style="margin-top:15px;color:#00d2d3;font-size:0.95rem;">
-                                            <i class="fas fa-phone"></i> Buka WhatsApp → Settings → Linked Devices
-                                        </div>
-                                        <div style="color:#888;font-size:0.85rem;">
-                                            → Pilih "Link with phone number" → Masukkan kode di atas
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                        }
-                    } else {
-                        document.getElementById('botStatusDisplay').innerHTML = '<p class="log-normal">Belum ada bot terhubung</p>';
-                    }
-
-                    // Update reseller bots
-                    if (currentUser?.isReseller) {
-                        const el = document.getElementById('resellerBots');
-                        if (el) el.textContent = data.bots.length;
-                    }
-                }
-            })
-            .catch(err => console.log('❌ Load bots error:', err));
-    }
-
-    function updateBotStatus(status, sessionId) {
-        const display = document.getElementById('botStatusDisplay');
-        if (!display) return;
-
-        const statusMap = {
-            'ready': '<span class="bot-status ready">● Siap</span>',
-            'connecting': '<span class="bot-status connecting">● Menghubungkan...</span>',
-            'disconnected': '<span class="bot-status disconnected">● Terputus</span>',
-            'waiting_qr': '<span class="bot-status connecting">● Menunggu QR</span>'
-        };
-
-        display.innerHTML = `
-            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;">
-                <span>Bot ${sessionId || ''}</span>
-                ${statusMap[status] || statusMap.disconnected}
-            </div>
-        `;
-    }
-
     // ============================================
     // UPDATE SPAM PROGRESS
     // ============================================
-// ============================================
-// UPDATE SPAM PROGRESS
-// ============================================
-function updateSpamProgress(data) {
-    const progressMap = {
-        'otp': { container: 'otpProgress', text: 'otpProgressText', bar: 'otpProgressBar', console: 'otpConsole', detail: 'otpDetailProgress' },
-        'pairing': { container: 'pairingProgress', text: 'pairingProgressText', bar: 'pairingProgressBar', console: 'pairingConsole', detail: null }
-    };
+    function updateSpamProgress(data) {
+        const progressMap = {
+            'otp': { container: 'otpProgress', text: 'otpProgressText', bar: 'otpProgressBar', console: 'otpConsole', detail: 'otpDetailProgress' },
+            'suntik': { container: 'suntikProgress', text: 'suntikProgressText', bar: 'suntikProgressBar', console: 'suntikConsole', detail: 'suntikDetailProgress' }
+        };
 
-    const p = progressMap[data.type];
-    if (!p) return;
+        const p = progressMap[data.type];
+        if (!p) return;
 
-    const container = document.getElementById(p.container);
-    if (container) container.style.display = 'block';
+        const container = document.getElementById(p.container);
+        if (container) container.style.display = 'block';
 
-    const textEl = document.getElementById(p.text);
-    if (textEl) textEl.textContent = `${data.current}/${data.total}`;
+        const textEl = document.getElementById(p.text);
+        if (textEl) textEl.textContent = `${data.current}/${data.total}`;
 
-    const barEl = document.getElementById(p.bar);
-    if (barEl) barEl.style.width = `${(data.current/data.total)*100}%`;
-    
-    // Tampilkan detail API
-    if (p.detail && data.details) {
-        const detailEl = document.getElementById(p.detail);
-        if (detailEl) {
-            const successList = data.details.filter(s => s.success).map(s => s.service).join(', ');
-            const failedList = data.details.filter(s => !s.success).map(s => s.service).join(', ');
-            detailEl.innerHTML = `
-                ✅ Berhasil: ${successList || 'Tidak ada'} | 
-                ❌ Gagal: ${failedList || 'Tidak ada'}
-            `;
+        const barEl = document.getElementById(p.bar);
+        if (barEl) barEl.style.width = `${(data.current/data.total)*100}%`;
+        
+        // Tampilkan detail
+        if (p.detail) {
+            const detailEl = document.getElementById(p.detail);
+            if (detailEl) {
+                if (data.type === 'suntik') {
+                    detailEl.innerHTML = `
+                        🛠️ Layanan: ${data.serviceUsed || 'Mencari...'} 
+                        ${data.serviceDown ? '⚠️ Layanan down, mencoba lain...' : ''}
+                        ${data.message || ''}
+                    `;
+                } else if (data.details) {
+                    const successList = data.details.filter(s => s.success).map(s => s.service).join(', ');
+                    const failedList = data.details.filter(s => !s.success).map(s => s.service).join(', ');
+                    detailEl.innerHTML = `
+                        ✅ Berhasil: ${successList || 'Tidak ada'} | 
+                        ❌ Gagal: ${failedList || 'Tidak ada'}
+                    `;
+                }
+            }
         }
-    }
 
-    if (data.message) {
-        updateConsole(p.console, data.message, 'log-success');
-    }
-    if (data.error) {
-        updateConsole(p.console, `[✗] ${data.error}`, 'log-error');
-    }
-    
-    if (data.stopped) {
-        if (container) container.style.display = 'none';
-        resetOTPButtons();
-    }
-
-    if (data.current >= data.total) {
-        setTimeout(() => {
+        if (data.message) {
+            updateConsole(p.console, data.message, 'log-success');
+        }
+        if (data.error) {
+            updateConsole(p.console, `[✗] ${data.error}`, 'log-error');
+        }
+        
+        if (data.stopped) {
             if (container) container.style.display = 'none';
             if (data.type === 'otp') {
                 resetOTPButtons();
             } else {
-                isSpamming = false;
-                const btnMap = {
-                    'otp': 'otpStartBtn',
-                    'pairing': 'pairingStartBtn'
-                };
-                const btn = document.getElementById(btnMap[data.type]);
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-play"></i> Start';
-                    btn.disabled = false;
-                    btn.className = 'btn btn-primary btn-block';
-                }
+                resetSuntikButtons();
             }
-        }, 2000);
+        }
+
+        if (data.current >= data.total) {
+            setTimeout(() => {
+                if (container) container.style.display = 'none';
+                if (data.type === 'otp') {
+                    resetOTPButtons();
+                } else {
+                    resetSuntikButtons();
+                }
+            }, 2000);
+        }
     }
-}
 
     // ============================================
     // NAVIGATION
@@ -1549,264 +1407,36 @@ function updateSpamProgress(data) {
     });
 
     // ============================================
-    // CONNECT BOT
-    // ============================================
-    function connectBot() {
-        const number = document.getElementById('botNumber')?.value.trim();
-        if (!number) {
-            updateConsole('botConsole', '[✗] Masukkan nomor bot!', 'log-error');
-            return;
-        }
-
-        const method = selectedConnectType;
-        updateConsole('botConsole', `[✓] Menghubungkan bot via ${method.toUpperCase()}...`, 'log-info');
-        showToast(`Menghubungkan bot...`, 'info');
-
-        const display = document.getElementById('codeDisplay');
-        if (display) {
-            if (method === 'code') {
-                display.innerHTML = `
-                    <div style="text-align:center;">
-                        <div class="label">⏳ MENUNGGU PAIRING CODE</div>
-                        <div style="padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:40px;color:#f9ca24;"></i></div>
-                        <div style="color:#888;font-size:0.85rem;">Sedang meminta pairing code...</div>
-                    </div>
-                `;
-            } else {
-                display.innerHTML = `
-                    <div style="text-align:center;">
-                        <div class="label">⏳ MENUNGGU QR CODE</div>
-                        <div style="padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:40px;color:#6c5ce7;"></i></div>
-                        <div style="color:#888;font-size:0.85rem;">Sedang meminta QR code...</div>
-                    </div>
-                `;
-            }
-        }
-
-        fetch('/api/bot/connect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    number: number,
-                    username: currentUser.username,
-                    method: method
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    updateConsole('botConsole', `[✓] Bot ${number} sedang terhubung...`, 'log-success');
-                    currentSessionId = data.sessionId;
-                    loadBots();
-                    if (data.alreadyConnected) {
-                        showToast('Bot sudah terhubung!', 'success');
-                    }
-                } else {
-                    updateConsole('botConsole', `[✗] ${data.message}`, 'log-error');
-                    showToast(data.message, 'error');
-                    if (display) display.innerHTML = `<div class="log-normal">❌ ${data.message}</div>`;
-                }
-            })
-            .catch(err => {
-                updateConsole('botConsole', `[✗] Error: ${err.message}`, 'log-error');
-                showToast('Error connecting bot', 'error');
-                if (display) display.innerHTML = `<div class="log-normal">❌ Error: ${err.message}</div>`;
-            });
-    }
-
-    function disconnectBot() {
-        if (!currentSessionId) {
-            showToast('Tidak ada bot yang terhubung', 'error');
-            return;
-        }
-
-        fetch('/api/bot/disconnect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: currentSessionId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                updateConsole('botConsole', '[✓] Bot terputus', 'log-info');
-                showToast('Bot terputus', 'error');
-                currentSessionId = null;
-                const statBot = document.getElementById('statBot');
-                if (statBot) statBot.textContent = 0;
-                document.getElementById('botStatusDisplay').innerHTML = '<p class="log-normal">Belum ada bot terhubung</p>';
-                document.getElementById('codeDisplay').innerHTML = '<div class="log-normal">Pilih metode untuk menampilkan QR/Code</div>';
-            })
-            .catch(err => showToast('Error disconnecting', 'error'));
-    }
-
-    // ============================================
     // SPAM OTP
     // ============================================
-// ============================================
-// SPAM OTP - DENGAN TOMBOL STOP
-// ============================================
-let currentOTPSession = null;
+    let currentOTPSession = null;
 
-function toggleOTP() {
-    if (isSpamming) { 
-        stopOTP(); 
-        return; 
-    }
-
-    const target = document.getElementById('otpTarget')?.value.trim();
-    const count = parseInt(document.getElementById('otpCount')?.value) || 5;
-
-    if (!target) {
-        updateConsole('otpConsole', '[✗] Masukkan nomor target!', 'log-error');
-        return;
-    }
-    
-    // Validasi format 628
-    if (!target.startsWith('628')) {
-        updateConsole('otpConsole', '[✗] Nomor harus diawali 628! Contoh: 6281234567890', 'log-error');
-        return;
-    }
-    
-    if (target.length < 11) {
-        updateConsole('otpConsole', '[✗] Nomor tidak valid! Minimal 11 digit setelah 628', 'log-error');
-        return;
-    }
-
-    if (count < 1) {
-        updateConsole('otpConsole', '[✗] Jumlah minimal 1!', 'log-error');
-        return;
-    }
-
-    const limit = currentUser?.limit;
-    if (limit !== Infinity && limit !== '∞' && limit !== null) {
-        const remaining = limit - (currentUser?.used || 0);
-        if (remaining <= 0) {
-            updateConsole('otpConsole', '[✗] Limit spam habis! Tunggu 1 jam.', 'log-error');
-            showToast('Limit spam habis! Tunggu 1 jam.', 'error');
-            return;
+    function toggleOTP() {
+        if (isSpamming) { 
+            stopOTP(); 
+            return; 
         }
-        if (count > remaining) {
-            updateConsole('otpConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
-            showToast(`Sisa limit hanya ${remaining}!`, 'error');
-            return;
-        }
-    }
 
-    isSpamming = true;
-    currentOTPSession = `otp_${currentUser.username}_${Date.now()}`;
-    
-    const startBtn = document.getElementById('otpStartBtn');
-    const stopBtn = document.getElementById('otpStopBtn');
-    
-    if (startBtn) {
-        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim OTP...';
-        startBtn.disabled = true;
-        startBtn.style.display = 'none';
-    }
-    if (stopBtn) {
-        stopBtn.style.display = 'block';
-        stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
-    }
-
-    updateConsole('otpConsole', `[✓] Mengirim OTP ke ${target} ${count}x (80+ API, LANGSUNG SEMUA)`, 'log-info');
-
-    fetch('/api/spam/otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            username: currentUser.username,
-            target: target,
-            count: count
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            updateConsole('otpConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
-            if (data.result.success > 0 && currentUser) {
-                currentUser.used = (currentUser.used || 0) + data.result.success;
-                loadUserData();
-            }
-            showToast(`Spam OTP selesai! Berhasil: ${data.result.success}`, 'success');
-        } else {
-            if (data.maintenance) {
-                updateConsole('otpConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
-                showToast('Server maintenance!', 'error');
-            } else {
-                updateConsole('otpConsole', `[✗] ${data.message}`, 'log-error');
-                showToast(data.message, 'error');
-            }
-        }
-        resetOTPButtons();
-    })
-    .catch(err => {
-        updateConsole('otpConsole', `[✗] Error: ${err.message}`, 'log-error');
-        resetOTPButtons();
-    });
-}
-
-function stopOTP() {
-    if (!currentOTPSession) {
-        resetOTPButtons();
-        return;
-    }
-    
-    updateConsole('otpConsole', '[⛔] Menghentikan spam OTP...', 'log-warning');
-    showToast('Menghentikan spam...', 'info');
-    
-    fetch('/api/spam/otp/stop', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: currentOTPSession })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            updateConsole('otpConsole', '[⛔] Spam dihentikan!', 'log-warning');
-            showToast('Spam dihentikan!', 'warning');
-        }
-        resetOTPButtons();
-    })
-    .catch(err => {
-        updateConsole('otpConsole', `[✗] Error stop: ${err.message}`, 'log-error');
-        resetOTPButtons();
-    });
-    
-    isSpamming = false;
-}
-
-function resetOTPButtons() {
-    isSpamming = false;
-    currentOTPSession = null;
-    
-    const startBtn = document.getElementById('otpStartBtn');
-    const stopBtn = document.getElementById('otpStopBtn');
-    
-    if (startBtn) {
-        startBtn.innerHTML = '<i class="fas fa-play"></i> Start Spam OTP';
-        startBtn.disabled = false;
-        startBtn.style.display = 'block';
-    }
-    if (stopBtn) {
-        stopBtn.style.display = 'none';
-    }
-}
-
-    // ============================================
-    // SPAM PAIRING
-    // ============================================
-    function togglePairing() {
-        if (isSpamming) { stopSpam('pairing'); return; }
-
-        const target = document.getElementById('pairingTarget')?.value.trim();
-        const count = parseInt(document.getElementById('pairingCount')?.value) || 5;
-        const useBot = document.getElementById('pairingUseBot')?.value === 'true';
+        const target = document.getElementById('otpTarget')?.value.trim();
+        const count = parseInt(document.getElementById('otpCount')?.value) || 5;
 
         if (!target) {
-            updateConsole('pairingConsole', '[✗] Masukkan nomor target!', 'log-error');
+            updateConsole('otpConsole', '[✗] Masukkan nomor target!', 'log-error');
             return;
         }
-        if (count < 1 || count > 15) {
-            updateConsole('pairingConsole', '[✗] Jumlah 1-15!', 'log-error');
+        
+        if (!target.startsWith('628')) {
+            updateConsole('otpConsole', '[✗] Nomor harus diawali 628! Contoh: 6281234567890', 'log-error');
+            return;
+        }
+        
+        if (target.length < 11) {
+            updateConsole('otpConsole', '[✗] Nomor tidak valid! Minimal 11 digit setelah 628', 'log-error');
+            return;
+        }
+
+        if (count < 1) {
+            updateConsole('otpConsole', '[✗] Jumlah minimal 1!', 'log-error');
             return;
         }
 
@@ -1814,128 +1444,326 @@ function resetOTPButtons() {
         if (limit !== Infinity && limit !== '∞' && limit !== null) {
             const remaining = limit - (currentUser?.used || 0);
             if (remaining <= 0) {
-                updateConsole('pairingConsole', '[✗] Limit spam habis! Tunggu 1 jam.', 'log-error');
+                updateConsole('otpConsole', '[✗] Limit spam habis! Tunggu 1 jam.', 'log-error');
                 showToast('Limit spam habis! Tunggu 1 jam.', 'error');
                 return;
             }
             if (count > remaining) {
-                updateConsole('pairingConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
+                updateConsole('otpConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
                 showToast(`Sisa limit hanya ${remaining}!`, 'error');
                 return;
             }
         }
 
-        if (useBot && !currentSessionId) {
-            updateConsole('pairingConsole', '[✗] Bot belum terhubung! Ganti ke "Tanpa Bot" atau connect bot dulu.',
-                'log-error');
+        isSpamming = true;
+        currentOTPSession = `otp_${currentUser.username}_${Date.now()}`;
+        
+        const startBtn = document.getElementById('otpStartBtn');
+        const stopBtn = document.getElementById('otpStopBtn');
+        
+        if (startBtn) {
+            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim OTP...';
+            startBtn.disabled = true;
+            startBtn.style.display = 'none';
+        }
+        if (stopBtn) {
+            stopBtn.style.display = 'block';
+            stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
+        }
+
+        updateConsole('otpConsole', `[✓] Mengirim OTP ke ${target} ${count}x (25+ API)`, 'log-info');
+
+        fetch('/api/spam/otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: currentUser.username,
+                target: target,
+                count: count
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateConsole('otpConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
+                if (data.result.success > 0 && currentUser) {
+                    currentUser.used = (currentUser.used || 0) + data.result.success;
+                    loadUserData();
+                }
+                showToast(`Spam OTP selesai! Berhasil: ${data.result.success}`, 'success');
+            } else {
+                if (data.maintenance) {
+                    updateConsole('otpConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
+                    showToast('Server maintenance!', 'error');
+                } else {
+                    updateConsole('otpConsole', `[✗] ${data.message}`, 'log-error');
+                    showToast(data.message, 'error');
+                }
+            }
+            resetOTPButtons();
+        })
+        .catch(err => {
+            updateConsole('otpConsole', `[✗] Error: ${err.message}`, 'log-error');
+            resetOTPButtons();
+        });
+    }
+
+    function stopOTP() {
+        if (!currentOTPSession) {
+            resetOTPButtons();
             return;
         }
+        
+        updateConsole('otpConsole', '[⛔] Menghentikan spam OTP...', 'log-warning');
+        showToast('Menghentikan spam...', 'info');
+        
+        fetch('/api/spam/otp/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: currentOTPSession })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateConsole('otpConsole', '[⛔] Spam dihentikan!', 'log-warning');
+                showToast('Spam dihentikan!', 'warning');
+            }
+            resetOTPButtons();
+        })
+        .catch(err => {
+            updateConsole('otpConsole', `[✗] Error stop: ${err.message}`, 'log-error');
+            resetOTPButtons();
+        });
+        
+        isSpamming = false;
+    }
 
-        isSpamming = true;
-        const btn = document.getElementById('pairingStartBtn');
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-            btn.disabled = true;
+    function resetOTPButtons() {
+        isSpamming = false;
+        currentOTPSession = null;
+        
+        const startBtn = document.getElementById('otpStartBtn');
+        const stopBtn = document.getElementById('otpStopBtn');
+        
+        if (startBtn) {
+            startBtn.innerHTML = '<i class="fas fa-play"></i> Start Spam OTP';
+            startBtn.disabled = false;
+            startBtn.style.display = 'block';
         }
+        if (stopBtn) {
+            stopBtn.style.display = 'none';
+        }
+    }
 
-        const mode = useBot ? 'dengan bot' : 'tanpa bot (auto connect)';
-        updateConsole('pairingConsole', `[✓] Mengirim pairing code ke ${target} ${count}x (${mode}, jeda 60 detik)`,
-            'log-info');
+    // ============================================
+    // SUNTIK FUNCTIONS
+    // ============================================
 
-        fetch('/api/spam/pairing', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    target: target,
-                    count: count,
-                    useBot: useBot
-                })
-            })
+    function loadPlatforms() {
+        fetch('/api/suntik/platforms')
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    updateConsole('pairingConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`,
-                        'log-success');
-                    if (data.result.success > 0 && currentUser) {
-                        currentUser.used = (currentUser.used || 0) + data.result.success;
-                        loadUserData();
-                    }
-                    showToast(`Spam pairing selesai! Berhasil: ${data.result.success}`, 'success');
-                } else {
-                    if (data.maintenance) {
-                        updateConsole('pairingConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
-                        showToast('Server maintenance!', 'error');
-                    } else {
-                        updateConsole('pairingConsole', `[✗] ${data.message}`, 'log-error');
-                        showToast(data.message, 'error');
-                    }
-                }
-                isSpamming = false;
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-play"></i> Start';
-                    btn.disabled = false;
+                    const container = document.getElementById('platformOptions');
+                    container.innerHTML = data.platforms.map(p => `
+                        <div class="call-option platform-option" data-platform="${p.name}" onclick="selectPlatform('${p.name}')" style="flex:1;min-width:120px;max-width:150px;">
+                            <i class="${p.icon}" style="font-size:2.5rem;"></i>
+                            <span>${p.name}</span>
+                            <div class="sub-text">${p.services.join(', ')}</div>
+                        </div>
+                    `).join('');
                 }
             })
-            .catch(err => {
-                updateConsole('pairingConsole', `[✗] Error: ${err.message}`, 'log-error');
-                isSpamming = false;
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-play"></i> Start';
-                    btn.disabled = false;
+            .catch(err => console.log('❌ Load platforms error:', err));
+    }
+
+    function selectPlatform(platform) {
+        selectedPlatform = platform;
+        selectedAction = null;
+        
+        document.querySelectorAll('.platform-option').forEach(el => el.classList.remove('active'));
+        const target = document.querySelector(`.platform-option[data-platform="${platform}"]`);
+        if (target) target.classList.add('active');
+        
+        // Load actions untuk platform ini
+        fetch('/api/suntik/platforms')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const platformData = data.platforms.find(p => p.name === platform);
+                    if (platformData && platformData.actions) {
+                        const container = document.getElementById('actionOptions');
+                        const actionIcons = {
+                            'Followers': 'fa-users',
+                            'Likes': 'fa-heart',
+                            'Views': 'fa-eye',
+                            'Shares': 'fa-share',
+                            'Subscribers': 'fa-user-plus',
+                            'Retweets': 'fa-retweet'
+                        };
+                        container.innerHTML = Object.keys(platformData.actions).map(action => `
+                            <div class="call-option action-option" data-action="${action}" onclick="selectAction('${action}')" style="flex:1;min-width:100px;max-width:150px;">
+                                <i class="fas ${actionIcons[action] || 'fa-star'}" style="font-size:1.8rem;"></i>
+                                <span>${action}</span>
+                            </div>
+                        `).join('');
+                        updateConsole('suntikConsole', `[✓] Platform ${platform} dipilih. Pilih aksi: ${Object.keys(platformData.actions).join(', ')}`, 'log-success');
+                    }
                 }
             });
     }
 
-    function stopSpam(type) {
-        isSpamming = false;
-        const map = {
-            'otp': 'otpStartBtn',
-            'pairing': 'pairingStartBtn'
-        };
-        const btn = document.getElementById(map[type]);
-        if (btn) {
-            btn.innerHTML = type === 'otp' ? '<i class="fas fa-play"></i> Start Spam OTP' : '<i class="fas fa-play"></i> Start';
-            btn.disabled = false;
+    function selectAction(action) {
+        selectedAction = action;
+        document.querySelectorAll('.action-option').forEach(el => el.classList.remove('active'));
+        const target = document.querySelector(`.action-option[data-action="${action}"]`);
+        if (target) target.classList.add('active');
+        updateConsole('suntikConsole', `[✓] Aksi ${action} dipilih. Siap suntik!`, 'log-success');
+    }
+
+    function toggleSuntik() {
+        if (isSpamming) { stopSuntik(); return; }
+        
+        const target = document.getElementById('suntikTarget')?.value.trim();
+        const count = parseInt(document.getElementById('suntikCount')?.value) || 5;
+        
+        if (!selectedPlatform) {
+            updateConsole('suntikConsole', '[✗] Pilih platform terlebih dahulu!', 'log-error');
+            return;
         }
-        updateConsole(type + 'Console', '[✓] Dihentikan', 'log-info');
+        if (!selectedAction) {
+            updateConsole('suntikConsole', '[✗] Pilih aksi terlebih dahulu!', 'log-error');
+            return;
+        }
+        if (!target) {
+            updateConsole('suntikConsole', '[✗] Masukkan link/username target!', 'log-error');
+            return;
+        }
+        if (count < 1) {
+            updateConsole('suntikConsole', '[✗] Jumlah minimal 1!', 'log-error');
+            return;
+        }
+        
+        const limit = currentUser?.limit;
+        if (limit !== Infinity && limit !== '∞' && limit !== null) {
+            const remaining = limit - (currentUser?.used || 0);
+            if (remaining <= 0) {
+                updateConsole('suntikConsole', '[✗] Limit suntik habis! Tunggu 1 jam.', 'log-error');
+                showToast('Limit suntik habis! Tunggu 1 jam.', 'error');
+                return;
+            }
+            if (count > remaining) {
+                updateConsole('suntikConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
+                showToast(`Sisa limit hanya ${remaining}!`, 'error');
+                return;
+            }
+        }
+        
+        isSpamming = true;
+        currentSuntikSession = `suntik_${currentUser.username}_${Date.now()}`;
+        
+        const startBtn = document.getElementById('suntikStartBtn');
+        const stopBtn = document.getElementById('suntikStopBtn');
+        
+        if (startBtn) {
+            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim Suntik...';
+            startBtn.disabled = true;
+            startBtn.style.display = 'none';
+        }
+        if (stopBtn) {
+            stopBtn.style.display = 'block';
+            stopBtn.innerHTML = '<i class="fas fa-stop"></i> STOP';
+        }
+        
+        updateConsole('suntikConsole', `[✓] Mengirim ${selectedAction} ke ${target} (${selectedPlatform}) ${count}x`, 'log-info');
+        
+        fetch('/api/spam/suntik', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: currentUser.username,
+                target: target,
+                platform: selectedPlatform,
+                action: selectedAction,
+                count: count
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateConsole('suntikConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
+                if (data.result.success > 0 && currentUser) {
+                    currentUser.used = (currentUser.used || 0) + data.result.success;
+                    loadUserData();
+                }
+                showToast(`Suntik selesai! Berhasil: ${data.result.success}`, 'success');
+            } else {
+                if (data.maintenance) {
+                    updateConsole('suntikConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
+                    showToast('Server maintenance!', 'error');
+                } else {
+                    updateConsole('suntikConsole', `[✗] ${data.message}`, 'log-error');
+                    showToast(data.message, 'error');
+                }
+            }
+            resetSuntikButtons();
+        })
+        .catch(err => {
+            updateConsole('suntikConsole', `[✗] Error: ${err.message}`, 'log-error');
+            resetSuntikButtons();
+        });
+    }
+
+    function stopSuntik() {
+        if (!currentSuntikSession) {
+            resetSuntikButtons();
+            return;
+        }
+        
+        updateConsole('suntikConsole', '[⛔] Menghentikan suntik...', 'log-warning');
+        showToast('Menghentikan suntik...', 'info');
+        
+        fetch('/api/spam/suntik/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: currentSuntikSession })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateConsole('suntikConsole', '[⛔] Suntik dihentikan!', 'log-warning');
+                showToast('Suntik dihentikan!', 'warning');
+            }
+            resetSuntikButtons();
+        })
+        .catch(err => {
+            updateConsole('suntikConsole', `[✗] Error stop: ${err.message}`, 'log-error');
+            resetSuntikButtons();
+        });
+        
+        isSpamming = false;
+    }
+
+    function resetSuntikButtons() {
+        isSpamming = false;
+        currentSuntikSession = null;
+        
+        const startBtn = document.getElementById('suntikStartBtn');
+        const stopBtn = document.getElementById('suntikStopBtn');
+        
+        if (startBtn) {
+            startBtn.innerHTML = '<i class="fas fa-play"></i> Start Suntik';
+            startBtn.disabled = false;
+            startBtn.style.display = 'block';
+        }
+        if (stopBtn) {
+            stopBtn.style.display = 'none';
+        }
     }
 
     // ============================================
     // SELECT FUNCTIONS
     // ============================================
-    function selectConnectType(type) {
-        selectedConnectType = type;
-        document.querySelectorAll('.call-option[data-connect-type]').forEach(el => el.classList.remove('active'));
-        const target = document.querySelector(`.call-option[data-connect-type="${type}"]`);
-        if (target) target.classList.add('active');
-
-        const display = document.getElementById('codeDisplay');
-        if (display) {
-            if (type === 'qris') {
-                display.innerHTML = `
-                    <div style="text-align:center;">
-                        <div class="label">QRIS SCAN</div>
-                        <div style="background:#fff;padding:20px;border-radius:12px;display:inline-block;">
-                            <i class="fas fa-qrcode" style="font-size:150px;color:#000;"></i>
-                        </div>
-                        <div style="margin-top:10px;color:#888;font-size:0.85rem;">Klik "Connect Bot" untuk generate QR</div>
-                    </div>
-                `;
-                updateConsole('botConsole', '[✓] Pilih QRIS, klik Connect Bot untuk scan', 'log-info');
-            } else {
-                display.innerHTML = `
-                    <div style="text-align:center;">
-                        <div class="label">PAIRING CODE</div>
-                        <div class="pairing-code">WAIT...</div>
-                        <div style="margin-top:10px;color:#888;font-size:0.85rem;">Klik "Connect Bot" untuk generate code</div>
-                    </div>
-                `;
-                updateConsole('botConsole', '[✓] Pilih Code, klik Connect Bot untuk pairing', 'log-info');
-            }
-        }
-    }
-
     function selectPricing(pkg) {
         selectedPkg = pkg;
         document.querySelectorAll('.pricing-card').forEach(el => el.classList.remove('selected'));
@@ -2106,8 +1934,7 @@ function resetOTPButtons() {
                 if (data.success) {
                     document.getElementById('totalUsers').textContent = data.users.length;
                     document.getElementById('activeUsers').textContent = data.users.filter(u => u.online).length;
-                    document.getElementById('totalSpams').textContent = data.users.reduce((a, u) => a + (u.used || 0),
-                    0);
+                    document.getElementById('totalSpams').textContent = data.users.reduce((a, u) => a + (u.used || 0), 0);
 
                     const body = document.getElementById('adminUsersBody');
                     if (body) {
@@ -2135,29 +1962,6 @@ function resetOTPButtons() {
                     }
                 }
             });
-
-        fetch('/api/bots')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('totalBots').textContent = data.bots.length;
-                    const body = document.getElementById('adminBotsBody');
-                    if (body) {
-                        body.innerHTML = data.bots.map(b => `
-                            <tr>
-                                <td>${b.id || 'N/A'}</td>
-                                <td>${b.number || 'N/A'}</td>
-                                <td><span class="status-active">● ${b.status || 'Online'}</span></td>
-                                <td>${b.owner || 'Unknown'}</td>
-                                <td>
-                                    ${b.pairingCode ? `<span class="badge badge-info">Code: ${b.pairingCode}</span>` : ''}
-                                    <button class="btn-sm btn-delete" onclick="disconnectBotAdmin('${b.id}')">Disconnect</button>
-                                </td>
-                            </tr>
-                        `).join('');
-                    }
-                }
-            });
     }
 
     function switchAdminTab(tab) {
@@ -2170,7 +1974,7 @@ function resetOTPButtons() {
         const tabEl = document.querySelector(`.admin-tab[onclick*="${tab}"]`);
         if (tabEl) tabEl.classList.add('active');
 
-        ['adminUsersTab', 'adminBotsTab', 'adminSettingsTab', 'adminPaymentsTab'].forEach(id => {
+        ['adminUsersTab', 'adminSettingsTab', 'adminPaymentsTab'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
@@ -2319,22 +2123,6 @@ function resetOTPButtons() {
             });
     }
 
-    function disconnectBotAdmin(sessionId) {
-        if (!confirm('Disconnect bot ini?')) return;
-
-        fetch('/api/bot/disconnect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: sessionId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                showToast('Bot disconnected', 'success');
-                loadAdminData();
-                loadBots();
-            });
-    }
-
     // ============================================
     // RESELLER FUNCTIONS
     // ============================================
@@ -2364,24 +2152,6 @@ function resetOTPButtons() {
                     }
                 }
             });
-
-        fetch('/api/bots')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('resellerBots').textContent = data.bots.length;
-                    const body = document.getElementById('resellerBotsBody');
-                    if (body) {
-                        body.innerHTML = data.bots.map(b => `
-                            <tr>
-                                <td>${b.number || 'N/A'}</td>
-                                <td><span class="status-active">● ${b.status || 'Online'}</span></td>
-                                <td>${b.owner || 'Unknown'}</td>
-                            </tr>
-                        `).join('');
-                    }
-                }
-            });
     }
 
     // ============================================
@@ -2403,7 +2173,13 @@ function resetOTPButtons() {
         if (existing) existing.remove();
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle';
+        const iconMap = {
+            'success': 'check-circle',
+            'error': 'times-circle',
+            'info': 'info-circle',
+            'warning': 'exclamation-triangle'
+        };
+        const icon = iconMap[type] || 'info-circle';
         toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
         document.body.appendChild(toast);
         setTimeout(() => { toast.style.opacity = '0';
@@ -2424,9 +2200,10 @@ function resetOTPButtons() {
         }
     });
 
-    console.log('🔥 PrankMaster Pro - Spam OTP & Pairing');
+    console.log('🔥 PrankMaster Pro - Spam OTP & Suntik');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('📱 45+ API OTP Ready!');
+    console.log('📱 25+ API OTP Ready!');
+    console.log('💉 5 Platform Suntik Ready!');
     console.log('💡 Developer limit: ∞ (Unlimited)');
     </script>
 </body>
