@@ -1,7 +1,7 @@
 {
   "name": "prank-master-pro",
   "version": "3.0.0",
-  "description": "PrankMaster Pro - Real WhatsApp Bot with Baileys",
+  "description": "PrankMaster Pro - Suntik Sosial Media + Bypass Zefoy",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -33,7 +33,9 @@
     "helmet": "^7.1.0",
     "form-data": "^4.0.0",
     "winston": "^3.11.0",
-    "node-cron": "^3.0.2"
+    "node-cron": "^3.0.2",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
