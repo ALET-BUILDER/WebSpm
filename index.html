@@ -3,33 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrankMaster Pro - Real Spam</title>
+    <title>PrankMaster Pro - Spam OTP & Pairing</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
             background: #0a0a0f;
             color: #e0e0e0;
             min-height: 100vh;
         }
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1a1a2e;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            border-radius: 10px;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #6c5ce7, #a29bfe); border-radius: 10px; }
         .navbar {
             background: rgba(16, 16, 30, 0.95);
             backdrop-filter: blur(20px);
@@ -58,10 +46,7 @@
             font-weight: 800;
             color: #fff;
         }
-        .nav-logo i {
-            color: #6c5ce7;
-            font-size: 1.8rem;
-        }
+        .nav-logo i { color: #6c5ce7; font-size: 1.8rem; }
         .nav-menu {
             display: flex;
             gap: 8px;
@@ -81,10 +66,7 @@
             gap: 8px;
             cursor: pointer;
         }
-        .nav-link:hover {
-            color: #fff;
-            background: rgba(108, 92, 231, 0.1);
-        }
+        .nav-link:hover { color: #fff; background: rgba(108, 92, 231, 0.1); }
         .nav-link.active {
             color: #fff;
             background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(162, 155, 254, 0.1));
@@ -99,15 +81,8 @@
             border-radius: 30px;
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .nav-user span {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #c0c0d8;
-        }
-        .nav-user span i {
-            margin-right: 6px;
-            color: #6c5ce7;
-        }
+        .nav-user span { font-size: 0.85rem; font-weight: 500; color: #c0c0d8; }
+        .nav-user span i { margin-right: 6px; color: #6c5ce7; }
         .btn-logout {
             background: rgba(255, 71, 87, 0.15);
             border: none;
@@ -118,35 +93,12 @@
             transition: all 0.3s ease;
             font-size: 0.9rem;
         }
-        .btn-logout:hover {
-            background: rgba(255, 71, 87, 0.25);
-            transform: scale(1.05);
-        }
-        .main-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        .section {
-            display: none;
-            animation: fadeIn 0.4s ease;
-        }
-        .section.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .section-header {
-            margin-bottom: 2rem;
-        }
+        .btn-logout:hover { background: rgba(255, 71, 87, 0.25); transform: scale(1.05); }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .section { display: none; animation: fadeIn 0.4s ease; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .section-header { margin-bottom: 2rem; }
         .section-header h1 {
             font-size: 2rem;
             font-weight: 800;
@@ -155,14 +107,8 @@
             align-items: center;
             gap: 12px;
         }
-        .section-header h1 i {
-            color: #6c5ce7;
-        }
-        .section-header p {
-            color: #8888aa;
-            margin-top: 6px;
-            font-size: 0.95rem;
-        }
+        .section-header h1 i { color: #6c5ce7; }
+        .section-header p { color: #8888aa; margin-top: 6px; font-size: 0.95rem; }
         .card {
             background: rgba(20, 20, 40, 0.8);
             backdrop-filter: blur(10px);
@@ -172,10 +118,7 @@
             margin-bottom: 1.5rem;
             transition: all 0.3s ease;
         }
-        .card:hover {
-            border-color: rgba(108, 92, 231, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
+        .card:hover { border-color: rgba(108, 92, 231, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
         .card-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -185,12 +128,8 @@
             align-items: center;
             gap: 10px;
         }
-        .card-title i {
-            color: #6c5ce7;
-        }
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
+        .card-title i { color: #6c5ce7; }
+        .form-group { margin-bottom: 1.2rem; }
         .form-group label {
             display: block;
             font-size: 0.85rem;
@@ -220,26 +159,9 @@
             box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
         }
         .form-group input::placeholder,
-        .form-group textarea::placeholder {
-            color: #666688;
-        }
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        .form-group input[type="number"] {
-            -moz-appearance: textfield;
-        }
-        .form-group input[type="number"]::-webkit-outer-spin-button,
-        .form-group input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
+        .form-group textarea::placeholder { color: #666688; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .btn {
             padding: 12px 32px;
             border: none;
@@ -257,35 +179,19 @@
             background: linear-gradient(135deg, #6c5ce7, #a29bfe);
             color: #fff;
         }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(108, 92, 231, 0.3);
-        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108, 92, 231, 0.3); }
         .btn-danger {
             background: linear-gradient(135deg, #ff4757, #ff6b81);
             color: #fff;
         }
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(255, 71, 87, 0.3);
-        }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255, 71, 87, 0.3); }
         .btn-success {
             background: linear-gradient(135deg, #00d2d3, #01a3a4);
             color: #fff;
         }
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 210, 211, 0.3);
-        }
-        .btn-block {
-            width: 100%;
-            justify-content: center;
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 210, 211, 0.3); }
+        .btn-block { width: 100%; justify-content: center; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
         .console-log {
             background: rgba(0, 0, 0, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.06);
@@ -299,132 +205,10 @@
             color: #a0e8a0;
             margin-top: 1rem;
         }
-        .console-log .log-success {
-            color: #00d2d3;
-        }
-        .console-log .log-error {
-            color: #ff4757;
-        }
-        .console-log .log-info {
-            color: #f9ca24;
-        }
-        .console-log .log-normal {
-            color: #b0b0c8;
-        }
-        .call-options {
-            display: flex;
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        .call-option {
-            flex: 1;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 2px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .call-option:hover {
-            background: rgba(108, 92, 231, 0.05);
-            border-color: rgba(108, 92, 231, 0.2);
-        }
-        .call-option.active {
-            border-color: #6c5ce7;
-            background: rgba(108, 92, 231, 0.1);
-        }
-        .call-option i {
-            font-size: 2rem;
-            display: block;
-            margin-bottom: 6px;
-        }
-        .call-option .fa-video {
-            color: #00d2d3;
-        }
-        .call-option .fa-phone-alt {
-            color: #6c5ce7;
-        }
-        .call-option span {
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .connect-options {
-            display: flex;
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        .connect-option {
-            flex: 1;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 2px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .connect-option:hover {
-            background: rgba(108, 92, 231, 0.05);
-            border-color: rgba(108, 92, 231, 0.2);
-        }
-        .connect-option.active {
-            border-color: #6c5ce7;
-            background: rgba(108, 92, 231, 0.1);
-        }
-        .connect-option i {
-            font-size: 2rem;
-            display: block;
-            margin-bottom: 6px;
-        }
-        .connect-option .fa-qrcode {
-            color: #6c5ce7;
-        }
-        .connect-option .fa-compact-disc {
-            color: #f9ca24;
-        }
-        .connect-option span {
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .code-display {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 12px;
-            min-height: 200px;
-            margin: 1rem 0;
-        }
-        .code-display img {
-            max-width: 250px;
-            height: auto;
-        }
-        .code-display .pairing-code {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #6c5ce7;
-            letter-spacing: 4px;
-            background: rgba(108, 92, 231, 0.1);
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            border: 2px dashed rgba(108, 92, 231, 0.3);
-        }
-        .code-display .label {
-            font-size: 0.8rem;
-            color: #8888aa;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 8px;
-        }
-        .admin-panel {
-            background: rgba(20, 20, 40, 0.9);
-            border: 1px solid rgba(255, 71, 87, 0.2);
-            border-radius: 20px;
-            padding: 2rem;
-            margin-top: 2rem;
-        }
+        .console-log .log-success { color: #00d2d3; }
+        .console-log .log-error { color: #ff4757; }
+        .console-log .log-info { color: #f9ca24; }
+        .console-log .log-normal { color: #b0b0c8; }
         .admin-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -438,91 +222,21 @@
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
-        .stat-card .number {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #6c5ce7;
+        .stat-card .number { font-size: 2rem; font-weight: 800; color: #6c5ce7; }
+        .stat-card .label { font-size: 0.8rem; color: #8888aa; margin-top: 4px; }
+        .spam-progress {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem 0;
+            font-size: 0.85rem;
         }
-        .stat-card .label {
-            font-size: 0.8rem;
-            color: #8888aa;
+        .spam-progress .bar {
+            height: 4px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border-radius: 4px;
+            transition: width 0.5s ease;
             margin-top: 4px;
-        }
-        .admin-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        .admin-table th,
-        .admin-table td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .admin-table th {
-            color: #8888aa;
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .admin-table td {
-            color: #e0e0e0;
-        }
-        .admin-table .status-active {
-            color: #00d2d3;
-        }
-        .admin-table .status-inactive {
-            color: #ff4757;
-        }
-        .admin-table .btn-sm {
-            padding: 4px 12px;
-            font-size: 0.75rem;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .admin-table .btn-sm.btn-edit {
-            background: rgba(108, 92, 231, 0.2);
-            color: #6c5ce7;
-        }
-        .admin-table .btn-sm.btn-edit:hover {
-            background: rgba(108, 92, 231, 0.3);
-        }
-        .admin-table .btn-sm.btn-delete {
-            background: rgba(255, 71, 87, 0.2);
-            color: #ff4757;
-        }
-        .admin-table .btn-sm.btn-delete:hover {
-            background: rgba(255, 71, 87, 0.3);
-        }
-        .admin-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            padding-bottom: 1rem;
-        }
-        .admin-tab {
-            padding: 8px 20px;
-            border-radius: 10px;
-            border: none;
-            background: transparent;
-            color: #8888aa;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Inter', sans-serif;
-        }
-        .admin-tab:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .admin-tab.active {
-            color: #fff;
-            background: rgba(108, 92, 231, 0.15);
         }
         .badge {
             display: inline-block;
@@ -531,34 +245,14 @@
             font-size: 0.7rem;
             font-weight: 600;
         }
-        .badge-success {
-            background: rgba(0, 210, 211, 0.15);
-            color: #00d2d3;
-        }
-        .badge-danger {
-            background: rgba(255, 71, 87, 0.15);
-            color: #ff4757;
-        }
-        .badge-warning {
-            background: rgba(249, 202, 36, 0.15);
-            color: #f9ca24;
-        }
-        .badge-premium {
-            background: rgba(108, 92, 231, 0.2);
-            color: #a29bfe;
-        }
-        .badge-vip {
-            background: rgba(255, 215, 0, 0.2);
-            color: #ffd700;
-        }
-        .badge-reseller {
-            background: rgba(0, 210, 211, 0.2);
-            color: #00d2d3;
-        }
-        .badge-developer {
-            background: rgba(255, 71, 87, 0.2);
-            color: #ff4757;
-        }
+        .badge-success { background: rgba(0, 210, 211, 0.15); color: #00d2d3; }
+        .badge-danger { background: rgba(255, 71, 87, 0.15); color: #ff4757; }
+        .badge-warning { background: rgba(249, 202, 36, 0.15); color: #f9ca24; }
+        .badge-premium { background: rgba(108, 92, 231, 0.2); color: #a29bfe; }
+        .badge-vip { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
+        .badge-reseller { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
+        .badge-developer { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+        .badge-free { background: rgba(45, 52, 54, 0.5); color: #b2bec3; }
         .login-page {
             min-height: 100vh;
             display: flex;
@@ -577,35 +271,10 @@
             max-width: 420px;
             box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
         }
-        .login-box .logo {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .login-box .logo i {
-            font-size: 3rem;
-            color: #6c5ce7;
-        }
-        .login-box .logo h1 {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: #fff;
-            margin-top: 8px;
-        }
-        .login-box .logo p {
-            color: #8888aa;
-            font-size: 0.9rem;
-        }
-        .login-box .form-group input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .login-box .form-group input:focus {
-            border-color: #6c5ce7;
-        }
-        .login-box .btn {
-            width: 100%;
-            justify-content: center;
-        }
+        .login-box .logo { text-align: center; margin-bottom: 2rem; }
+        .login-box .logo i { font-size: 3rem; color: #6c5ce7; }
+        .login-box .logo h1 { font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 8px; }
+        .login-box .logo p { color: #8888aa; font-size: 0.9rem; }
         .login-error {
             color: #ff4757;
             font-size: 0.85rem;
@@ -613,9 +282,7 @@
             margin-top: 1rem;
             display: none;
         }
-        .login-error.show {
-            display: block;
-        }
+        .login-error.show { display: block; }
         .toast {
             position: fixed;
             bottom: 2rem;
@@ -631,32 +298,65 @@
             animation: slideUp 0.3s ease;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
-        .toast-success {
-            border-color: rgba(0, 210, 211, 0.3);
+        .toast-success { border-color: rgba(0, 210, 211, 0.3); }
+        .toast-error { border-color: rgba(255, 71, 87, 0.3); }
+        .toast-info { border-color: rgba(108, 92, 231, 0.3); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .mt-1 { margin-top: 1rem; }
+        .hidden { display: none !important; }
+        .admin-panel {
+            background: rgba(20, 20, 40, 0.9);
+            border: 1px solid rgba(255, 71, 87, 0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-top: 2rem;
         }
-        .toast-error {
-            border-color: rgba(255, 71, 87, 0.3);
-        }
-        .toast-info {
-            border-color: rgba(108, 92, 231, 0.3);
-        }
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .mt-1 {
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 1rem;
         }
-        .hidden {
-            display: none !important;
+        .admin-table th,
+        .admin-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-
+        .admin-table th { color: #8888aa; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .admin-table td { color: #e0e0e0; }
+        .admin-table .btn-sm {
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .admin-table .btn-sm.btn-edit { background: rgba(108, 92, 231, 0.2); color: #6c5ce7; }
+        .admin-table .btn-sm.btn-edit:hover { background: rgba(108, 92, 231, 0.3); }
+        .admin-table .btn-sm.btn-delete { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+        .admin-table .btn-sm.btn-delete:hover { background: rgba(255, 71, 87, 0.3); }
+        .admin-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 1rem;
+        }
+        .admin-tab {
+            padding: 8px 20px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: #8888aa;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        .admin-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+        .admin-tab.active { color: #fff; background: rgba(108, 92, 231, 0.15); }
         .pricing-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -672,41 +372,13 @@
             transition: all 0.3s ease;
             cursor: pointer;
         }
-        .pricing-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(108, 92, 231, 0.3);
-        }
-        .pricing-card.selected {
-            border-color: #6c5ce7;
-            background: rgba(108, 92, 231, 0.05);
-        }
-      .pricing-card h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        .pricing-card .price {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #6c5ce7;
-            margin: 1rem 0;
-        }
-        .pricing-card .features {
-            list-style: none;
-            text-align: left;
-            margin: 1rem 0;
-        }
-        .pricing-card .features li {
-            padding: 0.5rem 0;
-            color: #b0b0c8;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .pricing-card .features li i {
-            color: #00d2d3;
-        }
-
+        .pricing-card:hover { transform: translateY(-5px); border-color: rgba(108, 92, 231, 0.3); }
+        .pricing-card.selected { border-color: #6c5ce7; background: rgba(108, 92, 231, 0.05); }
+        .pricing-card h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .pricing-card .price { font-size: 2rem; font-weight: 800; color: #6c5ce7; margin: 1rem 0; }
+        .pricing-card .features { list-style: none; text-align: left; margin: 1rem 0; }
+        .pricing-card .features li { padding: 0.5rem 0; color: #b0b0c8; display: flex; align-items: center; gap: 8px; }
+        .pricing-card .features li i { color: #00d2d3; }
         .chat-container {
             display: flex;
             flex-direction: column;
@@ -731,22 +403,9 @@
             border: 1px solid rgba(108, 92, 231, 0.1);
             align-self: flex-start;
         }
-        .chat-message.own {
-            align-self: flex-end;
-            background: rgba(0, 210, 211, 0.1);
-            border-color: rgba(0, 210, 211, 0.2);
-        }
-        .chat-message .sender {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #6c5ce7;
-            margin-bottom: 4px;
-        }
-        .chat-message .time {
-            font-size: 0.65rem;
-            color: #666;
-            margin-top: 4px;
-        }
+        .chat-message.own { align-self: flex-end; background: rgba(0, 210, 211, 0.1); border-color: rgba(0, 210, 211, 0.2); }
+        .chat-message .sender { font-size: 0.8rem; font-weight: 600; color: #6c5ce7; margin-bottom: 4px; }
+        .chat-message .time { font-size: 0.65rem; color: #666; margin-top: 4px; }
         .chat-input {
             display: flex;
             gap: 0.5rem;
@@ -754,23 +413,18 @@
             background: rgba(0, 0, 0, 0.3);
             border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .chat-input input {
-            flex: 1;
-            padding: 0.8rem 1rem;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
+        .chat-input input { flex: 1; padding: 0.8rem 1rem; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: #fff; }
+        .chat-input button { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; background: #6c5ce7; color: #fff; cursor: pointer; }
+        .bot-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
-        .chat-input button {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            background: #6c5ce7;
-            color: #fff;
-            cursor: pointer;
-        }
-
+        .bot-status.ready { background: rgba(0, 210, 211, 0.2); color: #00d2d3; }
+        .bot-status.connecting { background: rgba(249, 202, 36, 0.2); color: #f9ca24; }
+        .bot-status.disconnected { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         .status-badge {
             display: inline-block;
             padding: 2px 8px;
@@ -779,108 +433,66 @@
             font-weight: 700;
             margin-left: 6px;
         }
-        .status-badge.free {
-            background: #2d3436;
-            color: #b2bec3;
+        .status-badge.free { background: #2d3436; color: #b2bec3; }
+        .status-badge.premium { background: #6c5ce7; color: #fff; }
+        .status-badge.vip { background: #ffd700; color: #000; }
+        .status-badge.reseller { background: #00d2d3; color: #fff; }
+        .status-badge.developer { background: #ff4757; color: #fff; }
+        .call-options {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
         }
-        .status-badge.premium {
-            background: #6c5ce7;
-            color: #fff;
+        .call-option {
+            flex: 1;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-        .status-badge.vip {
-            background: #ffd700;
-            color: #000;
-        }
-        .status-badge.reseller {
-            background: #00d2d3;
-            color: #fff;
-        }
-        .status-badge.developer {
-            background: #ff4757;
-            color: #fff;
-        }
-
-        .bot-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .bot-status.ready {
-            background: rgba(0, 210, 211, 0.2);
-            color: #00d2d3;
-        }
-        .bot-status.connecting {
-            background: rgba(249, 202, 36, 0.2);
-            color: #f9ca24;
-        }
-        .bot-status.disconnected {
-            background: rgba(255, 71, 87, 0.2);
-            color: #ff4757;
-        }
-
-        .spam-progress {
+        .call-option:hover { background: rgba(108, 92, 231, 0.05); border-color: rgba(108, 92, 231, 0.2); }
+        .call-option.active { border-color: #6c5ce7; background: rgba(108, 92, 231, 0.1); }
+        .call-option i { font-size: 2rem; display: block; margin-bottom: 6px; }
+        .call-option span { font-size: 0.85rem; font-weight: 500; }
+        .code-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
             background: rgba(0, 0, 0, 0.4);
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            margin: 0.5rem 0;
-            font-size: 0.85rem;
+            border-radius: 12px;
+            min-height: 200px;
+            margin: 1rem 0;
         }
-        .spam-progress .bar {
-            height: 4px;
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            border-radius: 4px;
-            transition: width 0.5s ease;
-            margin-top: 4px;
+        .code-display img { max-width: 250px; height: auto; }
+        .code-display .pairing-code {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #6c5ce7;
+            letter-spacing: 4px;
+            background: rgba(108, 92, 231, 0.1);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: 2px dashed rgba(108, 92, 231, 0.3);
         }
-
         @media (max-width: 768px) {
-            .navbar {
-                padding: 0 1rem;
-                height: 60px;
-            }
-            .nav-logo {
-                font-size: 1.2rem;
-            }
-            .nav-menu {
-                gap: 4px;
-            }
-            .nav-link {
-                padding: 4px 10px;
-                font-size: 0.7rem;
-            }
-            .nav-link span {
-                display: none;
-            }
-            .nav-link i {
-                font-size: 1rem;
-            }
-            .main-container {
-                padding: 1rem;
-            }
-            .card {
-                padding: 1.2rem;
-            }
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            .call-options,
-            .connect-options {
-                flex-direction: column;
-            }
-            .section-header h1 {
-                font-size: 1.5rem;
-            }
-            .login-box {
-                padding: 2rem 1.5rem;
-            }
-            .admin-stats {
-                grid-template-columns: 1fr 1fr;
-            }
-            .pricing-grid {
-                grid-template-columns: 1fr;
-            }
+            .navbar { padding: 0 1rem; height: 60px; }
+            .nav-logo { font-size: 1.2rem; }
+            .nav-menu { gap: 4px; }
+            .nav-link { padding: 4px 10px; font-size: 0.7rem; }
+            .nav-link span { display: none; }
+            .nav-link i { font-size: 1rem; }
+            .main-container { padding: 1rem; }
+            .card { padding: 1.2rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .call-options { flex-direction: column; }
+            .section-header h1 { font-size: 1.5rem; }
+            .login-box { padding: 2rem 1.5rem; }
+            .admin-stats { grid-template-columns: 1fr 1fr; }
+            .pricing-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -894,8 +506,6 @@
                 <h1>PrankMaster</h1>
                 <p>Login untuk melanjutkan</p>
             </div>
-            
-            <!-- FORM LOGIN -->
             <form id="loginForm" onsubmit="return handleLogin(event)">
                 <div class="form-group">
                     <label><i class="fas fa-user"></i> Username</label>
@@ -913,8 +523,6 @@
                 </button>
                 <div id="loginError" class="login-error"></div>
             </form>
-            
-            <!-- FORM REGISTER -->
             <form id="registerForm" style="display:none;" onsubmit="return handleRegister(event)">
                 <div class="form-group">
                     <label><i class="fas fa-user"></i> Username</label>
@@ -949,13 +557,13 @@
                 </div>
                 <div class="nav-menu">
                     <a href="#" class="nav-link active" data-section="dashboard"><i class="fas fa-home"></i><span>Dashboard</span></a>
+                    <a href="#" class="nav-link" data-section="spam-otp"><i class="fas fa-bolt"></i><span>Spam OTP</span></a>
                     <a href="#" class="nav-link" data-section="spam-pairing"><i class="fas fa-code"></i><span>Pairing</span></a>
-                    <a href="#" class="nav-link" data-section="spam-chat"><i class="fas fa-comment"></i><span>Chat</span></a>
-                    <a href="#" class="nav-link" data-section="spam-call"><i class="fas fa-phone"></i><span>Telpon</span></a>
                     <a href="#" class="nav-link" data-section="connect-bot"><i class="fas fa-robot"></i><span>Bot</span></a>
                     <a href="#" class="nav-link" data-section="pricing"><i class="fas fa-tags"></i><span>Pricing</span></a>
                     <a href="#" class="nav-link" data-section="chat-public"><i class="fas fa-comments"></i><span>Chat</span></a>
                     <a href="#" class="nav-link" data-section="admin-panel" id="adminNavLink" style="display:none;"><i class="fas fa-user-shield"></i><span>Admin</span></a>
+                    <a href="#" class="nav-link" data-section="reseller-panel" id="resellerNavLink" style="display:none;"><i class="fas fa-store"></i><span>Reseller</span></a>
                     <a href="#" class="nav-link" data-section="profile"><i class="fas fa-user"></i><span>Profil</span></a>
                 </div>
                 <div class="nav-user">
@@ -975,8 +583,8 @@
                 <div class="admin-stats">
                     <div class="stat-card"><div class="number" id="statSpam">0</div><div class="label">Total Spam</div></div>
                     <div class="stat-card"><div class="number" id="statLimit">15</div><div class="label">Sisa Limit</div></div>
-                    <div class="stat-card"><div class="number" id="statBot">0</div><div class="label">Bot Active</div></div>
                     <div class="stat-card"><div class="number" id="statUsers">0</div><div class="label">Online Users</div></div>
+                    <div class="stat-card"><div class="number" id="statBot">0</div><div class="label">Bot Active</div></div>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-robot"></i> Status Bot</div>
@@ -984,117 +592,72 @@
                 </div>
             </section>
 
-  <!-- ===== SPAM PAIRING ===== -->
-<section id="spam-pairing" class="section">
-    <div class="section-header">
-        <h1><i class="fas fa-code"></i> Spam Pairing</h1>
-        <p>Kirim pairing code ke nomor target secara massal <span class="badge badge-danger">REAL</span></p>
-    </div>
-    <div class="card">
-        <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
-        <div class="form-group">
-            <label><i class="fas fa-bullseye"></i> Nomor Target</label>
-            <input type="text" id="pairingTarget" placeholder="6281234567890" inputmode="numeric">
-            <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (tanpa +62)</small>
-        </div>
-        <div class="form-group">
-            <label><i class="fas fa-sort-numeric-up"></i> Jumlah (Max 15x)</label>
-            <input type="number" id="pairingCount" min="1" max="15" value="5">
-        </div>
-        <div class="form-group">
-            <label><i class="fas fa-robot"></i> Gunakan Bot</label>
-            <select id="pairingUseBot" style="width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;font-size:0.95rem;font-family:'Inter',sans-serif;">
-                <option value="true">Ya (Pakai Bot yang sudah connect)</option>
-                <option value="false" selected>Tidak (Auto connect tanpa bot)</option>
-            </select>
-            <small style="color:#888;font-size:0.75rem;">Pilih "Tidak" untuk spam pairing tanpa perlu connect bot dulu</small>
-        </div>
-        <div class="form-group">
-            <label><i class="fas fa-terminal"></i> Console Log</label>
-            <div class="console-log" id="pairingConsole"><div class="log-normal">[✓] Sistem siap...</div></div>
-        </div>
-        <div id="pairingProgress" style="display:none;" class="spam-progress">
-            <div>Progress: <span id="pairingProgressText">0/0</span></div>
-            <div class="bar" id="pairingProgressBar" style="width:0%"></div>
-        </div>
-        <button class="btn btn-primary btn-block" id="pairingStartBtn" onclick="togglePairing()">
-            <i class="fas fa-play"></i> Start
-        </button>
-    </div>
-</section>
-
-            <!-- ===== SPAM CHAT ===== -->
-            <section id="spam-chat" class="section">
+            <!-- ===== SPAM OTP ===== -->
+            <section id="spam-otp" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-comment"></i> Spam Chat</h1>
-                    <p>Kirim pesan spam ke nomor target <span class="badge badge-danger">REAL</span></p>
+                    <h1><i class="fas fa-bolt"></i> Spam OTP</h1>
+                    <p>Kirim OTP ke nomor target menggunakan <span class="badge badge-success">45+ API</span></p>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
                     <div class="form-group">
                         <label><i class="fas fa-bullseye"></i> Nomor Target</label>
-                        <input type="text" id="chatTarget" placeholder="6281234567890" inputmode="numeric">
+                        <input type="text" id="otpTarget" placeholder="6281234567890" inputmode="numeric">
                         <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (tanpa +62)</small>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-pencil-alt"></i> Pesan</label>
-                        <textarea id="chatMessage" placeholder="Tulis pesan spam...">Halo ini pesan prank! 😂</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah (Max 15x)</label>
-                        <input type="number" id="chatCount" min="1" max="15" value="5">
+                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah Pengiriman</label>
+                        <input type="number" id="otpCount" min="1" max="200" value="5">
+                        <small style="color:#888;font-size:0.75rem;">Maksimal sesuai limit status Anda</small>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="chatConsole"><div class="log-normal">[✓] Sistem siap...</div></div>
+                        <div class="console-log" id="otpConsole"><div class="log-normal">[✓] Sistem siap... 45+ API OTP</div></div>
                     </div>
-                    <div id="chatProgress" style="display:none;" class="spam-progress">
-                        <div>Progress: <span id="chatProgressText">0/0</span></div>
-                        <div class="bar" id="chatProgressBar" style="width:0%"></div>
+                    <div id="otpProgress" style="display:none;" class="spam-progress">
+                        <div>Progress: <span id="otpProgressText">0/0</span></div>
+                        <div class="bar" id="otpProgressBar" style="width:0%"></div>
                     </div>
-                    <button class="btn btn-primary btn-block" id="chatStartBtn" onclick="toggleChat()">
-                        <i class="fas fa-play"></i> Start
+                    <button class="btn btn-primary btn-block" id="otpStartBtn" onclick="toggleOTP()">
+                        <i class="fas fa-play"></i> Start Spam OTP
                     </button>
                 </div>
             </section>
 
-            <!-- ===== SPAM CALL ===== -->
-            <section id="spam-call" class="section">
+            <!-- ===== SPAM PAIRING ===== -->
+            <section id="spam-pairing" class="section">
                 <div class="section-header">
-                    <h1><i class="fas fa-phone"></i> Spam Telpon</h1>
-                    <p>Kirim notifikasi panggilan spam ke nomor target <span class="badge badge-danger">REAL</span></p>
+                    <h1><i class="fas fa-code"></i> Spam Pairing</h1>
+                    <p>Kirim pairing code ke nomor target <span class="badge badge-danger">REAL</span></p>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-sliders-h"></i> Konfigurasi</div>
                     <div class="form-group">
                         <label><i class="fas fa-bullseye"></i> Nomor Target</label>
-                        <input type="text" id="callTarget" placeholder="6281234567890" inputmode="numeric">
+                        <input type="text" id="pairingTarget" placeholder="6281234567890" inputmode="numeric">
                         <small style="color:#888;font-size:0.75rem;">Format: 628xxxxxxxxxx (tanpa +62)</small>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-phone"></i> Pilih Via</label>
-                        <div class="call-options">
-                            <div class="call-option active" data-call-type="video" onclick="selectCallType('video')">
-                                <i class="fas fa-video"></i><span>Video Call</span>
-                            </div>
-                            <div class="call-option" data-call-type="voice" onclick="selectCallType('voice')">
-                                <i class="fas fa-phone-alt"></i><span>Telpon Suara</span>
-                            </div>
-                        </div>
+                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah (Max 15x)</label>
+                        <input type="number" id="pairingCount" min="1" max="15" value="5">
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-sort-numeric-up"></i> Jumlah (Max 15x)</label>
-                        <input type="number" id="callCount" min="1" max="15" value="5">
+                        <label><i class="fas fa-robot"></i> Gunakan Bot</label>
+                        <select id="pairingUseBot" style="width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;font-size:0.95rem;font-family:'Inter',sans-serif;">
+                            <option value="true">Ya (Pakai Bot yang sudah connect)</option>
+                            <option value="false" selected>Tidak (Auto connect tanpa bot)</option>
+                        </select>
+                        <small style="color:#888;font-size:0.75rem;">Pilih "Tidak" untuk spam pairing tanpa perlu connect bot dulu</small>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-terminal"></i> Console Log</label>
-                        <div class="console-log" id="callConsole"><div class="log-normal">[✓] Sistem siap...</div></div>
+                        <div class="console-log" id="pairingConsole"><div class="log-normal">[✓] Sistem siap...</div></div>
                     </div>
-                    <div id="callProgress" style="display:none;" class="spam-progress">
-                        <div>Progress: <span id="callProgressText">0/0</span></div>
-                        <div class="bar" id="callProgressBar" style="width:0%"></div>
+                    <div id="pairingProgress" style="display:none;" class="spam-progress">
+                        <div>Progress: <span id="pairingProgressText">0/0</span></div>
+                        <div class="bar" id="pairingProgressBar" style="width:0%"></div>
                     </div>
-                    <button class="btn btn-primary btn-block" id="callStartBtn" onclick="toggleCall()">
+                    <button class="btn btn-primary btn-block" id="pairingStartBtn" onclick="togglePairing()">
                         <i class="fas fa-play"></i> Start
                     </button>
                 </div>
@@ -1104,7 +667,7 @@
             <section id="connect-bot" class="section">
                 <div class="section-header">
                     <h1><i class="fas fa-robot"></i> Connect Bot</h1>
-                    <p>Hubungkan bot WhatsApp untuk menjalankan spam REAL</p>
+                    <p>Hubungkan bot WhatsApp untuk Spam Pairing</p>
                 </div>
                 <div class="card">
                     <div class="card-title"><i class="fas fa-plug"></i> Konfigurasi Bot</div>
@@ -1115,11 +678,11 @@
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-qrcode"></i> Pilih Metode</label>
-                        <div class="connect-options">
-                            <div class="connect-option active" data-connect-type="qris" onclick="selectConnectType('qris')">
+                        <div class="call-options">
+                            <div class="call-option active" data-connect-type="qris" onclick="selectConnectType('qris')">
                                 <i class="fas fa-qrcode"></i><span>QRIS</span>
                             </div>
-                            <div class="connect-option" data-connect-type="code" onclick="selectConnectType('code')">
+                            <div class="call-option" data-connect-type="code" onclick="selectConnectType('code')">
                                 <i class="fas fa-compact-disc"></i><span>Code</span>
                             </div>
                         </div>
@@ -1149,7 +712,7 @@
                         <h3><span class="badge badge-premium">PREMIUM</span></h3>
                         <div class="price">Rp 10.000 / Bulan</div>
                         <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit 200 Spam</li>
+                            <li><i class="fas fa-check"></i> Limit 80 Spam</li>
                             <li><i class="fas fa-check"></i> Bebas jeda</li>
                             <li><i class="fas fa-check"></i> Prioritas support</li>
                         </ul>
@@ -1158,7 +721,7 @@
                         <h3><span class="badge badge-vip">VIP</span></h3>
                         <div class="price">Rp 20.000 / Bulan</div>
                         <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit Unlimited</li>
+                            <li><i class="fas fa-check"></i> Limit 150 Spam</li>
                             <li><i class="fas fa-check"></i> Tanpa jeda</li>
                             <li><i class="fas fa-check"></i> Aman 100%</li>
                             <li><i class="fas fa-check"></i> Prioritas utama</li>
@@ -1168,7 +731,7 @@
                         <h3><span class="badge badge-reseller">RESELLER</span></h3>
                         <div class="price">Rp 30.000 / Bulan</div>
                         <ul class="features">
-                            <li><i class="fas fa-check"></i> Limit 500 Spam</li>
+                            <li><i class="fas fa-check"></i> Limit 200 Spam</li>
                             <li><i class="fas fa-check"></i> Bisa upgrade user</li>
                             <li><i class="fas fa-check"></i> Komisi 20%</li>
                             <li><i class="fas fa-check"></i> Dashboard khusus</li>
@@ -1250,7 +813,7 @@
                     <div id="adminAccessDenied" style="display:none;text-align:center;padding:2rem;">
                         <i class="fas fa-lock" style="font-size:4rem;color:#ff4757;"></i>
                         <h2 style="color:#ff4757;margin-top:1rem;">Akses Ditolak!</h2>
-                        <p style="color:#888;">Hanya Admin/Developer yang bisa mengakses halaman ini.</p>
+                        <p style="color:#888;">Hanya Developer yang bisa mengakses halaman ini.</p>
                     </div>
                     <div id="adminContent">
                         <div class="admin-tabs">
@@ -1278,22 +841,16 @@
                             </table>
                         </div>
                         <div id="adminSettingsTab" style="display:none;">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Global Limit</label>
-                                    <input type="number" id="globalLimit" value="50">
-                                </div>
-                                <div class="form-group">
-                                    <label>Max Bots per User</label>
-                                    <input type="number" id="maxBots" value="5">
-                                </div>
-                            </div>
                             <div class="form-group">
                                 <label>Maintenance Mode</label>
                                 <select id="maintenanceMode">
-                                    <option value="off">Off</option>
-                                    <option value="on">On</option>
+                                    <option value="false">Off</option>
+                                    <option value="true">On</option>
                                 </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Pesan Maintenance</label>
+                                <input type="text" id="maintenanceMessage" placeholder="Pesan saat maintenance" value="Server sedang dalam perbaikan. Silakan coba lagi nanti.">
                             </div>
                             <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Save</button>
                         </div>
@@ -1303,6 +860,36 @@
                                 <tbody id="adminPaymentsBody"></tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== RESELLER PANEL ===== -->
+            <section id="reseller-panel" class="section">
+                <div class="admin-panel" style="border-color:rgba(0,210,211,0.3);">
+                    <div class="section-header">
+                        <h1><i class="fas fa-store"></i> Reseller Panel</h1>
+                        <p>Statistik dan manajemen untuk Reseller</p>
+                    </div>
+                    <div class="admin-stats">
+                        <div class="stat-card"><div class="number" id="resellerUsers">0</div><div class="label">Total Users</div></div>
+                        <div class="stat-card"><div class="number" id="resellerOnline">0</div><div class="label">Online Users</div></div>
+                        <div class="stat-card"><div class="number" id="resellerSpam">0</div><div class="label">Total Spam Hari Ini</div></div>
+                        <div class="stat-card"><div class="number" id="resellerBots">0</div><div class="label">Total Bots</div></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-users"></i> Daftar User</div>
+                        <table class="admin-table">
+                            <thead><tr><th>Username</th><th>Status</th><th>Limit</th><th>Used</th></tr></thead>
+                            <tbody id="resellerUsersBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-robot"></i> Daftar Bot</div>
+                        <table class="admin-table">
+                            <thead><tr><th>Number</th><th>Status</th><th>Owner</th></tr></thead>
+                            <tbody id="resellerBotsBody"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -1338,1475 +925,1412 @@
     </div>
 
     <script>
-// ============================================
-// GLOBAL VARIABLES
-// ============================================
-let currentUser = null;
-let socket = null;
-let selectedPkg = 'premium';
-let selectedPayment = 'dana';
-let selectedCallType = 'video';
-let selectedConnectType = 'qris';
-let currentSessionId = null;
-let isSpamming = false;
+    // ============================================
+    // GLOBAL VARIABLES
+    // ============================================
+    let currentUser = null;
+    let socket = null;
+    let selectedPkg = 'premium';
+    let selectedPayment = 'dana';
+    let selectedConnectType = 'qris';
+    let currentSessionId = null;
+    let isSpamming = false;
 
-// ============================================
-// DOM READY - INIT
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔥 PrankMaster Pro v3.0 - REAL SPAM');
-    console.log('📱 Connect bot dulu untuk spam real!');
-    console.log('👑 Admin: Lynzka / Asiafone11');
-    
-    // Cek session login
-    const session = localStorage.getItem('prankUser');
-    if (session) {
+    // ============================================
+    // DOM READY - INIT
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔥 PrankMaster Pro - Spam OTP & Pairing');
+        console.log('👑 Admin: Lynzka / Asiafone11');
+
+        const session = localStorage.getItem('prankUser');
+        if (session) {
+            try {
+                currentUser = JSON.parse(session);
+                if (currentUser && currentUser.username) {
+                    showMainApp();
+                    connectSocket();
+                    loadUserData();
+                    loadBots();
+                    if (currentUser.isAdmin || currentUser.isDeveloper) {
+                        loadAdminData();
+                    }
+                    if (currentUser.isReseller) {
+                        loadResellerData();
+                    }
+                    return;
+                }
+            } catch (e) {
+                localStorage.removeItem('prankUser');
+                console.log('❌ Session expired');
+            }
+        }
+
+        document.getElementById('loginPage').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+    });
+
+    // ============================================
+    // SOCKET.IO CONNECTION
+    // ============================================
+    function connectSocket() {
         try {
-            currentUser = JSON.parse(session);
-            if (currentUser && currentUser.username) {
-                showMainApp();
-                connectSocket();
-                loadUserData();
+            socket = io(window.location.origin, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionAttempts: 10
+            });
+
+            socket.on('connect', () => {
+                console.log('✅ Socket connected');
+                if (currentUser && currentUser.username) {
+                    socket.emit('userOnline', currentUser.username);
+                }
+            });
+
+            socket.on('connect_error', (err) => {
+                console.log('⚠️ Socket error:', err.message);
+            });
+
+            socket.on('usersOnline', (users) => {
+                const el = document.getElementById('statUsers');
+                if (el) el.textContent = users.length || 0;
+                const el2 = document.getElementById('resellerOnline');
+                if (el2) el2.textContent = users.length || 0;
+            });
+
+            socket.on('newMessage', (data) => {
+                addChatMessage(data);
+            });
+
+            socket.on('botQR', (data) => {
+                const display = document.getElementById('codeDisplay');
+                if (display) {
+                    display.innerHTML = `
+                        <div style="text-align:center;">
+                            <div class="label">SCAN QR CODE</div>
+                            <img src="${data.qr}" style="max-width:250px;height:auto;background:#fff;padding:10px;border-radius:12px;">
+                            <div style="margin-top:10px;color:#00d2d3;font-size:0.85rem;">Scan QR dengan WhatsApp</div>
+                        </div>
+                    `;
+                }
+                updateConsole('botConsole', '[✓] QR Code siap di scan', 'log-success');
+                showToast('QR Code siap di scan!', 'success');
+            });
+
+            socket.on('botPairingCode', (data) => {
+                const display = document.getElementById('codeDisplay');
+                if (display) {
+                    display.innerHTML = `
+                        <div style="text-align:center;">
+                            <div class="label">🔑 PAIRING CODE</div>
+                            <div class="pairing-code" style="font-size:3rem;letter-spacing:8px;background:rgba(108,92,231,0.2);padding:1.5rem 2rem;border-radius:12px;border:3px solid #6c5ce7;">
+                                ${data.code}
+                            </div>
+                            <div style="margin-top:15px;color:#00d2d3;font-size:0.95rem;">
+                                <i class="fas fa-phone"></i> Buka WhatsApp → Settings → Linked Devices
+                            </div>
+                            <div style="color:#888;font-size:0.85rem;">
+                                → Pilih "Link with phone number" → Masukkan kode di atas
+                            </div>
+                        </div>
+                    `;
+                }
+                updateConsole('botConsole', `[✓] Pairing Code: ${data.code}`, 'log-success');
+                showToast(`Pairing Code: ${data.code}`, 'success');
+            });
+
+            socket.on('botReady', (data) => {
+                updateConsole('botConsole', `[✓] Bot ${data.sessionId} siap digunakan!`, 'log-success');
+                showToast('Bot siap!', 'success');
+                const el = document.getElementById('statBot');
+                if (el) el.textContent = parseInt(el.textContent) + 1;
+                updateBotStatus('ready', data.sessionId);
+                currentSessionId = data.sessionId;
                 loadBots();
-                if (currentUser.isAdmin || currentUser.status === 'Developer') {
+            });
+
+            socket.on('botDisconnected', (data) => {
+                updateConsole('botConsole', `[✗] Bot terputus: ${data.reason}`, 'log-error');
+                updateBotStatus('disconnected', data.sessionId);
+                if (data.sessionId === currentSessionId) currentSessionId = null;
+                loadBots();
+            });
+
+            socket.on('spamProgress', (data) => {
+                updateSpamProgress(data);
+            });
+
+            socket.on('paymentStatus', (data) => {
+                updateConsole('paymentConsole', `[${data.status}] ${data.message}`, data.status === 'success' ? 'log-success' :
+                    'log-error');
+                if (data.status === 'success') {
+                    showToast('Pembayaran berhasil!', 'success');
+                    loadUserData();
+                }
+            });
+
+            socket.on('userUpdated', (data) => {
+                if (data.username === currentUser?.username) {
+                    loadUserData();
+                }
+                if (currentUser?.isAdmin || currentUser?.isDeveloper) {
                     loadAdminData();
                 }
-                return;
-            }
-        } catch (e) {
-            localStorage.removeItem('prankUser');
-            console.log('❌ Session expired');
+                if (currentUser?.isReseller) {
+                    loadResellerData();
+                }
+            });
+
+            socket.on('settingsUpdated', (data) => {
+                showToast('Settings updated!', 'success');
+            });
+
+            socket.on('userStatusChanged', (data) => {
+                if (data.username === currentUser?.username) {
+                    loadUserData();
+                }
+            });
+        } catch (err) {
+            console.log('❌ Socket error:', err);
         }
     }
-    
-    // Tampilkan login jika tidak ada session
-    document.getElementById('loginPage').style.display = 'flex';
-    document.getElementById('mainApp').style.display = 'none';
-});
 
-// ============================================
-// SOCKET.IO CONNECTION
-// ============================================
-function connectSocket() {
-    try {
-        socket = io(window.location.origin, {
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            reconnectionAttempts: 10
-        });
+    // ============================================
+    // AUTHENTICATION
+    // ============================================
 
-        socket.on('connect', () => {
-            console.log('✅ Socket connected');
-            if (currentUser && currentUser.username) {
-                socket.emit('userOnline', currentUser.username);
-            }
-        });
+    function handleLogin(e) {
+        e.preventDefault();
 
-        socket.on('connect_error', (err) => {
-            console.log('⚠️ Socket error:', err.message);
-        });
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        const errorEl = document.getElementById('loginError');
+        const btn = document.getElementById('loginBtn');
 
-        socket.on('usersOnline', (users) => {
-            const el = document.getElementById('statUsers');
-            if (el) el.textContent = users.length || 0;
-        });
+        errorEl.classList.remove('show');
+        errorEl.textContent = '';
 
-        socket.on('newMessage', (data) => {
-            addChatMessage(data);
-        });
-
-        socket.on('botQR', (data) => {
-            const display = document.getElementById('codeDisplay');
-            if (display) {
-                display.innerHTML = `
-                    <div style="text-align:center;">
-                        <div class="label">SCAN QR CODE</div>
-                        <img src="${data.qr}" style="max-width:250px;height:auto;background:#fff;padding:10px;border-radius:12px;">
-                        <div style="margin-top:10px;color:#00d2d3;font-size:0.85rem;">Scan QR dengan WhatsApp</div>
-                    </div>
-                `;
-            }
-            updateConsole('botConsole', '[✓] QR Code siap di scan', 'log-success');
-            showToast('QR Code siap di scan!', 'success');
-        });
-
-        socket.on('botPairingCode', (data) => {
-            const display = document.getElementById('codeDisplay');
-            if (display) {
-                display.innerHTML = `
-                    <div style="text-align:center;">
-                        <div class="label">🔑 PAIRING CODE</div>
-                        <div class="pairing-code" style="font-size:3rem;letter-spacing:8px;background:rgba(108,92,231,0.2);padding:1.5rem 2rem;border-radius:12px;border:3px solid #6c5ce7;">
-                            ${data.code}
-                        </div>
-                        <div style="margin-top:15px;color:#00d2d3;font-size:0.95rem;">
-                            <i class="fas fa-phone"></i> Buka WhatsApp → Settings → Linked Devices
-                        </div>
-                        <div style="color:#888;font-size:0.85rem;">
-                            → Pilih "Link with phone number" → Masukkan kode di atas
-                        </div>
-                        <div style="margin-top:10px;color:#f9ca24;font-size:0.8rem;">
-                            <i class="fas fa-clock"></i> Kode berlaku 2 menit
-                        </div>
-                    </div>
-                `;
-            }
-            updateConsole('botConsole', `[✓] Pairing Code: ${data.code}`, 'log-success');
-            showToast(`Pairing Code: ${data.code}`, 'success');
-        });
-
-        socket.on('botReady', (data) => {
-            updateConsole('botConsole', `[✓] Bot ${data.sessionId} siap digunakan!`, 'log-success');
-            showToast('Bot siap! Bisa spam sekarang.', 'success');
-            const el = document.getElementById('statBot');
-            if (el) el.textContent = parseInt(el.textContent) + 1;
-            updateBotStatus('ready', data.sessionId);
-            currentSessionId = data.sessionId;
-            loadBots();
-        });
-
-        socket.on('botDisconnected', (data) => {
-            updateConsole('botConsole', `[✗] Bot terputus: ${data.reason}`, 'log-error');
-            updateBotStatus('disconnected', data.sessionId);
-            if (data.sessionId === currentSessionId) {
-                currentSessionId = null;
-            }
-            loadBots();
-        });
-
-        socket.on('spamProgress', (data) => {
-            updateSpamProgress(data);
-        });
-
-        socket.on('paymentStatus', (data) => {
-            updateConsole('paymentConsole', `[${data.status}] ${data.message}`, data.status === 'success' ? 'log-success' : 'log-error');
-            if (data.status === 'success') {
-                showToast('Pembayaran berhasil! Status di-update', 'success');
-                loadUserData();
-            }
-        });
-
-        socket.on('userUpdated', (data) => {
-            if (data.username === currentUser?.username) {
-                loadUserData();
-            }
-            if (currentUser?.isAdmin || currentUser?.isDeveloper) {
-                loadAdminData();
-            }
-        });
-
-        socket.on('userStatusChanged', (data) => {
-            if (data.username === currentUser?.username) {
-                loadUserData();
-            }
-        });
-    } catch (err) {
-        console.log('❌ Socket error:', err);
-    }
-}
-
-// ============================================
-// AUTHENTICATION - PERBAIKAN UTAMA
-// ============================================
-
-// HANDLE LOGIN
-function handleLogin(e) {
-    e.preventDefault();
-    
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-    const errorEl = document.getElementById('loginError');
-    const btn = document.getElementById('loginBtn');
-    
-    // Reset error
-    errorEl.classList.remove('show');
-    errorEl.textContent = '';
-    
-    // Validasi
-    if (!username || !password) {
-        errorEl.textContent = 'Username dan password wajib diisi!';
-        errorEl.classList.add('show');
-        return false;
-    }
-    
-    // Loading state
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Login...';
-    
-    fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    })
-    .then(res => res.json())
-    .then(data => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-        
-        if (data.success) {
-            currentUser = data.user;
-            localStorage.setItem('prankUser', JSON.stringify(currentUser));
-            showMainApp();
-            connectSocket();
-            loadUserData();
-            loadBots();
-            if (currentUser.isAdmin || currentUser.status === 'Developer') {
-                loadAdminData();
-            }
-            showToast('Login berhasil! Selamat datang ' + currentUser.username, 'success');
-        } else {
-            errorEl.textContent = data.message || 'Login gagal!';
+        if (!username || !password) {
+            errorEl.textContent = 'Username dan password wajib diisi!';
             errorEl.classList.add('show');
+            return false;
         }
-    })
-    .catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-        errorEl.textContent = 'Koneksi ke server gagal! Periksa jaringan Anda.';
-        errorEl.classList.add('show');
-        console.error('❌ Login error:', err);
-    });
-    
-    return false;
-}
 
-// HANDLE REGISTER
-function handleRegister(e) {
-    e.preventDefault();
-    
-    const username = document.getElementById('regUsername').value.trim();
-    const password = document.getElementById('regPassword').value;
-    const confirm = document.getElementById('regConfirm').value;
-    const errorEl = document.getElementById('registerError');
-    const btn = document.getElementById('registerBtn');
-    
-    // Reset error
-    errorEl.classList.remove('show');
-    errorEl.textContent = '';
-    
-    // Validasi
-    if (!username || !password || !confirm) {
-        errorEl.textContent = 'Semua field wajib diisi!';
-        errorEl.classList.add('show');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Login...';
+
+        fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('prankUser', JSON.stringify(currentUser));
+                    showMainApp();
+                    connectSocket();
+                    loadUserData();
+                    loadBots();
+                    if (currentUser.isAdmin || currentUser.isDeveloper) {
+                        loadAdminData();
+                    }
+                    if (currentUser.isReseller) {
+                        loadResellerData();
+                    }
+                    showToast('Login berhasil! Selamat datang ' + currentUser.username, 'success');
+                } else {
+                    errorEl.textContent = data.message || 'Login gagal!';
+                    errorEl.classList.add('show');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                errorEl.textContent = 'Koneksi ke server gagal!';
+                errorEl.classList.add('show');
+            });
+
         return false;
     }
-    
-    if (username.length < 3) {
-        errorEl.textContent = 'Username minimal 3 karakter!';
-        errorEl.classList.add('show');
-        return false;
-    }
-    
-    if (password.length < 4) {
-        errorEl.textContent = 'Password minimal 4 karakter!';
-        errorEl.classList.add('show');
-        return false;
-    }
-    
-    if (password !== confirm) {
-        errorEl.textContent = 'Password tidak cocok!';
-        errorEl.classList.add('show');
-        return false;
-    }
-    
-    // Loading state
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftar...';
-    
-    fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    })
-    .then(res => res.json())
-    .then(data => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
-        
-        if (data.success) {
-            showToast('Registrasi berhasil! Silakan login.', 'success');
-            // Reset form
-            document.getElementById('regUsername').value = '';
-            document.getElementById('regPassword').value = '';
-            document.getElementById('regConfirm').value = '';
-            // Tampilkan login
-            showLogin();
-            // Isi username di form login
-            document.getElementById('loginUsername').value = username;
-        } else {
-            errorEl.textContent = data.message || 'Registrasi gagal!';
+
+    function handleRegister(e) {
+        e.preventDefault();
+
+        const username = document.getElementById('regUsername').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const confirm = document.getElementById('regConfirm').value;
+        const errorEl = document.getElementById('registerError');
+        const btn = document.getElementById('registerBtn');
+
+        errorEl.classList.remove('show');
+        errorEl.textContent = '';
+
+        if (!username || !password || !confirm) {
+            errorEl.textContent = 'Semua field wajib diisi!';
             errorEl.classList.add('show');
+            return false;
         }
-    })
-    .catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
-        errorEl.textContent = 'Koneksi ke server gagal! Periksa jaringan Anda.';
-        errorEl.classList.add('show');
-        console.error('❌ Register error:', err);
-    });
-    
-    return false;
-}
 
-// SHOW LOGIN FORM
-function showLogin() {
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('registerError').classList.remove('show');
-}
+        if (username.length < 3) {
+            errorEl.textContent = 'Username minimal 3 karakter!';
+            errorEl.classList.add('show');
+            return false;
+        }
 
-// SHOW REGISTER FORM
-function showRegister() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('registerError').classList.remove('show');
-}
+        if (password.length < 4) {
+            errorEl.textContent = 'Password minimal 4 karakter!';
+            errorEl.classList.add('show');
+            return false;
+        }
 
-// HANDLE LOGOUT
-function handleLogout() {
-    if (currentUser) {
-        // Emit offline status
-        if (socket) {
+        if (password !== confirm) {
+            errorEl.textContent = 'Password tidak cocok!';
+            errorEl.classList.add('show');
+            return false;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftar...';
+
+        fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
+
+                if (data.success) {
+                    showToast('Registrasi berhasil! Silakan login.', 'success');
+                    document.getElementById('regUsername').value = '';
+                    document.getElementById('regPassword').value = '';
+                    document.getElementById('regConfirm').value = '';
+                    showLogin();
+                    document.getElementById('loginUsername').value = username;
+                } else {
+                    errorEl.textContent = data.message || 'Registrasi gagal!';
+                    errorEl.classList.add('show');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
+                errorEl.textContent = 'Koneksi ke server gagal!';
+                errorEl.classList.add('show');
+            });
+
+        return false;
+    }
+
+    function showLogin() {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('loginError').classList.remove('show');
+        document.getElementById('registerError').classList.remove('show');
+    }
+
+    function showRegister() {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+        document.getElementById('loginError').classList.remove('show');
+        document.getElementById('registerError').classList.remove('show');
+    }
+
+    function handleLogout() {
+        if (currentUser && socket) {
             socket.emit('userOffline', currentUser.username);
             socket.disconnect();
         }
-    }
-    localStorage.removeItem('prankUser');
-    currentUser = null;
-    document.getElementById('mainApp').style.display = 'none';
-    document.getElementById('loginPage').style.display = 'flex';
-    isSpamming = false;
-    
-    // Reset tombol spam
-    ['pairingStartBtn', 'chatStartBtn', 'callStartBtn'].forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-play"></i> Start';
-            btn.disabled = false;
-            btn.className = 'btn btn-primary btn-block';
-        }
-    });
-    
-    // Reset progress
-    ['pairingProgress', 'chatProgress', 'callProgress'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
-    
-    showToast('Logout berhasil!', 'info');
-}
+        localStorage.removeItem('prankUser');
+        currentUser = null;
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('loginPage').style.display = 'flex';
+        isSpamming = false;
 
-// SHOW MAIN APP
-function showMainApp() {
-    document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    
-    // Update user info
-    if (currentUser) {
-        document.getElementById('usernameDisplay').textContent = currentUser.username;
-        document.getElementById('dashUsername').textContent = currentUser.username;
-        document.getElementById('profileUsername').textContent = currentUser.username;
-        document.getElementById('profileAvatar').textContent = currentUser.username.substring(0, 2).toUpperCase();
-        
-        // Cek admin
-        if (currentUser.isAdmin || currentUser.status === 'Developer' || currentUser.isDeveloper) {
-            document.getElementById('adminNavLink').style.display = 'inline-flex';
-            document.getElementById('adminContent').style.display = 'block';
-            document.getElementById('adminAccessDenied').style.display = 'none';
-            document.getElementById('adminAccessMessage').textContent = 'Kelola pengguna dan sistem';
-            document.querySelectorAll('.admin-tab').forEach(tab => tab.style.display = 'inline-block');
-        } else {
-            document.getElementById('adminNavLink').style.display = 'none';
-            document.getElementById('adminContent').style.display = 'none';
-            document.getElementById('adminAccessDenied').style.display = 'block';
-            document.getElementById('adminAccessMessage').textContent = '⛔ Akses Ditolak! Hanya Admin/Developer';
-            document.querySelectorAll('.admin-tab').forEach(tab => tab.style.display = 'none');
-        }
-        
-        updateStatusBadge();
-    }
-}
-
-// UPDATE STATUS BADGE
-function updateStatusBadge() {
-    if (!currentUser) return;
-    const statusMap = {
-        'Developer': 'developer',
-        'VIP': 'vip',
-        'Reseller': 'reseller',
-        'Premium': 'premium',
-        'Free': 'free'
-    };
-    const status = currentUser.status || 'Free';
-    const cls = statusMap[status] || 'free';
-    const dashStatus = document.getElementById('dashStatus');
-    if (dashStatus) {
-        dashStatus.innerHTML = `<span class="badge badge-${cls}">${status}</span>`;
-    }
-    const profileStatus = document.getElementById('profileStatus');
-    if (profileStatus) {
-        profileStatus.className = `badge badge-${cls}`;
-        profileStatus.textContent = status;
-    }
-}
-
-// ============================================
-// LOAD USER DATA
-// ============================================
-function loadUserData() {
-    if (!currentUser || !currentUser.username) return;
-    
-    fetch(`/api/user/${currentUser.username}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                currentUser = data.user;
-                localStorage.setItem('prankUser', JSON.stringify(currentUser));
-                
-                // Update stats
-                const statSpam = document.getElementById('statSpam');
-                if (statSpam) statSpam.textContent = currentUser.used || 0;
-                
-                const limit = currentUser.limit;
-                let remaining;
-                if (limit === Infinity || limit === '∞' || limit === null) {
-                    remaining = '∞';
-                } else {
-                    remaining = limit - (currentUser.used || 0);
-                    remaining = remaining < 0 ? 0 : remaining;
-                }
-                
-                const statLimit = document.getElementById('statLimit');
-                if (statLimit) statLimit.textContent = remaining;
-                
-                const profileLimit = document.getElementById('profileLimit');
-                if (profileLimit) profileLimit.textContent = limit === Infinity ? '∞' : limit;
-                
-                const profileUsed = document.getElementById('profileUsed');
-                if (profileUsed) profileUsed.textContent = currentUser.used || 0;
-                
-                updateStatusBadge();
-            }
-        })
-        .catch(err => console.log('❌ Load user error:', err));
-}
-
-// ============================================
-// LOAD BOTS
-// ============================================
-function loadBots() {
-    fetch('/api/bots')
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const statBot = document.getElementById('statBot');
-                if (statBot) statBot.textContent = data.bots.length;
-                
-                if (data.bots.length > 0) {
-                    const bot = data.bots[0];
-                    updateBotStatus(bot.status || 'ready', bot.id);
-                    currentSessionId = bot.id;
-                    
-                    if (bot.pairingCode && bot.status === 'connecting') {
-                        const display = document.getElementById('codeDisplay');
-                        if (display) {
-                            display.innerHTML = `
-                                <div style="text-align:center;">
-                                    <div class="label">🔑 PAIRING CODE</div>
-                                    <div class="pairing-code" style="font-size:3rem;letter-spacing:8px;background:rgba(108,92,231,0.2);padding:1.5rem 2rem;border-radius:12px;border:3px solid #6c5ce7;">
-                                        ${bot.pairingCode}
-                                    </div>
-                                    <div style="margin-top:15px;color:#00d2d3;font-size:0.95rem;">
-                                        <i class="fas fa-phone"></i> Buka WhatsApp → Settings → Linked Devices
-                                    </div>
-                                    <div style="color:#888;font-size:0.85rem;">
-                                        → Pilih "Link with phone number" → Masukkan kode di atas
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    }
-                } else {
-                    document.getElementById('botStatusDisplay').innerHTML = '<p class="log-normal">Belum ada bot terhubung</p>';
-                }
-            }
-        })
-        .catch(err => console.log('❌ Load bots error:', err));
-}
-
-// ============================================
-// UPDATE BOT STATUS
-// ============================================
-function updateBotStatus(status, sessionId) {
-    const display = document.getElementById('botStatusDisplay');
-    if (!display) return;
-    
-    const statusMap = {
-        'ready': '<span class="bot-status ready">● Siap</span>',
-        'connecting': '<span class="bot-status connecting">● Menghubungkan...</span>',
-        'disconnected': '<span class="bot-status disconnected">● Terputus</span>',
-        'waiting_qr': '<span class="bot-status connecting">● Menunggu QR</span>'
-    };
-    
-    display.innerHTML = `
-        <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;">
-            <span>Bot ${sessionId || ''}</span>
-            ${statusMap[status] || statusMap.disconnected}
-        </div>
-    `;
-}
-
-// ============================================
-// UPDATE SPAM PROGRESS
-// ============================================
-function updateSpamProgress(data) {
-    const progressMap = {
-        'pairing': { container: 'pairingProgress', text: 'pairingProgressText', bar: 'pairingProgressBar', console: 'pairingConsole' },
-        'chat': { container: 'chatProgress', text: 'chatProgressText', bar: 'chatProgressBar', console: 'chatConsole' },
-        'call': { container: 'callProgress', text: 'callProgressText', bar: 'callProgressBar', console: 'callConsole' }
-    };
-
-    const p = progressMap[data.type];
-    if (!p) return;
-
-    const container = document.getElementById(p.container);
-    if (container) {
-        container.style.display = 'block';
-    }
-    
-    const textEl = document.getElementById(p.text);
-    if (textEl) {
-        textEl.textContent = `${data.current}/${data.total}`;
-    }
-    
-    const barEl = document.getElementById(p.bar);
-    if (barEl) {
-        barEl.style.width = `${(data.current/data.total)*100}%`;
-    }
-
-    if (data.message) {
-        updateConsole(p.console, data.message, 'log-success');
-    }
-    if (data.error) {
-        updateConsole(p.console, `[✗] ${data.error}`, 'log-error');
-    }
-
-    if (data.current >= data.total) {
-        setTimeout(() => {
-            if (container) container.style.display = 'none';
-            isSpamming = false;
-            const btnMap = {
-                'pairing': 'pairingStartBtn',
-                'chat': 'chatStartBtn',
-                'call': 'callStartBtn'
-            };
-            const btn = document.getElementById(btnMap[data.type]);
+        ['otpStartBtn', 'pairingStartBtn'].forEach(id => {
+            const btn = document.getElementById(id);
             if (btn) {
                 btn.innerHTML = '<i class="fas fa-play"></i> Start';
                 btn.disabled = false;
                 btn.className = 'btn btn-primary btn-block';
             }
-        }, 2000);
+        });
+
+        ['otpProgress', 'pairingProgress'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+
+        showToast('Logout berhasil!', 'info');
     }
-}
 
-// ============================================
-// NAVIGATION
-// ============================================
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const section = this.dataset.section;
+    function showMainApp() {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
 
-        if (section === 'admin-panel') {
-            if (!currentUser || (!currentUser.isAdmin && currentUser.status !== 'Developer' && !currentUser.isDeveloper)) {
-                showToast('Akses ditolak! Hanya Admin/Developer!', 'error');
+        if (currentUser) {
+            document.getElementById('usernameDisplay').textContent = currentUser.username;
+            document.getElementById('dashUsername').textContent = currentUser.username;
+            document.getElementById('profileUsername').textContent = currentUser.username;
+            document.getElementById('profileAvatar').textContent = currentUser.username.substring(0, 2).toUpperCase();
+
+            // Admin
+            if (currentUser.isDeveloper) {
+                document.getElementById('adminNavLink').style.display = 'inline-flex';
+                document.getElementById('adminContent').style.display = 'block';
+                document.getElementById('adminAccessDenied').style.display = 'none';
+                document.getElementById('adminAccessMessage').textContent = 'Kelola pengguna dan sistem';
+                document.querySelectorAll('.admin-tab').forEach(tab => tab.style.display = 'inline-block');
+            } else {
+                document.getElementById('adminNavLink').style.display = 'none';
+                document.getElementById('adminContent').style.display = 'none';
+                document.getElementById('adminAccessDenied').style.display = 'block';
+                document.getElementById('adminAccessMessage').textContent = '⛔ Akses Ditolak! Hanya Developer';
+                document.querySelectorAll('.admin-tab').forEach(tab => tab.style.display = 'none');
+            }
+
+            // Reseller
+            if (currentUser.isReseller || currentUser.isDeveloper) {
+                document.getElementById('resellerNavLink').style.display = 'inline-flex';
+            } else {
+                document.getElementById('resellerNavLink').style.display = 'none';
+            }
+
+            updateStatusBadge();
+        }
+    }
+
+    function updateStatusBadge() {
+        if (!currentUser) return;
+        const statusMap = {
+            'Developer': 'developer',
+            'VIP': 'vip',
+            'Reseller': 'reseller',
+            'Premium': 'premium',
+            'Free': 'free'
+        };
+        const status = currentUser.status || 'Free';
+        const cls = statusMap[status] || 'free';
+        const dashStatus = document.getElementById('dashStatus');
+        if (dashStatus) {
+            dashStatus.innerHTML = `<span class="badge badge-${cls}">${status}</span>`;
+        }
+        const profileStatus = document.getElementById('profileStatus');
+        if (profileStatus) {
+            profileStatus.className = `badge badge-${cls}`;
+            profileStatus.textContent = status;
+        }
+    }
+
+    // ============================================
+    // LOAD DATA
+    // ============================================
+    function loadUserData() {
+        if (!currentUser || !currentUser.username) return;
+
+        fetch(`/api/user/${currentUser.username}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('prankUser', JSON.stringify(currentUser));
+
+                    const statSpam = document.getElementById('statSpam');
+                    if (statSpam) statSpam.textContent = currentUser.used || 0;
+
+                    const limit = currentUser.limit;
+                    let remaining;
+                    if (limit === Infinity || limit === '∞' || limit === null) {
+                        remaining = '∞';
+                    } else {
+                        remaining = limit - (currentUser.used || 0);
+                        remaining = remaining < 0 ? 0 : remaining;
+                    }
+
+                    const statLimit = document.getElementById('statLimit');
+                    if (statLimit) statLimit.textContent = remaining;
+
+                    const profileLimit = document.getElementById('profileLimit');
+                    if (profileLimit) profileLimit.textContent = limit === Infinity ? '∞' : limit;
+
+                    const profileUsed = document.getElementById('profileUsed');
+                    if (profileUsed) profileUsed.textContent = currentUser.used || 0;
+
+                    updateStatusBadge();
+
+                    // Update reseller stats
+                    if (currentUser.isReseller) {
+                        const el = document.getElementById('resellerSpam');
+                        if (el) el.textContent = currentUser.used || 0;
+                    }
+                }
+            })
+            .catch(err => console.log('❌ Load user error:', err));
+    }
+
+    function loadBots() {
+        fetch('/api/bots')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const statBot = document.getElementById('statBot');
+                    if (statBot) statBot.textContent = data.bots.length;
+
+                    if (data.bots.length > 0) {
+                        const bot = data.bots[0];
+                        updateBotStatus(bot.status || 'ready', bot.id);
+                        currentSessionId = bot.id;
+
+                        if (bot.pairingCode && bot.status === 'connecting') {
+                            const display = document.getElementById('codeDisplay');
+                            if (display) {
+                                display.innerHTML = `
+                                    <div style="text-align:center;">
+                                        <div class="label">🔑 PAIRING CODE</div>
+                                        <div class="pairing-code" style="font-size:3rem;letter-spacing:8px;background:rgba(108,92,231,0.2);padding:1.5rem 2rem;border-radius:12px;border:3px solid #6c5ce7;">
+                                            ${bot.pairingCode}
+                                        </div>
+                                        <div style="margin-top:15px;color:#00d2d3;font-size:0.95rem;">
+                                            <i class="fas fa-phone"></i> Buka WhatsApp → Settings → Linked Devices
+                                        </div>
+                                        <div style="color:#888;font-size:0.85rem;">
+                                            → Pilih "Link with phone number" → Masukkan kode di atas
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }
+                    } else {
+                        document.getElementById('botStatusDisplay').innerHTML = '<p class="log-normal">Belum ada bot terhubung</p>';
+                    }
+
+                    // Update reseller bots
+                    if (currentUser?.isReseller) {
+                        const el = document.getElementById('resellerBots');
+                        if (el) el.textContent = data.bots.length;
+                    }
+                }
+            })
+            .catch(err => console.log('❌ Load bots error:', err));
+    }
+
+    function updateBotStatus(status, sessionId) {
+        const display = document.getElementById('botStatusDisplay');
+        if (!display) return;
+
+        const statusMap = {
+            'ready': '<span class="bot-status ready">● Siap</span>',
+            'connecting': '<span class="bot-status connecting">● Menghubungkan...</span>',
+            'disconnected': '<span class="bot-status disconnected">● Terputus</span>',
+            'waiting_qr': '<span class="bot-status connecting">● Menunggu QR</span>'
+        };
+
+        display.innerHTML = `
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;">
+                <span>Bot ${sessionId || ''}</span>
+                ${statusMap[status] || statusMap.disconnected}
+            </div>
+        `;
+    }
+
+    // ============================================
+    // UPDATE SPAM PROGRESS
+    // ============================================
+    function updateSpamProgress(data) {
+        const progressMap = {
+            'otp': { container: 'otpProgress', text: 'otpProgressText', bar: 'otpProgressBar', console: 'otpConsole' },
+            'pairing': { container: 'pairingProgress', text: 'pairingProgressText', bar: 'pairingProgressBar',
+                console: 'pairingConsole' }
+        };
+
+        const p = progressMap[data.type];
+        if (!p) return;
+
+        const container = document.getElementById(p.container);
+        if (container) container.style.display = 'block';
+
+        const textEl = document.getElementById(p.text);
+        if (textEl) textEl.textContent = `${data.current}/${data.total}`;
+
+        const barEl = document.getElementById(p.bar);
+        if (barEl) barEl.style.width = `${(data.current/data.total)*100}%`;
+
+        if (data.message) {
+            updateConsole(p.console, data.message, 'log-success');
+        }
+        if (data.error) {
+            updateConsole(p.console, `[✗] ${data.error}`, 'log-error');
+        }
+
+        if (data.current >= data.total) {
+            setTimeout(() => {
+                if (container) container.style.display = 'none';
+                isSpamming = false;
+                const btnMap = {
+                    'otp': 'otpStartBtn',
+                    'pairing': 'pairingStartBtn'
+                };
+                const btn = document.getElementById(btnMap[data.type]);
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start';
+                    btn.disabled = false;
+                    btn.className = 'btn btn-primary btn-block';
+                }
+            }, 2000);
+        }
+    }
+
+    // ============================================
+    // NAVIGATION
+    // ============================================
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const section = this.dataset.section;
+
+            if (section === 'admin-panel') {
+                if (!currentUser || !currentUser.isDeveloper) {
+                    showToast('Akses ditolak! Hanya Developer!', 'error');
+                    return;
+                }
+            }
+
+            if (section === 'reseller-panel') {
+                if (!currentUser || !currentUser.isReseller) {
+                    showToast('Akses ditolak! Hanya Reseller!', 'error');
+                    return;
+                }
+            }
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(section);
+            if (target) target.classList.add('active');
+        });
+    });
+
+    // ============================================
+    // CONNECT BOT
+    // ============================================
+    function connectBot() {
+        const number = document.getElementById('botNumber')?.value.trim();
+        if (!number) {
+            updateConsole('botConsole', '[✗] Masukkan nomor bot!', 'log-error');
+            return;
+        }
+
+        const method = selectedConnectType;
+        updateConsole('botConsole', `[✓] Menghubungkan bot via ${method.toUpperCase()}...`, 'log-info');
+        showToast(`Menghubungkan bot...`, 'info');
+
+        const display = document.getElementById('codeDisplay');
+        if (display) {
+            if (method === 'code') {
+                display.innerHTML = `
+                    <div style="text-align:center;">
+                        <div class="label">⏳ MENUNGGU PAIRING CODE</div>
+                        <div style="padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:40px;color:#f9ca24;"></i></div>
+                        <div style="color:#888;font-size:0.85rem;">Sedang meminta pairing code...</div>
+                    </div>
+                `;
+            } else {
+                display.innerHTML = `
+                    <div style="text-align:center;">
+                        <div class="label">⏳ MENUNGGU QR CODE</div>
+                        <div style="padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:40px;color:#6c5ce7;"></i></div>
+                        <div style="color:#888;font-size:0.85rem;">Sedang meminta QR code...</div>
+                    </div>
+                `;
+            }
+        }
+
+        fetch('/api/bot/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    number: number,
+                    username: currentUser.username,
+                    method: method
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    updateConsole('botConsole', `[✓] Bot ${number} sedang terhubung...`, 'log-success');
+                    currentSessionId = data.sessionId;
+                    loadBots();
+                    if (data.alreadyConnected) {
+                        showToast('Bot sudah terhubung!', 'success');
+                    }
+                } else {
+                    updateConsole('botConsole', `[✗] ${data.message}`, 'log-error');
+                    showToast(data.message, 'error');
+                    if (display) display.innerHTML = `<div class="log-normal">❌ ${data.message}</div>`;
+                }
+            })
+            .catch(err => {
+                updateConsole('botConsole', `[✗] Error: ${err.message}`, 'log-error');
+                showToast('Error connecting bot', 'error');
+                if (display) display.innerHTML = `<div class="log-normal">❌ Error: ${err.message}</div>`;
+            });
+    }
+
+    function disconnectBot() {
+        if (!currentSessionId) {
+            showToast('Tidak ada bot yang terhubung', 'error');
+            return;
+        }
+
+        fetch('/api/bot/disconnect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: currentSessionId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateConsole('botConsole', '[✓] Bot terputus', 'log-info');
+                showToast('Bot terputus', 'error');
+                currentSessionId = null;
+                const statBot = document.getElementById('statBot');
+                if (statBot) statBot.textContent = 0;
+                document.getElementById('botStatusDisplay').innerHTML = '<p class="log-normal">Belum ada bot terhubung</p>';
+                document.getElementById('codeDisplay').innerHTML = '<div class="log-normal">Pilih metode untuk menampilkan QR/Code</div>';
+            })
+            .catch(err => showToast('Error disconnecting', 'error'));
+    }
+
+    // ============================================
+    // SPAM OTP
+    // ============================================
+    function toggleOTP() {
+        if (isSpamming) { stopSpam('otp'); return; }
+
+        const target = document.getElementById('otpTarget')?.value.trim();
+        const count = parseInt(document.getElementById('otpCount')?.value) || 5;
+
+        if (!target) {
+            updateConsole('otpConsole', '[✗] Masukkan nomor target!', 'log-error');
+            return;
+        }
+        if (count < 1) {
+            updateConsole('otpConsole', '[✗] Jumlah minimal 1!', 'log-error');
+            return;
+        }
+
+        const limit = currentUser?.limit;
+        if (limit !== Infinity && limit !== '∞' && limit !== null) {
+            const remaining = limit - (currentUser?.used || 0);
+            if (remaining <= 0) {
+                updateConsole('otpConsole', '[✗] Limit spam habis! Tunggu 1 jam.', 'log-error');
+                showToast('Limit spam habis! Tunggu 1 jam.', 'error');
+                return;
+            }
+            if (count > remaining) {
+                updateConsole('otpConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
+                showToast(`Sisa limit hanya ${remaining}!`, 'error');
                 return;
             }
         }
 
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        this.classList.add('active');
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        const target = document.getElementById(section);
+        isSpamming = true;
+        const btn = document.getElementById('otpStartBtn');
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim OTP...';
+            btn.disabled = true;
+        }
+
+        updateConsole('otpConsole', `[✓] Mengirim OTP ke ${target} ${count}x (45+ API, jeda 60 detik/round)`, 'log-info');
+
+        fetch('/api/spam/otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: currentUser.username,
+                    target: target,
+                    count: count
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    updateConsole('otpConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`,
+                        'log-success');
+                    if (data.result.success > 0 && currentUser) {
+                        currentUser.used = (currentUser.used || 0) + data.result.success;
+                        loadUserData();
+                    }
+                    showToast(`Spam OTP selesai! Berhasil: ${data.result.success}`, 'success');
+                } else {
+                    if (data.maintenance) {
+                        updateConsole('otpConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
+                        showToast('Server maintenance!', 'error');
+                    } else {
+                        updateConsole('otpConsole', `[✗] ${data.message}`, 'log-error');
+                        showToast(data.message, 'error');
+                    }
+                }
+                isSpamming = false;
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start Spam OTP';
+                    btn.disabled = false;
+                }
+            })
+            .catch(err => {
+                updateConsole('otpConsole', `[✗] Error: ${err.message}`, 'log-error');
+                isSpamming = false;
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start Spam OTP';
+                    btn.disabled = false;
+                }
+            });
+    }
+
+    // ============================================
+    // SPAM PAIRING
+    // ============================================
+    function togglePairing() {
+        if (isSpamming) { stopSpam('pairing'); return; }
+
+        const target = document.getElementById('pairingTarget')?.value.trim();
+        const count = parseInt(document.getElementById('pairingCount')?.value) || 5;
+        const useBot = document.getElementById('pairingUseBot')?.value === 'true';
+
+        if (!target) {
+            updateConsole('pairingConsole', '[✗] Masukkan nomor target!', 'log-error');
+            return;
+        }
+        if (count < 1 || count > 15) {
+            updateConsole('pairingConsole', '[✗] Jumlah 1-15!', 'log-error');
+            return;
+        }
+
+        const limit = currentUser?.limit;
+        if (limit !== Infinity && limit !== '∞' && limit !== null) {
+            const remaining = limit - (currentUser?.used || 0);
+            if (remaining <= 0) {
+                updateConsole('pairingConsole', '[✗] Limit spam habis! Tunggu 1 jam.', 'log-error');
+                showToast('Limit spam habis! Tunggu 1 jam.', 'error');
+                return;
+            }
+            if (count > remaining) {
+                updateConsole('pairingConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
+                showToast(`Sisa limit hanya ${remaining}!`, 'error');
+                return;
+            }
+        }
+
+        if (useBot && !currentSessionId) {
+            updateConsole('pairingConsole', '[✗] Bot belum terhubung! Ganti ke "Tanpa Bot" atau connect bot dulu.',
+                'log-error');
+            return;
+        }
+
+        isSpamming = true;
+        const btn = document.getElementById('pairingStartBtn');
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+            btn.disabled = true;
+        }
+
+        const mode = useBot ? 'dengan bot' : 'tanpa bot (auto connect)';
+        updateConsole('pairingConsole', `[✓] Mengirim pairing code ke ${target} ${count}x (${mode}, jeda 60 detik)`,
+            'log-info');
+
+        fetch('/api/spam/pairing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: currentUser.username,
+                    target: target,
+                    count: count,
+                    useBot: useBot
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    updateConsole('pairingConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`,
+                        'log-success');
+                    if (data.result.success > 0 && currentUser) {
+                        currentUser.used = (currentUser.used || 0) + data.result.success;
+                        loadUserData();
+                    }
+                    showToast(`Spam pairing selesai! Berhasil: ${data.result.success}`, 'success');
+                } else {
+                    if (data.maintenance) {
+                        updateConsole('pairingConsole', `[✗] MAINTENANCE: ${data.message}`, 'log-error');
+                        showToast('Server maintenance!', 'error');
+                    } else {
+                        updateConsole('pairingConsole', `[✗] ${data.message}`, 'log-error');
+                        showToast(data.message, 'error');
+                    }
+                }
+                isSpamming = false;
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start';
+                    btn.disabled = false;
+                }
+            })
+            .catch(err => {
+                updateConsole('pairingConsole', `[✗] Error: ${err.message}`, 'log-error');
+                isSpamming = false;
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start';
+                    btn.disabled = false;
+                }
+            });
+    }
+
+    function stopSpam(type) {
+        isSpamming = false;
+        const map = {
+            'otp': 'otpStartBtn',
+            'pairing': 'pairingStartBtn'
+        };
+        const btn = document.getElementById(map[type]);
+        if (btn) {
+            btn.innerHTML = type === 'otp' ? '<i class="fas fa-play"></i> Start Spam OTP' : '<i class="fas fa-play"></i> Start';
+            btn.disabled = false;
+        }
+        updateConsole(type + 'Console', '[✓] Dihentikan', 'log-info');
+    }
+
+    // ============================================
+    // SELECT FUNCTIONS
+    // ============================================
+    function selectConnectType(type) {
+        selectedConnectType = type;
+        document.querySelectorAll('.call-option[data-connect-type]').forEach(el => el.classList.remove('active'));
+        const target = document.querySelector(`.call-option[data-connect-type="${type}"]`);
         if (target) target.classList.add('active');
-    });
-});
 
-// ============================================
-// ADMIN FUNCTIONS
-// ============================================
-function loadAdminData() {
-    if (!currentUser || (!currentUser.isAdmin && !currentUser.isDeveloper)) {
-        return;
-    }
-
-    fetch('/api/admin/users')
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const totalUsers = document.getElementById('totalUsers');
-                if (totalUsers) totalUsers.textContent = data.users.length;
-                
-                const activeUsers = document.getElementById('activeUsers');
-                if (activeUsers) activeUsers.textContent = data.users.filter(u => u.online).length;
-                
-                const totalSpams = document.getElementById('totalSpams');
-                if (totalSpams) totalSpams.textContent = data.users.reduce((a, u) => a + (u.used || 0), 0);
-
-                const body = document.getElementById('adminUsersBody');
-                if (body) {
-                    body.innerHTML = data.users.map(u => {
-                        const limitDisplay = (u.limit === Infinity || u.limit === '∞') ? '∞' : u.limit;
-                        return `
-                            <tr>
-                                <td><strong>${u.username}</strong></td>
-                                <td><span class="badge badge-${u.status?.toLowerCase() || 'free'}">${u.status || 'Free'}</span></td>
-                                <td>${limitDisplay}</td>
-                                <td>${u.used || 0}</td>
-                                <td>
-                                    <select onchange="changeUserStatus('${u.username}', this.value)" class="btn-sm" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:4px;">
-                                        <option value="Free" ${u.status === 'Free' ? 'selected' : ''}>Free</option>
-                                        <option value="Premium" ${u.status === 'Premium' ? 'selected' : ''}>Premium</option>
-                                        <option value="VIP" ${u.status === 'VIP' ? 'selected' : ''}>VIP</option>
-                                        <option value="Reseller" ${u.status === 'Reseller' ? 'selected' : ''}>Reseller</option>
-                                        ${currentUser.isDeveloper ? `<option value="Developer" ${u.status === 'Developer' ? 'selected' : ''}>Developer</option>` : ''}
-                                    </select>
-                                    ${currentUser.isDeveloper ? `<button class="btn-sm btn-delete" onclick="banUser('${u.username}')"><i class="fas fa-ban"></i></button>` : ''}
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
-                }
-            }
-        });
-
-    fetch('/api/bots')
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const body = document.getElementById('adminBotsBody');
-                if (body) {
-                    body.innerHTML = data.bots.map(b => `
-                        <tr>
-                            <td>${b.id || 'N/A'}</td>
-                            <td>${b.number || 'N/A'}</td>
-                            <td><span class="status-active">● ${b.status || 'Online'}</span></td>
-                            <td>${b.owner || 'Unknown'}</td>
-                            <td>
-                                ${b.pairingCode ? `<span class="badge badge-info">Code: ${b.pairingCode}</span>` : ''}
-                                <button class="btn-sm btn-delete" onclick="disconnectBotAdmin('${b.id}')">Disconnect</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-            }
-        });
-}
-
-function switchAdminTab(tab) {
-    if (!currentUser || (!currentUser.isAdmin && currentUser.status !== 'Developer' && !currentUser.isDeveloper)) {
-        showToast('Akses ditolak! Hanya Admin/Developer!', 'error');
-        return;
-    }
-
-    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-    const tabEl = document.querySelector(`.admin-tab[onclick*="${tab}"]`);
-    if (tabEl) tabEl.classList.add('active');
-    
-    ['adminUsersTab', 'adminBotsTab', 'adminSettingsTab', 'adminPaymentsTab'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
-    const target = document.getElementById(`admin${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`);
-    if (target) target.style.display = 'block';
-    if (tab === 'payments') loadPayments();
-}
-
-function changeUserStatus(username, status) {
-    if (!currentUser || (!currentUser.isAdmin && !currentUser.isDeveloper)) {
-        showToast('Akses ditolak! Hanya Admin/Developer!', 'error');
-        return;
-    }
-    if (status === 'Developer' && !currentUser.isDeveloper) {
-        showToast('Hanya Developer yang bisa set Developer!', 'error');
-        return;
-    }
-    fetch('/api/admin/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, status, admin: currentUser.username })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`Status ${username} diubah ke ${status}`, 'success');
-            loadAdminData();
-            if (socket) socket.emit('userUpdated');
-        } else {
-            showToast(data.message, 'error');
-        }
-    });
-}
-
-function banUser(username) {
-    if (!currentUser || !currentUser.isDeveloper) {
-        showToast('Akses ditolak! Hanya Developer!', 'error');
-        return;
-    }
-    if (!confirm(`Ban user ${username}?`)) return;
-    fetch('/api/admin/ban', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, admin: currentUser.username })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`${username} di-ban!`, 'success');
-            loadAdminData();
-        }
-    });
-}
-
-function saveSettings() {
-    if (!currentUser || !currentUser.isDeveloper) {
-        showToast('Akses ditolak! Hanya Developer!', 'error');
-        return;
-    }
-    const settings = {
-        globalLimit: document.getElementById('globalLimit').value,
-        maxBots: document.getElementById('maxBots').value,
-        maintenance: document.getElementById('maintenanceMode').value
-    };
-    fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings, admin: currentUser.username })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Settings saved!', 'success');
-        }
-    });
-}
-
-function loadPayments() {
-    if (!currentUser || (!currentUser.isAdmin && !currentUser.isDeveloper)) {
-        showToast('Akses ditolak! Hanya Admin/Developer!', 'error');
-        return;
-    }
-    fetch('/api/admin/payments')
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const body = document.getElementById('adminPaymentsBody');
-                if (body) {
-                    body.innerHTML = data.payments.map(p => `
-                        <tr>
-                            <td>${p.username}</td>
-                            <td>${p.package}</td>
-                            <td>Rp ${p.amount.toLocaleString()}</td>
-                            <td><span class="badge badge-${p.status === 'verified' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}">${p.status}</span></td>
-                            <td>
-                                ${p.status === 'pending' ? `
-                                    <button class="btn-sm btn-edit" onclick="verifyPayment('${p.id}')">Verify</button>
-                                    <button class="btn-sm btn-delete" onclick="rejectPayment('${p.id}')">Reject</button>
-                                ` : ''}
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-            }
-        });
-}
-
-function verifyPayment(id) {
-    if (!currentUser || (!currentUser.isAdmin && !currentUser.isDeveloper)) {
-        showToast('Akses ditolak! Hanya Admin/Developer!', 'error');
-        return;
-    }
-    fetch('/api/admin/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: id, admin: currentUser.username })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Payment verified!', 'success');
-            loadPayments();
-            loadAdminData();
-            if (socket) socket.emit('paymentVerified', data);
-        }
-    });
-}
-
-function rejectPayment(id) {
-    if (!currentUser || (!currentUser.isAdmin && !currentUser.isDeveloper)) {
-        showToast('Akses ditolak! Hanya Admin/Developer!', 'error');
-        return;
-    }
-    const reason = prompt('Alasan pembatalan:');
-    if (!reason) return;
-    fetch('/api/admin/reject-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: id, reason, admin: currentUser.username })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Payment rejected!', 'error');
-            loadPayments();
-        }
-    });
-}
-
-// ============================================
-// SELECT FUNCTIONS
-// ============================================
-function selectCallType(type) {
-    selectedCallType = type;
-    document.querySelectorAll('.call-option[data-call-type]').forEach(el => el.classList.remove('active'));
-    const target = document.querySelector(`.call-option[data-call-type="${type}"]`);
-    if (target) target.classList.add('active');
-}
-
-function selectConnectType(type) {
-    selectedConnectType = type;
-    document.querySelectorAll('.connect-option[data-connect-type]').forEach(el => el.classList.remove('active'));
-    const target = document.querySelector(`.connect-option[data-connect-type="${type}"]`);
-    if (target) target.classList.add('active');
-
-    const display = document.getElementById('codeDisplay');
-    if (display) {
-        if (type === 'qris') {
-            display.innerHTML = `
-                <div style="text-align:center;">
-                    <div class="label">QRIS SCAN</div>
-                    <div style="background:#fff;padding:20px;border-radius:12px;display:inline-block;">
-                        <i class="fas fa-qrcode" style="font-size:150px;color:#000;"></i>
-                    </div>
-                    <div style="margin-top:10px;color:#888;font-size:0.85rem;">Klik "Connect Bot" untuk generate QR</div>
-                </div>
-            `;
-            updateConsole('botConsole', '[✓] Pilih QRIS, klik Connect Bot untuk scan', 'log-info');
-        } else {
-            display.innerHTML = `
-                <div style="text-align:center;">
-                    <div class="label">PAIRING CODE</div>
-                    <div class="pairing-code">WAIT...</div>
-                    <div style="margin-top:10px;color:#888;font-size:0.85rem;">Klik "Connect Bot" untuk generate code</div>
-                </div>
-            `;
-            updateConsole('botConsole', '[✓] Pilih Code, klik Connect Bot untuk pairing', 'log-info');
-        }
-    }
-}
-
-// ============================================
-// PRICING
-// ============================================
-function selectPricing(pkg) {
-    selectedPkg = pkg;
-    document.querySelectorAll('.pricing-card').forEach(el => el.classList.remove('selected'));
-    const target = document.querySelector(`.pricing-card[onclick*="${pkg}"]`);
-    if (target) target.classList.add('selected');
-
-    const packages = {
-        premium: { label: 'Premium', price: 'Rp 10.000' },
-        vip: { label: 'VIP', price: 'Rp 20.000' },
-        reseller: { label: 'Reseller', price: 'Rp 30.000' }
-    };
-    const selectedPackage = document.getElementById('selectedPackage');
-    const packagePrice = document.getElementById('packagePrice');
-    if (selectedPackage) selectedPackage.value = packages[pkg].label;
-    if (packagePrice) packagePrice.value = packages[pkg].price;
-}
-
-function selectPayment(method) {
-    selectedPayment = method;
-    document.querySelectorAll('.call-option[onclick*="selectPayment"]').forEach(el => el.classList.remove('active'));
-    const target = document.querySelector(`.call-option[onclick*="${method}"]`);
-    if (target) target.classList.add('active');
-
-    const numbers = {
-        dana: 'Dana : 082320884089',
-        ovo: 'OVO : 082320884089',
-        gopay: 'Gopay : 082320884089'
-    };
-    const paymentNumber = document.getElementById('paymentNumber');
-    if (paymentNumber) paymentNumber.value = numbers[method];
-}
-
-// ============================================
-// PAYMENT SUBMIT
-// ============================================
-function submitPayment() {
-    const pkg = document.getElementById('selectedPackage')?.value;
-    const name = document.getElementById('paymentName')?.value.trim();
-    const file = document.getElementById('paymentProof')?.files[0];
-
-    if (!name) {
-        updateConsole('paymentConsole', '[✗] Masukkan atas nama!', 'log-error');
-        return;
-    }
-    if (!file) {
-        updateConsole('paymentConsole', '[✗] Upload bukti pembayaran!', 'log-error');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('username', currentUser.username);
-    formData.append('package', pkg);
-    formData.append('name', name);
-    formData.append('paymentMethod', selectedPayment);
-    formData.append('proof', file);
-
-    updateConsole('paymentConsole', '[✓] Mengirim pembayaran...', 'log-info');
-
-    fetch('/api/payments/submit', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            updateConsole('paymentConsole', '[✓] Pembayaran terkirim! Menunggu verifikasi.', 'log-success');
-            showToast('Pembayaran terkirim!', 'success');
-            const paymentName = document.getElementById('paymentName');
-            const paymentProof = document.getElementById('paymentProof');
-            if (paymentName) paymentName.value = '';
-            if (paymentProof) paymentProof.value = '';
-            if (socket) socket.emit('paymentSubmitted', { username: currentUser.username });
-        } else {
-            updateConsole('paymentConsole', `[✗] ${data.message}`, 'log-error');
-        }
-    })
-    .catch(err => {
-        updateConsole('paymentConsole', '[✗] Error mengirim pembayaran', 'log-error');
-    });
-}
-
-// ============================================
-// PUBLIC CHAT
-// ============================================
-function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const msg = input?.value.trim();
-    if (!msg || !socket || !currentUser) return;
-
-    socket.emit('sendMessage', {
-        username: currentUser.username,
-        status: currentUser.status || 'Free',
-        message: msg,
-        time: new Date().toISOString()
-    });
-    if (input) input.value = '';
-}
-
-function addChatMessage(data) {
-    const container = document.getElementById('chatMessages');
-    if (!container) return;
-    
-    const isOwn = data.username === currentUser?.username;
-    const div = document.createElement('div');
-    div.className = `chat-message${isOwn ? ' own' : ''}`;
-
-    const statusMap = {
-        'Developer': 'Dev',
-        'VIP': 'VIP',
-        'Reseller': 'RLR',
-        'Premium': 'Prem',
-        'Free': ''
-    };
-    const statusLabel = statusMap[data.status] || '';
-    const statusColor = data.status?.toLowerCase() || 'free';
-
-    div.innerHTML = `
-        <div class="sender">${data.username} ${statusLabel ? `<span class="status-badge ${statusColor}">${statusLabel}</span>` : ''}</div>
-        <div>${data.message}</div>
-        <div class="time">${new Date(data.time).toLocaleTimeString()}</div>
-    `;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-    const placeholder = container.querySelector('.log-normal');
-    if (placeholder) placeholder.remove();
-}
-
-// ============================================
-// CHANGE PASSWORD
-// ============================================
-function changePassword() {
-    const newPass = document.getElementById('newPassword')?.value;
-    const confirm = document.getElementById('confirmPassword')?.value;
-    
-    if (!newPass || newPass.length < 4) {
-        showToast('Password minimal 4 karakter!', 'error');
-        return;
-    }
-    if (newPass !== confirm) {
-        showToast('Password tidak cocok!', 'error');
-        return;
-    }
-    
-    fetch('/api/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser.username, newPassword: newPass })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Password berhasil diubah!', 'success');
-            const newPassword = document.getElementById('newPassword');
-            const confirmPassword = document.getElementById('confirmPassword');
-            if (newPassword) newPassword.value = '';
-            if (confirmPassword) confirmPassword.value = '';
-        } else {
-            showToast(data.message, 'error');
-        }
-    });
-}
-
-// ============================================
-// SPAM FUNCTIONS
-// ============================================
-function togglePairing() {
-    if (isSpamming) { stopSpam('pairing'); return; }
-    const target = document.getElementById('pairingTarget')?.value.trim();
-    const count = parseInt(document.getElementById('pairingCount')?.value) || 5;
-    const useBot = document.getElementById('pairingUseBot')?.value === 'true';
-
-    if (!target) {
-        updateConsole('pairingConsole', '[✗] Masukkan nomor target!', 'log-error');
-        return;
-    }
-    if (count < 1 || count > 15) {
-        updateConsole('pairingConsole', '[✗] Jumlah 1-15!', 'log-error');
-        return;
-    }
-
-    const limit = currentUser?.limit;
-    if (limit !== Infinity && limit !== '∞' && limit !== null) {
-        const remaining = limit - (currentUser?.used || 0);
-        if (remaining <= 0) {
-            updateConsole('pairingConsole', '[✗] Limit spam habis!', 'log-error');
-            showToast('Limit spam habis!', 'error');
-            return;
-        }
-        if (count > remaining) {
-            updateConsole('pairingConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
-            showToast(`Sisa limit hanya ${remaining}!`, 'error');
-            return;
-        }
-    }
-
-    if (useBot && !currentSessionId) {
-        updateConsole('pairingConsole', '[✗] Bot belum terhubung! Ganti ke "Tanpa Bot" atau connect bot dulu.', 'log-error');
-        return;
-    }
-
-    isSpamming = true;
-    const btn = document.getElementById('pairingStartBtn');
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-        btn.disabled = true;
-    }
-
-    const mode = useBot ? 'dengan bot' : 'tanpa bot (auto connect)';
-    updateConsole('pairingConsole', `[✓] Mengirim pairing code ke ${target} ${count}x (${mode}, delay 1 menit/kirim)`, 'log-info');
-
-    fetch('/api/spam/pairing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            sessionId: currentSessionId || 'spam_' + Date.now(),
-            target: target,
-            count: count,
-            useBot: useBot
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            updateConsole('pairingConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
-            if (data.result.success > 0 && currentUser) {
-                currentUser.used = (currentUser.used || 0) + data.result.success;
-                loadUserData();
-            }
-            showToast(`Spam selesai! Berhasil: ${data.result.success}`, 'success');
-        } else {
-            updateConsole('pairingConsole', `[✗] ${data.message}`, 'log-error');
-            showToast(data.message, 'error');
-        }
-        isSpamming = false;
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-play"></i> Start';
-            btn.disabled = false;
-        }
-    })
-    .catch(err => {
-        updateConsole('pairingConsole', `[✗] Error: ${err.message}`, 'log-error');
-        isSpamming = false;
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-play"></i> Start';
-            btn.disabled = false;
-        }
-    });
-}
-
-function toggleChat() {
-    if (isSpamming) { stopSpam('chat'); return; }
-    const target = document.getElementById('chatTarget')?.value.trim();
-    const message = document.getElementById('chatMessage')?.value.trim() || 'Halo!';
-    const count = parseInt(document.getElementById('chatCount')?.value) || 5;
-
-    if (!target) {
-        updateConsole('chatConsole', '[✗] Masukkan nomor target!', 'log-error');
-        return;
-    }
-    if (count < 1 || count > 15) {
-        updateConsole('chatConsole', '[✗] Jumlah 1-15!', 'log-error');
-        return;
-    }
-    if (!currentSessionId) {
-        updateConsole('chatConsole', '[✗] Bot belum terhubung! Connect bot dulu.', 'log-error');
-        return;
-    }
-
-    const limit = currentUser?.limit;
-    if (limit !== Infinity && limit !== '∞' && limit !== null) {
-        const remaining = limit - (currentUser?.used || 0);
-        if (remaining <= 0) {
-            updateConsole('chatConsole', '[✗] Limit spam habis!', 'log-error');
-            showToast('Limit spam habis!', 'error');
-            return;
-        }
-        if (count > remaining) {
-            updateConsole('chatConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
-            showToast(`Sisa limit hanya ${remaining}!`, 'error');
-            return;
-        }
-    }
-
-    isSpamming = true;
-    const btn = document.getElementById('chatStartBtn');
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-        btn.disabled = true;
-    }
-
-    updateConsole('chatConsole', `[✓] Mengirim chat ke ${target} ${count}x (delay 1 menit/ kirim)`, 'log-info');
-
-    fetch('/api/spam/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            sessionId: currentSessionId,
-            target: target,
-            message: message,
-            count: count
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            updateConsole('chatConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
-            if (data.result.success > 0 && currentUser) {
-                currentUser.used = (currentUser.used || 0) + data.result.success;
-                loadUserData();
-            }
-            showToast(`Spam selesai! Berhasil: ${data.result.success}`, 'success');
-        } else {
-            updateConsole('chatConsole', `[✗] ${data.message}`, 'log-error');
-            showToast(data.message, 'error');
-        }
-        isSpamming = false;
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-play"></i> Start';
-            btn.disabled = false;
-        }
-    })
-    .catch(err => {
-        updateConsole('chatConsole', `[✗] Error: ${err.message}`, 'log-error');
-        isSpamming = false;
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-play"></i> Start';
-            btn.disabled = false;
-        }
-    });
-}
-
-function toggleCall() {
-    if (isSpamming) { stopSpam('call'); return; }
-    const target = document.getElementById('callTarget')?.value.trim();
-    const count = parseInt(document.getElementById('callCount')?.value) || 5;
-
-    if (!target) {
-        updateConsole('callConsole', '[✗] Masukkan nomor target!', 'log-error');
-        return;
-    }
-    if (count < 1 || count > 15) {
-        updateConsole('callConsole', '[✗] Jumlah 1-15!', 'log-error');
-        return;
-    }
-    if (!currentSessionId) {
-        updateConsole('callConsole', '[✗] Bot belum terhubung! Connect bot dulu.', 'log-error');
-        return;
-    }
-
-    const limit = currentUser?.limit;
-    if (limit !== Infinity && limit !== '∞' && limit !== null) {
-        const remaining = limit - (currentUser?.used || 0);
-        if (remaining <= 0) {
-            updateConsole('callConsole', '[✗] Limit spam habis!', 'log-error');
-            showToast('Limit spam habis!', 'error');
-            return;
-        }
-        if (count > remaining) {
-            updateConsole('callConsole', `[✗] Sisa limit hanya ${remaining}!`, 'log-error');
-            showToast(`Sisa limit hanya ${remaining}!`, 'error');
-            return;
-        }
-    }
-
-    isSpamming = true;
-    const btn = document.getElementById('callStartBtn');
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-        btn.disabled = true;
-    }
-
-    const type = selectedCallType === 'video' ? 'video' : 'voice';
-    const typeLabel = selectedCallType === 'video' ? 'Video Call' : 'Telpon Suara';
-
-    updateConsole('callConsole', `[✓] Mengirim ${typeLabel} ke ${target} ${count}x (delay 1 menit/ kirim)`, 'log-info');
-
-    fetch('/api/spam/call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            sessionId: currentSessionId,
-            target: target,
-            type: type,
-            count: count
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            updateConsole('callConsole', `[✓] Selesai! Berhasil: ${data.result.success}, Gagal: ${data.result.failed}`, 'log-success');
-            if (data.result.success > 0 && currentUser) {
-                currentUser.used = (currentUser.used || 0) + data.result.success;
-                loadUserData();
-            }
-            showToast(`Spam selesai! Berhasil: ${data.result.success}`, 'success');
-        } else {
-            updateConsole('callConsole', `[✗] ${data.message}`, 'log-error');
-            showToast(data.message, 'error');
-        }
-        isSpamming = false;
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-play"></i> Start';
-            btn.disabled = false;
-        }
-    })
-    .catch(err => {
-        updateConsole('callConsole', `[✗] Error: ${err.message}`, 'log-error');
-        isSpamming = false;
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-play"></i> Start';
-            btn.disabled = false;
-        }
-    });
-}
-
-function stopSpam(type) {
-    isSpamming = false;
-    const map = {
-        'pairing': 'pairingStartBtn',
-        'chat': 'chatStartBtn',
-        'call': 'callStartBtn'
-    };
-    const btn = document.getElementById(map[type]);
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-play"></i> Start';
-        btn.disabled = false;
-    }
-    updateConsole(type + 'Console', '[✓] Dihentikan', 'log-info');
-}
-
-// ============================================
-// BOT FUNCTIONS
-// ============================================
-function connectBot() {
-    const number = document.getElementById('botNumber')?.value.trim();
-    if (!number) {
-        updateConsole('botConsole', '[✗] Masukkan nomor bot!', 'log-error');
-        return;
-    }
-
-    const method = selectedConnectType;
-    updateConsole('botConsole', `[✓] Menghubungkan bot via ${method.toUpperCase()}...`, 'log-info');
-    showToast(`Menghubungkan bot via ${method.toUpperCase()}...`, 'info');
-
-    const display = document.getElementById('codeDisplay');
-    if (display) {
-        if (method === 'code') {
-            display.innerHTML = `
-                <div style="text-align:center;">
-                    <div class="label">⏳ MENUNGGU PAIRING CODE</div>
-                    <div style="padding:20px;">
-                        <i class="fas fa-spinner fa-spin" style="font-size:40px;color:#f9ca24;"></i>
-                    </div>
-                    <div style="color:#888;font-size:0.85rem;">Sedang meminta pairing code...</div>
-                </div>
-            `;
-        } else {
-            display.innerHTML = `
-                <div style="text-align:center;">
-                    <div class="label">⏳ MENUNGGU QR CODE</div>
-                    <div style="padding:20px;">
-                        <i class="fas fa-spinner fa-spin" style="font-size:40px;color:#6c5ce7;"></i>
-                    </div>
-                    <div style="color:#888;font-size:0.85rem;">Sedang meminta QR code...</div>
-                </div>
-            `;
-        }
-    }
-
-    fetch('/api/bots/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            number: number,
-            username: currentUser.username,
-            method: method
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            updateConsole('botConsole', `[✓] Bot ${number} sedang terhubung...`, 'log-success');
-            currentSessionId = data.sessionId;
-            loadBots();
-            if (data.alreadyConnected) {
-                showToast('Bot sudah terhubung!', 'success');
-            }
-        } else {
-            updateConsole('botConsole', `[✗] ${data.message}`, 'log-error');
-            showToast(data.message, 'error');
-            if (display) {
-                display.innerHTML = `<div class="log-normal">❌ ${data.message}</div>`;
-            }
-        }
-    })
-    .catch(err => {
-        updateConsole('botConsole', `[✗] Error: ${err.message}`, 'log-error');
-        showToast('Error connecting bot', 'error');
-        if (display) {
-            display.innerHTML = `<div class="log-normal">❌ Error: ${err.message}</div>`;
-        }
-    });
-}
-
-function disconnectBot() {
-    if (!currentSessionId) {
-        showToast('Tidak ada bot yang terhubung', 'error');
-        return;
-    }
-
-    fetch('/api/bots/disconnect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: currentSessionId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        updateConsole('botConsole', '[✓] Bot terputus', 'log-info');
-        showToast('Bot terputus', 'error');
-        currentSessionId = null;
-        const statBot = document.getElementById('statBot');
-        if (statBot) statBot.textContent = 0;
-        const botStatusDisplay = document.getElementById('botStatusDisplay');
-        if (botStatusDisplay) {
-            botStatusDisplay.innerHTML = '<p class="log-normal">Belum ada bot terhubung</p>';
-        }
         const display = document.getElementById('codeDisplay');
         if (display) {
-            display.innerHTML = '<div class="log-normal">Pilih metode untuk menampilkan QR/Code</div>';
+            if (type === 'qris') {
+                display.innerHTML = `
+                    <div style="text-align:center;">
+                        <div class="label">QRIS SCAN</div>
+                        <div style="background:#fff;padding:20px;border-radius:12px;display:inline-block;">
+                            <i class="fas fa-qrcode" style="font-size:150px;color:#000;"></i>
+                        </div>
+                        <div style="margin-top:10px;color:#888;font-size:0.85rem;">Klik "Connect Bot" untuk generate QR</div>
+                    </div>
+                `;
+                updateConsole('botConsole', '[✓] Pilih QRIS, klik Connect Bot untuk scan', 'log-info');
+            } else {
+                display.innerHTML = `
+                    <div style="text-align:center;">
+                        <div class="label">PAIRING CODE</div>
+                        <div class="pairing-code">WAIT...</div>
+                        <div style="margin-top:10px;color:#888;font-size:0.85rem;">Klik "Connect Bot" untuk generate code</div>
+                    </div>
+                `;
+                updateConsole('botConsole', '[✓] Pilih Code, klik Connect Bot untuk pairing', 'log-info');
+            }
         }
-    })
-    .catch(err => {
-        showToast('Error disconnecting', 'error');
-    });
-}
-
-function disconnectBotAdmin(sessionId) {
-    if (!confirm('Disconnect bot ini?')) return;
-    fetch('/api/bots/disconnect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        showToast('Bot disconnected', 'success');
-        loadAdminData();
-        loadBots();
-    });
-}
-
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-function updateConsole(consoleId, message, className = 'log-normal') {
-    const el = document.getElementById(consoleId);
-    if (!el) return;
-    const div = document.createElement('div');
-    div.className = className;
-    div.textContent = message;
-    el.appendChild(div);
-    el.scrollTop = el.scrollHeight;
-    while (el.children.length > 100) el.removeChild(el.firstChild);
-}
-
-function showToast(message, type = 'info') {
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle';
-    toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
-    document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
-}
-
-// ============================================
-// KEYBOARD SHORTCUTS
-// ============================================
-document.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.shiftKey && e.key === 'L') {
-        e.preventDefault();
-        handleLogout();
     }
-    // Enter untuk send chat
-    if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') {
-        e.preventDefault();
-        sendMessage();
-    }
-});
 
-console.log('🔥 PrankMaster Pro v3.0 - REAL SPAM');
-console.log('📱 Connect bot dulu untuk spam real!');
-console.log('👑 Admin: Lynzka / Asiafone11');
-console.log('💡 Developer limit: ∞ (Unlimited)');
+    function selectPricing(pkg) {
+        selectedPkg = pkg;
+        document.querySelectorAll('.pricing-card').forEach(el => el.classList.remove('selected'));
+        const target = document.querySelector(`.pricing-card[onclick*="${pkg}"]`);
+        if (target) target.classList.add('selected');
+
+        const packages = {
+            premium: { label: 'Premium', price: 'Rp 10.000', limit: '80x' },
+            vip: { label: 'VIP', price: 'Rp 20.000', limit: '150x' },
+            reseller: { label: 'Reseller', price: 'Rp 30.000', limit: '200x' }
+        };
+        const selectedPackage = document.getElementById('selectedPackage');
+        const packagePrice = document.getElementById('packagePrice');
+        if (selectedPackage) selectedPackage.value = packages[pkg].label;
+        if (packagePrice) packagePrice.value = packages[pkg].price;
+    }
+
+    function selectPayment(method) {
+        selectedPayment = method;
+        document.querySelectorAll('.call-option[onclick*="selectPayment"]').forEach(el => el.classList.remove('active'));
+        const target = document.querySelector(`.call-option[onclick*="${method}"]`);
+        if (target) target.classList.add('active');
+
+        const numbers = {
+            dana: 'Dana : 082320884089',
+            ovo: 'OVO : 082320884089',
+            gopay: 'Gopay : 082320884089'
+        };
+        const paymentNumber = document.getElementById('paymentNumber');
+        if (paymentNumber) paymentNumber.value = numbers[method];
+    }
+
+    // ============================================
+    // PAYMENT
+    // ============================================
+    function submitPayment() {
+        const pkg = document.getElementById('selectedPackage')?.value;
+        const name = document.getElementById('paymentName')?.value.trim();
+        const file = document.getElementById('paymentProof')?.files[0];
+
+        if (!name) {
+            updateConsole('paymentConsole', '[✗] Masukkan atas nama!', 'log-error');
+            return;
+        }
+        if (!file) {
+            updateConsole('paymentConsole', '[✗] Upload bukti pembayaran!', 'log-error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('username', currentUser.username);
+        formData.append('package', pkg);
+        formData.append('name', name);
+        formData.append('paymentMethod', selectedPayment);
+        formData.append('proof', file);
+
+        updateConsole('paymentConsole', '[✓] Mengirim pembayaran...', 'log-info');
+
+        fetch('/api/payments/submit', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    updateConsole('paymentConsole', '[✓] Pembayaran terkirim! Menunggu verifikasi.', 'log-success');
+                    showToast('Pembayaran terkirim!', 'success');
+                    document.getElementById('paymentName').value = '';
+                    document.getElementById('paymentProof').value = '';
+                    if (socket) socket.emit('paymentSubmitted', { username: currentUser.username });
+                } else {
+                    updateConsole('paymentConsole', `[✗] ${data.message}`, 'log-error');
+                }
+            })
+            .catch(err => {
+                updateConsole('paymentConsole', '[✗] Error mengirim pembayaran', 'log-error');
+            });
+    }
+
+    // ============================================
+    // PUBLIC CHAT
+    // ============================================
+    function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const msg = input?.value.trim();
+        if (!msg || !socket || !currentUser) return;
+
+        socket.emit('sendMessage', {
+            username: currentUser.username,
+            status: currentUser.status || 'Free',
+            message: msg,
+            time: new Date().toISOString()
+        });
+        if (input) input.value = '';
+    }
+
+    function addChatMessage(data) {
+        const container = document.getElementById('chatMessages');
+        if (!container) return;
+
+        const isOwn = data.username === currentUser?.username;
+        const div = document.createElement('div');
+        div.className = `chat-message${isOwn ? ' own' : ''}`;
+
+        const statusMap = {
+            'Developer': 'Dev',
+            'VIP': 'VIP',
+            'Reseller': 'RLR',
+            'Premium': 'Prem',
+            'Free': ''
+        };
+        const statusLabel = statusMap[data.status] || '';
+        const statusColor = data.status?.toLowerCase() || 'free';
+
+        div.innerHTML = `
+            <div class="sender">${data.username} ${statusLabel ? `<span class="status-badge ${statusColor}">${statusLabel}</span>` : ''}</div>
+            <div>${data.message}</div>
+            <div class="time">${new Date(data.time).toLocaleTimeString()}</div>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        const placeholder = container.querySelector('.log-normal');
+        if (placeholder) placeholder.remove();
+    }
+
+    // ============================================
+    // CHANGE PASSWORD
+    // ============================================
+    function changePassword() {
+        const newPass = document.getElementById('newPassword')?.value;
+        const confirm = document.getElementById('confirmPassword')?.value;
+
+        if (!newPass || newPass.length < 4) {
+            showToast('Password minimal 4 karakter!', 'error');
+            return;
+        }
+        if (newPass !== confirm) {
+            showToast('Password tidak cocok!', 'error');
+            return;
+        }
+
+        fetch('/api/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser.username, newPassword: newPass })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Password berhasil diubah!', 'success');
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    showToast(data.message, 'error');
+                }
+            });
+    }
+
+    // ============================================
+    // ADMIN FUNCTIONS
+    // ============================================
+    function loadAdminData() {
+        if (!currentUser || !currentUser.isDeveloper) return;
+
+        fetch('/api/admin/users')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('totalUsers').textContent = data.users.length;
+                    document.getElementById('activeUsers').textContent = data.users.filter(u => u.online).length;
+                    document.getElementById('totalSpams').textContent = data.users.reduce((a, u) => a + (u.used || 0),
+                    0);
+
+                    const body = document.getElementById('adminUsersBody');
+                    if (body) {
+                        body.innerHTML = data.users.map(u => {
+                            const limitDisplay = (u.limit === Infinity || u.limit === '∞') ? '∞' : u.limit;
+                            return `
+                                <tr>
+                                    <td><strong>${u.username}</strong></td>
+                                    <td><span class="badge badge-${u.status?.toLowerCase() || 'free'}">${u.status || 'Free'}</span></td>
+                                    <td>${limitDisplay}</td>
+                                    <td>${u.used || 0}</td>
+                                    <td>
+                                        <select onchange="changeUserStatus('${u.username}', this.value)" class="btn-sm" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:4px;">
+                                            <option value="Free" ${u.status === 'Free' ? 'selected' : ''}>Free</option>
+                                            <option value="Premium" ${u.status === 'Premium' ? 'selected' : ''}>Premium</option>
+                                            <option value="VIP" ${u.status === 'VIP' ? 'selected' : ''}>VIP</option>
+                                            <option value="Reseller" ${u.status === 'Reseller' ? 'selected' : ''}>Reseller</option>
+                                            <option value="Developer" ${u.status === 'Developer' ? 'selected' : ''}>Developer</option>
+                                        </select>
+                                        <button class="btn-sm btn-delete" onclick="banUser('${u.username}')"><i class="fas fa-ban"></i></button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
+            });
+
+        fetch('/api/bots')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('totalBots').textContent = data.bots.length;
+                    const body = document.getElementById('adminBotsBody');
+                    if (body) {
+                        body.innerHTML = data.bots.map(b => `
+                            <tr>
+                                <td>${b.id || 'N/A'}</td>
+                                <td>${b.number || 'N/A'}</td>
+                                <td><span class="status-active">● ${b.status || 'Online'}</span></td>
+                                <td>${b.owner || 'Unknown'}</td>
+                                <td>
+                                    ${b.pairingCode ? `<span class="badge badge-info">Code: ${b.pairingCode}</span>` : ''}
+                                    <button class="btn-sm btn-delete" onclick="disconnectBotAdmin('${b.id}')">Disconnect</button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            });
+    }
+
+    function switchAdminTab(tab) {
+        if (!currentUser || !currentUser.isDeveloper) {
+            showToast('Akses ditolak! Hanya Developer!', 'error');
+            return;
+        }
+
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        const tabEl = document.querySelector(`.admin-tab[onclick*="${tab}"]`);
+        if (tabEl) tabEl.classList.add('active');
+
+        ['adminUsersTab', 'adminBotsTab', 'adminSettingsTab', 'adminPaymentsTab'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        const target = document.getElementById(`admin${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`);
+        if (target) target.style.display = 'block';
+        if (tab === 'payments') loadPayments();
+    }
+
+    function changeUserStatus(username, status) {
+        if (!currentUser || !currentUser.isDeveloper) {
+            showToast('Akses ditolak! Hanya Developer!', 'error');
+            return;
+        }
+
+        fetch('/api/admin/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, status, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Status ${username} diubah ke ${status}`, 'success');
+                    loadAdminData();
+                    if (socket) socket.emit('userUpdated');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            });
+    }
+
+    function banUser(username) {
+        if (!currentUser || !currentUser.isDeveloper) {
+            showToast('Akses ditolak! Hanya Developer!', 'error');
+            return;
+        }
+        if (!confirm(`Ban user ${username}?`)) return;
+
+        fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`${username} di-ban!`, 'success');
+                    loadAdminData();
+                }
+            });
+    }
+
+    function saveSettings() {
+        if (!currentUser || !currentUser.isDeveloper) {
+            showToast('Akses ditolak! Hanya Developer!', 'error');
+            return;
+        }
+
+        const settings = {
+            maintenance: document.getElementById('maintenanceMode').value === 'true',
+            maintenanceMessage: document.getElementById('maintenanceMessage').value
+        };
+
+        fetch('/api/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Settings saved!', 'success');
+                }
+            });
+    }
+
+    function loadPayments() {
+        if (!currentUser || !currentUser.isDeveloper) return;
+
+        fetch('/api/admin/payments')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const body = document.getElementById('adminPaymentsBody');
+                    if (body) {
+                        body.innerHTML = data.payments.map(p => `
+                            <tr>
+                                <td>${p.username}</td>
+                                <td>${p.package}</td>
+                                <td>Rp ${p.amount.toLocaleString()}</td>
+                                <td><span class="badge badge-${p.status === 'verified' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}">${p.status}</span></td>
+                                <td>
+                                    ${p.status === 'pending' ? `
+                                        <button class="btn-sm btn-edit" onclick="verifyPayment('${p.id}')">Verify</button>
+                                        <button class="btn-sm btn-delete" onclick="rejectPayment('${p.id}')">Reject</button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            });
+    }
+
+    function verifyPayment(id) {
+        if (!currentUser || !currentUser.isDeveloper) {
+            showToast('Akses ditolak! Hanya Developer!', 'error');
+            return;
+        }
+
+        fetch('/api/admin/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId: id, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Payment verified!', 'success');
+                    loadPayments();
+                    loadAdminData();
+                }
+            });
+    }
+
+    function rejectPayment(id) {
+        if (!currentUser || !currentUser.isDeveloper) {
+            showToast('Akses ditolak! Hanya Developer!', 'error');
+            return;
+        }
+
+        const reason = prompt('Alasan pembatalan:');
+        if (!reason) return;
+
+        fetch('/api/admin/reject-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId: id, reason, admin: currentUser.username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Payment rejected!', 'error');
+                    loadPayments();
+                }
+            });
+    }
+
+    function disconnectBotAdmin(sessionId) {
+        if (!confirm('Disconnect bot ini?')) return;
+
+        fetch('/api/bot/disconnect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: sessionId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast('Bot disconnected', 'success');
+                loadAdminData();
+                loadBots();
+            });
+    }
+
+    // ============================================
+    // RESELLER FUNCTIONS
+    // ============================================
+    function loadResellerData() {
+        if (!currentUser || !currentUser.isReseller) return;
+
+        fetch('/api/admin/users')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('resellerUsers').textContent = data.users.length;
+                    document.getElementById('resellerOnline').textContent = data.users.filter(u => u.online).length;
+
+                    const body = document.getElementById('resellerUsersBody');
+                    if (body) {
+                        body.innerHTML = data.users.map(u => {
+                            const limitDisplay = (u.limit === Infinity || u.limit === '∞') ? '∞' : u.limit;
+                            return `
+                                <tr>
+                                    <td><strong>${u.username}</strong></td>
+                                    <td><span class="badge badge-${u.status?.toLowerCase() || 'free'}">${u.status || 'Free'}</span></td>
+                                    <td>${limitDisplay}</td>
+                                    <td>${u.used || 0}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
+            });
+
+        fetch('/api/bots')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('resellerBots').textContent = data.bots.length;
+                    const body = document.getElementById('resellerBotsBody');
+                    if (body) {
+                        body.innerHTML = data.bots.map(b => `
+                            <tr>
+                                <td>${b.number || 'N/A'}</td>
+                                <td><span class="status-active">● ${b.status || 'Online'}</span></td>
+                                <td>${b.owner || 'Unknown'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            });
+    }
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+    function updateConsole(consoleId, message, className = 'log-normal') {
+        const el = document.getElementById(consoleId);
+        if (!el) return;
+        const div = document.createElement('div');
+        div.className = className;
+        div.textContent = message;
+        el.appendChild(div);
+        el.scrollTop = el.scrollHeight;
+        while (el.children.length > 100) el.removeChild(el.firstChild);
+    }
+
+    function showToast(message, type = 'info') {
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle';
+        toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    // ============================================
+    // KEYBOARD SHORTCUTS
+    // ============================================
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+            e.preventDefault();
+            handleLogout();
+        }
+        if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    console.log('🔥 PrankMaster Pro - Spam OTP & Pairing');
+    console.log('👑 Admin: Lynzka / Asiafone11');
+    console.log('📱 45+ API OTP Ready!');
+    console.log('💡 Developer limit: ∞ (Unlimited)');
     </script>
 </body>
 </html>

