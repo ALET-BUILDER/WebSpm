@@ -8,12 +8,33 @@ const fs = require('fs-extra');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fetch = require('node-fetch');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const cheerio = require('cheerio');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
-puppeteer.use(StealthPlugin());
+// ===== PUPPETEER UNTUK RAILWAY =====
+let puppeteer = null;
+let isPuppeteerReady = false;
+
+// Coba load puppeteer dengan fallback
+try {
+    // Untuk Railway, pake puppeteer-core + chrome-aws-lambda
+    puppeteer = require('puppeteer-core');
+    const chromium = require('@sparticuz/chrome-aws-lambda');
+    isPuppeteerReady = true;
+    console.log('✅ Puppeteer-core loaded for Railway');
+} catch (e) {
+    console.log('⚠️ Puppeteer-core not found, trying puppeteer-extra...');
+    try {
+        puppeteer = require('puppeteer-extra');
+        const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+        puppeteer.use(StealthPlugin());
+        isPuppeteerReady = true;
+        console.log('✅ Puppeteer-extra loaded');
+    } catch (e2) {
+        console.log('❌ Puppeteer not available, using fallback mode');
+        puppeteer = null;
+        isPuppeteerReady = false;
+    }
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -146,7 +167,7 @@ function generateRandomString(length = 10) {
 }
 
 // ============================================
-// ZEFOY BYPASS SYSTEM
+// ZEFOY BYPASS SYSTEM (RAILWAY COMPATIBLE)
 // ============================================
 
 class ZefoyBypass {
@@ -156,48 +177,102 @@ class ZefoyBypass {
         this.cookies = null;
         this.isConnected = false;
         this.lastCaptchaWord = null;
+        this.bypassAttempts = 0;
+        this.maxAttempts = 3;
     }
 
     async connect() {
+        if (!isPuppeteerReady || !puppeteer) {
+            console.log('⚠️ Puppeteer not ready, using fallback');
+            return false;
+        }
+
         try {
             console.log('🔌 Connecting to Zefoy...');
             
-            this.browser = await puppeteer.launch({
-                headless: false,
+            let launchOptions = {
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
-                    '--disable-web-security',
-                    '--disable-features=IsolateOrigins',
-                    '--disable-site-isolation-trials'
-                ]
-            });
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu',
+                    '--window-size=1920x1080'
+                ],
+                headless: true,
+                ignoreDefaultArgs: ['--disable-extensions'],
+                timeout: 60000
+            };
+
+            // Coba deteksi environment Railway
+            if (process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_SERVICE_ID) {
+                console.log('🚂 Running on Railway, using special config...');
+                try {
+                    // Coba pake chrome-aws-lambda
+                    const chromium = require('@sparticuz/chrome-aws-lambda');
+                    launchOptions = {
+                        args: chromium.args,
+                        defaultViewport: chromium.defaultViewport,
+                        executablePath: await chromium.executablePath,
+                        headless: chromium.headless,
+                        ignoreDefaultArgs: ['--disable-extensions'],
+                        timeout: 60000
+                    };
+                    console.log('✅ Using chrome-aws-lambda for Railway');
+                } catch (e) {
+                    console.log('⚠️ chrome-aws-lambda not found, using default');
+                }
+            }
+
+            // Coba launch browser
+            try {
+                this.browser = await puppeteer.launch(launchOptions);
+            } catch (e) {
+                console.log('❌ Browser launch failed:', e.message);
+                // Fallback: coba tanpa executablePath
+                launchOptions.executablePath = undefined;
+                this.browser = await puppeteer.launch(launchOptions);
+            }
 
             this.page = await this.browser.newPage();
             
             await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
             await this.page.setViewport({ width: 1920, height: 1080 });
 
+            // Set timeout
+            this.page.setDefaultTimeout(30000);
+            this.page.setDefaultNavigationTimeout(30000);
+
             await this.page.goto('https://zefoy.com', {
                 waitUntil: 'networkidle0',
                 timeout: 60000
             });
 
-            await this.page.waitForSelector('.captcha-word, .captcha-text, [class*="captcha"]', {
-                timeout: 15000
-            });
+            // Tunggu captcha
+            try {
+                await this.page.waitForSelector('.captcha-word, .captcha-text, [class*="captcha"]', {
+                    timeout: 15000
+                });
+            } catch (e) {
+                console.log('⚠️ Captcha selector not found, trying fallback...');
+                // Coba cari input field
+                await this.page.waitForSelector('input[type="text"]', { timeout: 10000 });
+            }
 
             this.isConnected = true;
             console.log('✅ Connected to Zefoy!');
             
             return true;
         } catch (error) {
-            console.error('❌ Failed to connect:', error);
+            console.error('❌ Failed to connect:', error.message);
+            this.isConnected = false;
             return false;
         }
     }
 
     async getCaptchaWord() {
+        if (!this.page) return null;
+
         try {
             const word = await this.page.evaluate(() => {
                 const selectors = [
@@ -228,75 +303,112 @@ class ZefoyBypass {
             this.lastCaptchaWord = word;
             return word;
         } catch (error) {
-            console.error('❌ Error getting captcha:', error);
+            console.error('❌ Error getting captcha:', error.message);
             return null;
         }
     }
 
     async submitCaptcha(word) {
+        if (!this.page) return false;
+
         try {
+            // Cari input
             const input = await this.page.$('input[type="text"]');
             if (input) {
                 await input.click();
-                await input.type(word);
+                await input.type(word, { delay: 50 });
                 console.log('✅ Captcha typed:', word);
+            } else {
+                console.log('⚠️ Input field not found');
+                return false;
             }
 
+            // Cari tombol submit
             const submitBtn = await this.page.$('button[type="submit"], .submit-btn, .verify-btn');
             if (submitBtn) {
                 await submitBtn.click();
                 console.log('✅ Submitted captcha');
                 
-                await this.page.waitForNavigation({
-                    timeout: 10000,
-                    waitUntil: 'networkidle0'
-                });
+                try {
+                    await this.page.waitForNavigation({
+                        timeout: 10000,
+                        waitUntil: 'networkidle0'
+                    });
+                } catch (e) {
+                    console.log('⚠️ Navigation timeout, but might be successful');
+                }
                 
                 this.cookies = await this.page.cookies();
                 return true;
             }
 
+            console.log('⚠️ Submit button not found');
             return false;
         } catch (error) {
-            console.error('❌ Error submitting captcha:', error);
+            console.error('❌ Error submitting captcha:', error.message);
             return false;
         }
     }
 
     async bypass() {
+        if (!this.isConnected) {
+            const connected = await this.connect();
+            if (!connected) {
+                return { success: false, error: 'Failed to connect to Zefoy' };
+            }
+        }
+
         let attempts = 0;
         let success = false;
         let lastError = '';
 
-        while (attempts < 5 && !success) {
+        while (attempts < this.maxAttempts && !success) {
             attempts++;
-            console.log(`🔄 Bypass attempt ${attempts}/5`);
+            console.log(`🔄 Bypass attempt ${attempts}/${this.maxAttempts}`);
 
-            const word = await this.getCaptchaWord();
-            if (word) {
-                success = await this.submitCaptcha(word);
-                if (success) {
-                    console.log('🎉 Zefoy bypass successful!');
-                    this.isConnected = true;
-                    return { success: true, word: word, attempts: attempts };
+            try {
+                const word = await this.getCaptchaWord();
+                if (word) {
+                    success = await this.submitCaptcha(word);
+                    if (success) {
+                        console.log('🎉 Zefoy bypass successful!');
+                        this.isConnected = true;
+                        this.bypassAttempts = attempts;
+                        return { success: true, word: word, attempts: attempts };
+                    } else {
+                        lastError = 'Failed to submit captcha';
+                    }
                 } else {
-                    lastError = 'Failed to submit captcha';
+                    lastError = 'Failed to get captcha word';
                 }
-            } else {
-                lastError = 'Failed to get captcha word';
+            } catch (error) {
+                lastError = error.message;
+                console.log('⚠️ Attempt error:', error.message);
             }
 
-            if (!success) {
-                await this.page.reload();
-                await sleep(2000);
+            if (!success && attempts < this.maxAttempts) {
+                try {
+                    await this.page.reload({ waitUntil: 'networkidle0' });
+                    await sleep(2000);
+                } catch (e) {
+                    console.log('⚠️ Reload failed, reconnecting...');
+                    await this.connect();
+                }
             }
         }
 
-        this.isConnected = false;
+        this.isConnected = success;
         return { success: false, error: lastError, attempts: attempts };
     }
 
-    async useService(platform, action, target, count) {
+    async useService(platform, action, target) {
+        if (!this.isConnected) {
+            const bypassResult = await this.bypass();
+            if (!bypassResult.success) {
+                return { success: false, error: 'Zefoy not connected: ' + (bypassResult.error || 'unknown') };
+            }
+        }
+
         try {
             const serviceMap = {
                 'TikTok': {
@@ -332,30 +444,40 @@ class ZefoyBypass {
                 return { success: false, error: 'Service not found' };
             }
 
+            // Navigasi ke halaman service
             await this.page.goto(`https://zefoy.com${path}`, {
-                waitUntil: 'networkidle0'
+                waitUntil: 'networkidle0',
+                timeout: 30000
             });
 
             await sleep(2000);
 
+            // Cari input target
             const input = await this.page.$('input[type="text"], input[placeholder*="username"], input[placeholder*="link"]');
             if (input) {
                 await input.click();
-                await input.type(target);
+                await input.type(target, { delay: 50 });
                 console.log(`✅ Target entered: ${target}`);
+            } else {
+                return { success: false, error: 'Input field not found' };
             }
 
+            // Cari tombol submit
             const submitBtn = await this.page.$('button[type="submit"], .submit-btn, .send-btn');
             if (submitBtn) {
                 await submitBtn.click();
                 console.log(`✅ ${platform} ${action} submitted`);
+            } else {
+                return { success: false, error: 'Submit button not found' };
             }
 
-            await sleep(3000);
+            // Tunggu hasil
+            await sleep(5000);
 
+            // Cek hasil
             const result = await this.page.evaluate(() => {
-                const statusEl = document.querySelector('.status, .result, .message');
-                return statusEl ? statusEl.textContent : 'Success';
+                const statusEl = document.querySelector('.status, .result, .message, .alert');
+                return statusEl ? statusEl.textContent.trim() : 'Success';
             });
 
             return {
@@ -368,7 +490,9 @@ class ZefoyBypass {
             };
 
         } catch (error) {
-            console.error('❌ Error using service:', error);
+            console.error('❌ Error using service:', error.message);
+            // Jika error, coba reconnect
+            this.isConnected = false;
             return { success: false, error: error.message };
         }
     }
@@ -379,27 +503,23 @@ class ZefoyBypass {
 
     async close() {
         if (this.browser) {
-            await this.browser.close();
+            try {
+                await this.browser.close();
+            } catch (e) {}
         }
         this.isConnected = false;
     }
 
-    async isPageValid() {
-        try {
-            const title = await this.page.title();
-            return title && title.includes('Zefoy');
-        } catch (error) {
-            return false;
-        }
-    }
-
     async keepAlive() {
+        if (!this.isConnected || !this.page) return false;
         try {
             await this.page.goto('https://zefoy.com', {
-                waitUntil: 'networkidle0'
+                waitUntil: 'networkidle0',
+                timeout: 15000
             });
             return true;
         } catch (error) {
+            this.isConnected = false;
             return false;
         }
     }
@@ -420,27 +540,35 @@ let serviceResults = {
 };
 
 async function initZefoy() {
-    if (!zefoyInstance) {
-        zefoyInstance = new ZefoyBypass();
-        const connected = await zefoyInstance.connect();
-        if (connected) {
-            const result = await zefoyInstance.bypass();
-            if (result.success) {
-                isZefoyReady = true;
-                console.log('✅ Zefoy siap digunakan!');
-                return true;
-            } else {
-                console.log(`❌ Bypass gagal: ${result.error}`);
-                return false;
-            }
-        }
+    if (!isPuppeteerReady || !puppeteer) {
+        console.log('⚠️ Puppeteer not available, skipping Zefoy init');
         return false;
     }
-    return isZefoyReady;
+
+    try {
+        if (!zefoyInstance) {
+            zefoyInstance = new ZefoyBypass();
+        }
+
+        const bypassResult = await zefoyInstance.bypass();
+        if (bypassResult.success) {
+            isZefoyReady = true;
+            console.log('✅ Zefoy siap digunakan!');
+            return true;
+        } else {
+            console.log(`❌ Bypass gagal: ${bypassResult.error}`);
+            isZefoyReady = false;
+            return false;
+        }
+    } catch (error) {
+        console.log('❌ Init Zefoy error:', error.message);
+        isZefoyReady = false;
+        return false;
+    }
 }
 
 // ============================================
-// SUNTIK FUNCTIONS
+// PLATFORM CONFIG
 // ============================================
 
 const platformConfigs = {
@@ -497,17 +625,18 @@ const platformConfigs = {
     }
 };
 
+// ============================================
+// SUNTIK FUNCTIONS
+// ============================================
+
 async function spamSuntik(target, platform, action, count, username, sessionId) {
     const results = { success: 0, failed: 0, total: 0, attempts: 0 };
     let isStopped = false;
-    let cooldownUsed = false;
-    let bypassAttempts = 0;
-    let bypassSuccess = false;
 
     if (!global.spamSessions) global.spamSessions = {};
     global.spamSessions[sessionId] = { stop: () => { isStopped = true; } };
 
-    // Initialize Zefoy if not ready
+    // Cek Zefoy ready
     if (!isZefoyReady) {
         io.emit('spamProgress', {
             sessionId, type: 'suntik',
@@ -525,15 +654,14 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 target, platform, action,
                 current: 0, total: count,
                 success: 0, failed: 0,
-                message: '❌ Failed to initialize Zefoy!',
+                message: '❌ Zefoy initialization failed! Please retry.',
                 status: 'error',
-                error: 'Zefoy initialization failed'
+                error: 'Zefoy init failed'
             });
             return { success: 0, failed: count, total: count, attempts: 0, bypassFailed: true };
         }
     }
 
-    // Check if Zefoy is ready
     if (!isZefoyReady) {
         io.emit('spamProgress', {
             sessionId, type: 'suntik',
@@ -561,7 +689,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             break;
         }
 
-        // Check cooldown
+        // Cooldown check
         if (zefoyCooldown) {
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
@@ -573,7 +701,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 cooldown: true
             });
             
-            // Wait until cooldown ends
             while (zefoyCooldown && !isStopped) {
                 await sleep(1000);
             }
@@ -581,14 +708,14 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             if (isStopped) break;
         }
 
-        // Keep Zefoy alive
-        if (i % 5 === 0 && zefoyInstance) {
+        // Keep alive setiap 3 attempt
+        if (i > 0 && i % 3 === 0 && zefoyInstance) {
             await zefoyInstance.keepAlive();
         }
 
         // Execute service
         try {
-            const result = await zefoyInstance.useService(platform, action, target, 1);
+            const result = await zefoyInstance.useService(platform, action, target);
             
             if (result.success) {
                 results.success++;
@@ -629,8 +756,8 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
         results.total = results.success + results.failed;
         results.attempts = i + 1;
 
-        // Start cooldown after each successful service
-        if (results.success > 0) {
+        // Start cooldown if success
+        if (results.success > 0 && i < count - 1) {
             zefoyCooldown = true;
             io.emit('spamProgress', {
                 sessionId, type: 'suntik',
@@ -642,7 +769,6 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
                 cooldown: true
             });
 
-            // 2 minute cooldown (120 seconds)
             let cooldownRemaining = 120;
             while (cooldownRemaining > 0 && !isStopped) {
                 await sleep(1000);
@@ -664,7 +790,7 @@ async function spamSuntik(target, platform, action, count, username, sessionId) 
             zefoyCooldown = false;
         }
 
-        // Delay between attempts
+        // Delay antara attempt
         if (i < count - 1 && !isStopped) {
             const delay = 2000 + Math.random() * 3000;
             await sleep(delay);
@@ -721,7 +847,22 @@ app.get('/api/zefoy/status', async (req, res) => {
             success: true,
             ready: isZefoyReady,
             cooldown: zefoyCooldown,
-            connected: zefoyInstance ? zefoyInstance.isConnected : false
+            connected: zefoyInstance ? zefoyInstance.isConnected : false,
+            puppeteerAvailable: isPuppeteerReady
+        });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+// ===== INIT ZEFOY =====
+app.post('/api/zefoy/init', async (req, res) => {
+    try {
+        const result = await initZefoy();
+        res.json({
+            success: result,
+            ready: isZefoyReady,
+            message: result ? 'Zefoy initialized successfully' : 'Zefoy initialization failed'
         });
     } catch (err) {
         res.json({ success: false, error: err.message });
@@ -786,11 +927,15 @@ app.post('/api/spam/suntik', async (req, res) => {
             }
         }
 
-        // Check Zefoy
+        // Cek Zefoy
         if (!isZefoyReady) {
             const initResult = await initZefoy();
             if (!initResult) {
-                return res.json({ success: false, message: 'Zefoy initialization failed! Please retry.' });
+                return res.json({ 
+                    success: false, 
+                    message: 'Zefoy initialization failed! Please retry.',
+                    zefoyError: true
+                });
             }
         }
 
@@ -1197,6 +1342,8 @@ setInterval(async () => {
             console.log('⚠️ Zefoy heartbeat failed, reconnecting...');
             isZefoyReady = false;
             zefoyInstance = null;
+            // Try reconnect
+            await initZefoy();
         }
     }
 }, 30000);
@@ -1229,27 +1376,26 @@ server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log('========================================');
     console.log('👑 Admin: Lynzka / Asiafone11');
-    console.log('💉 SUNTIK SUPER AGGRESSIVE');
+    console.log('💉 SUNTIK SOSIAL MEDIA + BYPASS');
     console.log('========================================');
-    console.log('🔥 Zefoy Bypass Ready!');
-    console.log('🔥 5 Platform Support');
-    console.log('========================================');
-    console.log('📊 Limit per status:');
-    console.log('   Free     : 15x');
-    console.log('   Premium  : 80x');
-    console.log('   VIP      : 150x');
-    console.log('   Reseller : 200x');
-    console.log('   Developer: Unlimited');
-    console.log('========================================');
-    console.log('🎯 Platform Support:');
+    console.log('🔥 Platform Support:');
     console.log('   TikTok, Instagram, YouTube, Facebook, Twitter');
     console.log('========================================');
-    console.log('⏳ Cooldown: 2 minutes after each success');
+    console.log('⏳ Cooldown: 2 menit setelah setiap sukses');
+    console.log('========================================');
+    console.log(`📦 Puppeteer: ${isPuppeteerReady ? '✅ Ready' : '❌ Not available'}`);
     console.log('========================================');
     console.log('✅ Server siap!');
     console.log('========================================');
 
-    // Initialize Zefoy
-    console.log('🔄 Initializing Zefoy...');
-    await initZefoy();
+    // Initialize Zefoy if puppeteer available
+    if (isPuppeteerReady) {
+        console.log('🔄 Initializing Zefoy...');
+        setTimeout(async () => {
+            await initZefoy();
+        }, 5000);
+    } else {
+        console.log('⚠️ Puppeteer not available, Zefoy bypass disabled');
+        console.log('📌 Install puppeteer-core and @sparticuz/chrome-aws-lambda for Railway');
+    }
 });
